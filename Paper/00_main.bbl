@@ -1,0 +1,115 @@
+\begin{thebibliography}{}
+
+\bibitem [\protect \citeauthoryear {%
+Devroye%
+, Lerasle%
+, Lugosi%
+\BCBL {}\ \BBA {} Oliveira%
+}{%
+Devroye%
+\ \protect \BOthers {.}}{%
+{\protect \APACyear {2016}}%
+}]{%
+devroye2016sub}
+\APACinsertmetastar {%
+devroye2016sub}%
+\begin{APACrefauthors}%
+Devroye, L.%
+, Lerasle, M.%
+, Lugosi, G.%
+\BCBL {}\ \BBA {} Oliveira, R\BPBI I.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2016}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {Sub-Gaussian mean estimators} {Sub-gaussian mean
+  estimators}.{\BBCQ}
+\newblock
+
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Jerrum%
+, Valiant%
+\BCBL {}\ \BBA {} Vazirani%
+}{%
+Jerrum%
+\ \protect \BOthers {.}}{%
+{\protect \APACyear {1986}}%
+}]{%
+jerrum1986random}
+\APACinsertmetastar {%
+jerrum1986random}%
+\begin{APACrefauthors}%
+Jerrum, M\BPBI R.%
+, Valiant, L\BPBI G.%
+\BCBL {}\ \BBA {} Vazirani, V\BPBI V.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{1986}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {Random generation of combinatorial structures from a
+  uniform distribution} {Random generation of combinatorial structures from a
+  uniform distribution}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Theoretical computer science}{43}{}{169--188}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Lugosi%
+\ \BBA {} Mendelson%
+}{%
+Lugosi%
+\ \BBA {} Mendelson%
+}{%
+{\protect \APACyear {2019}}%
+}]{%
+lugosi2019mean}
+\APACinsertmetastar {%
+lugosi2019mean}%
+\begin{APACrefauthors}%
+Lugosi, G.%
+\BCBT {}\ \BBA {} Mendelson, S.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2019}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {Mean estimation and regression under heavy-tailed
+  distributions: A survey} {Mean estimation and regression under heavy-tailed
+  distributions: A survey}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Foundations of Computational
+  Mathematics}{19}{5}{1145--1190}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Nemirovskij%
+\ \BBA {} Yudin%
+}{%
+Nemirovskij%
+\ \BBA {} Yudin%
+}{%
+{\protect \APACyear {1983}}%
+}]{%
+nemirovskij1983problem}
+\APACinsertmetastar {%
+nemirovskij1983problem}%
+\begin{APACrefauthors}%
+Nemirovskij, A\BPBI S.%
+\BCBT {}\ \BBA {} Yudin, D\BPBI B.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{1983}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {Problem complexity and method efficiency in
+  optimization} {Problem complexity and method efficiency in
+  optimization}.{\BBCQ}
+\newblock
+
+\PrintBackRefs{\CurrentBib}
+
+\end{thebibliography}

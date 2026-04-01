@@ -1,0 +1,83 @@
+\documentclass[a4paper,11pt]{article}
+
+% FILL OUT THE DETAILS BELOW:
+\author{David von Schledorn Márquez}
+\title{Median-of-Means Two-Stage Least Squares Regression}
+%\date{An optional custom date, the default is today}
+\newcommand{\studentnumber}{597334}
+\newcommand{\program}{Econometrics and Management Science - Business Analytics and Quantitative Marketing}
+\newcommand{\supervisor}{Mikhail Zhelonkin}
+\newcommand{\secondassesor}{-}
+
+\usepackage[british]{babel} % Use British English
+\usepackage[onehalfspacing]{setspace} % Increase line spacing
+\usepackage[margin=2.5cm]{geometry} % Modify margins
+\usepackage{graphicx, booktabs}
+\usepackage{amsmath, amsfonts, amssymb, amsthm, mathtools}
+\usepackage{hyperref}
+\usepackage[natbibapa]{apacite}
+\usepackage[ruled, vlined]{algorithm2e}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\DeclareMathOperator{\med}{median}
+\newcommand{\E}[1][]{\mathbb{E}\ifx&#1&\else\!\left[#1\right]\fi}
+\newcommand{\Var}[1][]{\mathrm{Var}\ifx&#1&\else\!\left[#1\right]\fi}
+\newcommand{\Cov}[1][]{\mathrm{Cov}\ifx&#1&\else\!\left[#1\right]\fi}
+\newcommand{\Prob}[1][]{\mathbb{P}\ifx&#1&\else\!\left(#1\right)\fi}
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\norm}[1]{\left\|#1\right\|}
+
+
+\begin{document}
+
+\begin{titlepage}
+\makeatletter
+\begin{center}
+	\textsc{Erasmus University Rotterdam}
+	\par \textsc{Erasmus School of Economics}
+	\par Master's Thesis \program
+
+	\vfill \hrule height .08em \bigskip
+	\par\huge\@title\bigskip
+	\par\Large\@author\,(\studentnumber)\bigskip
+	\hrule height .08em\normalsize
+	
+	\vfill
+	\includegraphics[width=\textwidth,height=0.15\textheight,keepaspectratio]{images/eur/eur.png} % The EUR logo, but this could also be another image
+	\vfill
+	
+	\begin{tabular}{ll}
+		\toprule
+		Supervisor: & \supervisor\\
+		Second assessor: & \secondassesor\\
+		Date final version: & -\\
+		\bottomrule
+	\end{tabular}
+	
+	\vfill
+	The views stated in this thesis are those of the author and not necessarily those of the supervisor, second assessor, Erasmus School of Economics or Erasmus University Rotterdam.
+\end{center}
+\makeatother
+\end{titlepage}
+
+\begin{abstract}
+	Abstract
+\end{abstract}
+
+\input{introduction}
+\input{mom}
+\input{2sls}
+
+\newpage
+
+\bibliographystyle{apacite} 
+\bibliography{MyReferencesFile} % References are stored in MyReferencesFile.bib
+
+
+
+
+\end{document}

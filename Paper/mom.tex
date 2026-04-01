@@ -1,0 +1,68 @@
+\section{Median-of-Means (MoM) Estimator}
+The following sections are adapted from \cite{devroye2016sub} and \cite{lugosi2019mean}
+
+
+\subsection{Sub-Gaussian Estimators}
+\begin{definition}{Sub-Gaussian Estimators}
+Let $(X_i)_{i=1}^{n}$ be a random sample with $\E[X_i] = \mu$ and $\Var[X_i] = \sigma^2$, and let $\bar{\mu}(X)$ denote an estimator for $\mu$. For some constant $L > 0$, $\bar{\mu}(X)$ is said to be a sub-Gaussian estimator for $\mu$ if 
+\begin{equation}
+\label{eq:subgaussian}
+    \Prob[\abs{\bar{\mu}(X) - \mu} > L\sigma \sqrt{\frac{\ln(1/\delta)}{n}}] \leq \delta \quad \text{for all } \delta \in (0,1).
+\end{equation}
+\end{definition}
+
+\subsection{The Empirical Mean Estimator}
+Let $(X_i)_{i=1}^{n}$ be a random sample with $\E[X_i] = \mu$ and $\Var[X_i] = \sigma^2 < \infty$. 
+The empirical mean is defined as
+\[
+\bar{\mu} = \frac{1}{n}\sum_{i=1}^{n} X_i.
+\]
+By the Central Limit Theorem,
+\[
+\sqrt{n}(\bar{\mu} - \mu) \overset{d}{\to} \mathcal{N}(0, \sigma^2),
+\]
+which implies that for any fixed $\delta \in (0,1)$,
+\[
+\Prob[\abs{\bar{\mu} - \mu} > \frac{\sigma \Phi^{-1}(1-\delta/2)}{\sqrt{n}}] \to \delta 
+\quad \text{as } n \to \infty.
+\]
+Using the bound $\Phi^{-1}(1-\delta/2) \leq \sqrt{2\ln(2/\delta)}$, it follows that 
+\[
+\lim_{n \to \infty} \Prob[\abs{\bar{\mu} - \mu} > \sigma\sqrt{\frac{2\ln(2/\delta)}{n}}] \leq \delta,
+\]
+so $\bar{\mu}$ is an asymptotically sub-Gaussian estimator in the sense of \eqref{eq:subgaussian} with constant $L = \sqrt{2}$.
+
+While $\bar{\mu}$ is asymptotically sub-Gaussian, it is not a sub-Gaussian estimator for finite samples; Chebyshev's inequality gives 
+\[
+\Prob[\abs{\bar{\mu} - \mu} > \sigma\sqrt{\frac{1}{n\delta}}] \leq \delta
+\]
+shows that the dependence on $\delta$ is polynomial rather than logarithmic, 
+which is substantially worse than \eqref{eq:subgaussian} for small $\delta$. As such, the empirical mean is insufficient as a sub-Gaussian estimator for random variables with only finite first and second moments.
+
+\subsection{The Median-of-Means Estimator}
+The median-of-means (MoM) estimator is not new, being proposed in various forms, first by \cite{nemirovskij1983problem} and \cite{jerrum1986random}. The algorithm works as follows
+
+\begin{algorithm}[H]
+\caption{Median-of-Means Estimator}
+\KwIn{Sample $(X_i)_{i=1}^{n}$, number of blocks $k$}
+\KwOut{Estimate $\hat{\mu}$}
+
+Partition $(X_i)_{i=1}^{n}$ into $k$ blocks $B_1, \dots, B_k$ of size $m = \lfloor n/k \rfloor$\;
+
+\For{$j = 1, \dots, k$}{
+    Compute the block mean $\bar{\mu}_j = \frac{1}{m}\sum_{i \in B_j} X_i$\;
+}
+
+\Return{$\hat{\mu} = \med(\bar{\mu}_1, \dots, \bar{\mu}_k)$}\;
+\end{algorithm}
+
+The MoM estimator satisfies
+\[
+    \Prob[\abs{\hat{\mu} - \mu} > \sigma\sqrt{\frac{4}{m}}] \leq e^{-k/8},
+\]
+and setting $k = \lceil 8\ln(1/\delta) \rceil$, this becomes
+\begin{equation}
+    \Prob[\abs{\hat{\mu} - \mu} > \sigma\sqrt{\frac{32\ln(1/\delta)}{n}}] \leq \delta 
+    \quad \text{for all } \delta \in (0,1)
+\end{equation}
+which is sub-Gaussian with $L = \sqrt{32}$

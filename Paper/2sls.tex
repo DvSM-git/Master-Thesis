@@ -1,0 +1,74 @@
+
+\section{Median-of-Means Two-Stage Least Squares (MoM-2SLS)}
+We first explore the MoM estimator in a univariate setting, with one instrument and one variable.
+
+\subsection{Univariate MoM-2SLS}
+
+In the univariate setting, the 2SLS estimator collapses to the Wald/IV estimator
+\[
+\hat{\beta}_{IV}=\frac{\sum_{i=1}^{n}Z_iY_i}{\sum_{i=1}^{n}Z_iX_i} = \frac{\bar{S}_{ZY}}{\bar{S}_{ZX}}.
+\]
+This is a ratio of two sample means. To solve this, we can utilise two MoM-type estimators. The first replaces each sample mean with its MoM counterpart; we call this the ratio-of-medians estimator. The second returns the median of the Wald/IV estimate of each block, we call this the median-of-ratios estimator. 
+
+\subsection{Setup}
+Let $(Y_i, X_i, Z_i)_{i=1}^{n}$ be an i.i.d.\ random sample satisfying the structural equation 
+\[
+    Y_i = \beta X_i + \varepsilon_i,
+\]
+where $\E[Z_i\varepsilon_i] = 0$ (exogeneity) and $\mu_{ZX} := \E[Z_iX_i] \neq 0$ (relevance). Define
+\[
+    \mu_{ZY} := \E[Z_iY_i], \quad 
+    \sigma_{ZY}^2 := \Var(Z_iY_i), \quad 
+    \sigma_{ZX}^2 := \Var(Z_iX_i), \quad 
+    \sigma_{Z\varepsilon}^2 := \Var(Z_i\varepsilon_i),
+\]
+all assumed finite. Both estimators partition the sample into $k$ blocks $B_1, \dots, B_k$ of size $m = \lfloor n/k \rfloor$ and compute block means 
+\[
+    \hat{S}_{ZY}^{(j)} = \frac{1}{m}\sum_{i \in B_j} Z_iY_i, \qquad \hat{S}_{ZX}^{(j)} = \frac{1}{m}\sum_{i \in B_j} Z_iX_i.
+\]
+They differ only in how the block-level quantities are aggregated.
+
+\subsection{The Two Estimators}
+ 
+\begin{definition}[Ratio-of-Medians (RoM)]
+\[
+    \hat{\beta}_{\mathrm{RoM}} = \frac{\widetilde{S}_{ZY}}{\widetilde{S}_{ZX}}, \qquad \text{where } \widetilde{S}_{ZY} = \med_j(\hat{S}_{ZY}^{(j)}), \quad \widetilde{S}_{ZX} = \med_j(\hat{S}_{ZX}^{(j)}).
+\]
+The medians are taken separately and the ratio is formed afterwards.
+\end{definition}
+ 
+\begin{definition}[Median-of-Ratios (MoR)]
+\[
+    \hat{\beta}_{\mathrm{MoR}} = \med_j\!\left(\hat{\beta}^{(j)}\right), \qquad \text{where } \hat{\beta}^{(j)} = \frac{\hat{S}_{ZY}^{(j)}}{\hat{S}_{ZX}^{(j)}}.
+\]
+The ratio is formed within each block and the median is taken over the block-level estimates.
+\end{definition}
+
+The proofs for these results can be found in the tablet notes.
+
+\subsection{Comparison of the Two Estimators}
+
+\subsubsection{Effective Variance}
+The RoM bound has $\sigma_{ZY} + |\beta|\sigma_{ZX}$ in the numerator while the MoR has $\sigma_{Z\varepsilon}$. Using $Z_iY_i = \beta Z_iX_i + Z_i\varepsilon_i$, it can be shown that
+\[
+    \sigma_{Z\varepsilon} \leq \sigma_{ZY} + |\beta|\sigma_{ZX}.
+\]
+Thus, the MoR bound is tighter. The proof is found in the tablet notes.
+
+\subsubsection{Number of Blocks}
+The RoM requires $k = \lceil 8\ln(2/\delta) \rceil$ while the Mor requires $k = \lceil 8\ln(1/\delta) \rceil$. The difference is the factor $\ln(2/\delta)$ versus $\ln(1/\delta)$, which amounts to an additive constant $8\ln 2 \approx 5.5$ in $k$.
+
+\subsubsection{Instrument Strength Condition}
+The most interesting result is the existence of an instrument strength condition for the guarantee of sub-Gaussian bounds.
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+ & Ratio-of-Medians & Median-of-Ratios \\
+\midrule
+Condition on $m$ & $m > 4\sigma_{ZX}^2/\mu_{ZX}^2$ & $m \geq 32\sigma_{ZX}^2/\mu_{ZX}^2$ \\[4pt]
+Minimum $n$ & $\dfrac{32\sigma_{ZX}^2}{\mu_{ZX}^2}\ln(2/\delta)$ & $\dfrac{256\sigma_{ZX}^2}{\mu_{ZX}^2}\ln(1/\delta)$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The MoR condition is eight times stronger
