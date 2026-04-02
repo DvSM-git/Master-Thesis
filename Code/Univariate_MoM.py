@@ -1,18 +1,15 @@
 """
 Simulation Study: Median-of-Means Two-Stage Least Squares Regression
 =====================================================================
-Tests the theoretical claims in "Median-of-Means Two-Stage Least Squares Regression"
+Tests the theoretical claims from the MoM-IV theorems.
 
-Claims tested:
-  1. MoM mean estimator achieves sub-Gaussian tail bounds (eq. 2, L = sqrt(32))
-     vs empirical mean's Chebyshev-type bounds (polynomial in delta)
-  2. RoM and MoR are consistent estimators of beta under heavy-tailed errors
-  3. MoR has tighter effective variance: sigma_Ze <= sigma_ZY + |beta|*sigma_ZX
-  4. Instrument strength conditions:
-       RoM: m > 4 * sigma^2_ZX / mu^2_ZX
-       MoR: m >= 32 * sigma^2_ZX / mu^2_ZX
-  5. Block count difference: RoM needs k = ceil(8*ln(2/delta)),
-                             MoR needs k = ceil(8*ln(1/delta))
+Key improvements over initial version:
+  - Correct theoretical thresholds from the actual theorems
+  - Empirical survival function comparison (the core plot)
+  - Coverage study using actual confidence intervals
+  - Proper RNG handling for reproducibility
+  - Unclipped quantile-based comparisons
+  - Both Pareto and Student-t DGPs
 """
 
 import numpy as np
@@ -20,9 +17,9 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from scipy.stats import pareto, t as t_dist
 import warnings
+import os
 
 warnings.filterwarnings("ignore")
-rng = np.random.default_rng(42)
 
 # ─────────────────────────────────────────────
 # Core estimators
@@ -32,6 +29,8 @@ def mom_mean(x, k):
     """Median-of-Means estimator for the mean of x using k blocks."""
     n = len(x)
     m = n // k
+    if m == 0:
+        return np.median(x)
     block_means = [x[j * m:(j + 1) * m].mean() for j in range(k)]
     return np.median(block_means)
 
@@ -43,7 +42,10 @@ def rom_estimator(Y, X, Z, k):
     """
     ZY = Z * Y
     ZX = Z * X
-    return mom_mean(ZY, k) / mom_mean(ZX, k)
+    denom = mom_mean(ZX, k)
+    if abs(denom) < 1e-15:
+        return np.nan
+    return mom_mean(ZY, k) / denom
 
 
 def mor_estimator(Y, X, Z, k):
@@ -53,598 +55,608 @@ def mor_estimator(Y, X, Z, k):
     """
     n = len(Y)
     m = n // k
+    if m == 0:
+        return np.nan
     ZY = Z * Y
     ZX = Z * X
     ratios = []
     for j in range(k):
         sl = slice(j * m, (j + 1) * m)
         szx = ZX[sl].mean()
-        if szx != 0:
+        if abs(szx) > 1e-15:
             ratios.append(ZY[sl].mean() / szx)
+    if len(ratios) == 0:
+        return np.nan
     return np.median(ratios)
 
 
 def iv_estimator(Y, X, Z):
     """Standard IV / Wald estimator."""
-    return (Z @ Y) / (Z @ X)
+    denom = Z @ X
+    if abs(denom) < 1e-15:
+        return np.nan
+    return (Z @ Y) / denom
 
 
 # ─────────────────────────────────────────────
 # DGP
 # ─────────────────────────────────────────────
 
-def generate_data(n, beta, mu_ZX, sigma_ZX, error_dist="pareto", alpha_tail=2.1, rng=rng):
+def generate_data(n, beta, mu_ZX, sigma_v, error_dist="pareto",
+                  alpha_tail=2.1, df_student=3.0, rng=None):
     """
     DGP:  Y = beta*X + eps
-          Z is the instrument with E[ZX] = mu_ZX
-          E[Z*eps] = 0  (exogeneity)
+          X = mu_ZX * Z + v
+          Z ~ {-1, +1} uniform (symmetric, E[Z]=0, E[Z^2]=1)
+          v, eps independent of Z
 
-    Z ~ Bernoulli(0.5) shifted to {-1, +1}
-    X = mu_ZX * Z + v,   v independent of Z
-    eps independent of Z (heavy-tailed)
+    Parameters
+    ----------
+    sigma_v : std dev of v (controls Var(ZX) via Var(ZX) = mu_ZX^2 * Var(Z^2) + Var(Zv))
     """
+    if rng is None:
+        rng = np.random.default_rng()
+
     Z = rng.choice([-1.0, 1.0], size=n)
 
     if error_dist == "pareto":
-        # Pareto with finite variance (alpha > 2)
-        eps = (pareto.rvs(alpha_tail, size=n, random_state=rng) - alpha_tail / (alpha_tail - 1))
-        v   = (pareto.rvs(alpha_tail, size=n, random_state=rng) - alpha_tail / (alpha_tail - 1))
+        raw_eps = pareto.rvs(alpha_tail, size=n, random_state=rng)
+        eps = raw_eps - alpha_tail / (alpha_tail - 1)  # center at zero
+        raw_v = pareto.rvs(alpha_tail, size=n, random_state=rng)
+        v = raw_v - alpha_tail / (alpha_tail - 1)
     elif error_dist == "student":
-        df = 3.0   # finite variance, heavy tails
-        eps = t_dist.rvs(df, size=n, random_state=rng)
-        v   = t_dist.rvs(df, size=n, random_state=rng)
-    else:  # Gaussian baseline
+        eps = t_dist.rvs(df_student, size=n, random_state=rng)
+        v = t_dist.rvs(df_student, size=n, random_state=rng)
+    else:  # Gaussian
         eps = rng.standard_normal(n)
-        v   = rng.standard_normal(n)
+        v = rng.standard_normal(n)
 
-    # Scale v so Var(ZX) ~ sigma_ZX^2
-    v *= sigma_ZX
-
+    v *= sigma_v
     X = mu_ZX * Z + v
     Y = beta * X + eps
     return Y, X, Z
 
 
-# ─────────────────────────────────────────────
-# STUDY 1 – Sub-Gaussian tail bound for MoM mean estimator
-# ─────────────────────────────────────────────
-# Claim: P(|mu_hat - mu| > sigma * sqrt(32*ln(1/delta)/n)) <= delta  (eq. 2)
-# We verify this empirically: for many delta values, the empirical exceedance
-# probability should stay below delta.
+def estimate_population_quantities(beta, mu_ZX, sigma_v, error_dist="pareto",
+                                    alpha_tail=2.1, df_student=3.0, n_large=500000):
+    """Estimate sigma_ZX, sigma_ZY, sigma_Ze from a very large sample."""
+    rng_pop = np.random.default_rng(999)
+    Y, X, Z = generate_data(n_large, beta, mu_ZX, sigma_v,
+                             error_dist=error_dist, alpha_tail=alpha_tail,
+                             df_student=df_student, rng=rng_pop)
+    eps = Y - beta * X
+    sigma_ZX = np.std(Z * X, ddof=1)
+    sigma_ZY = np.std(Z * Y, ddof=1)
+    sigma_Ze = np.std(Z * eps, ddof=1)
+    mu_ZX_emp = np.mean(Z * X)
+    return {
+        "sigma_ZX": sigma_ZX, "sigma_ZY": sigma_ZY, "sigma_Ze": sigma_Ze,
+        "mu_ZX": mu_ZX_emp
+    }
 
-def study1_mom_tail_bound(n=2000, n_trials=5000, alpha_tail=2.1):
-    """
-    Compare empirical tail probabilities of:
-      - empirical mean
-      - MoM with k = ceil(8*ln(1/delta))
-    against their theoretical bounds.
-    """
+
+# ═══════════════════════════════════════════════
+# STUDY 1: Empirical survival function comparison
+# ═══════════════════════════════════════════════
+# This is the CORE plot: P(|beta_hat - beta| > t) as a function of t
+# for IV, RoM, MoR, overlaid with theoretical bounds.
+
+def study1_survival_function(beta=2.0, n=2000, mu_ZX=1.0, sigma_v=0.8,
+                              error_dist="pareto", alpha_tail=2.1,
+                              n_trials=10000, seed=42):
     print("\n" + "=" * 60)
-    print("STUDY 1: Sub-Gaussian tail bound for MoM mean estimator")
+    print("STUDY 1: Empirical survival functions")
     print("=" * 60)
 
+    rng = np.random.default_rng(seed)
+
+    # Prescribed k for delta ~ 0.05 (but we plot the full survival function)
+    k_rom = 16
+    k_mor = 16
+
+    # Collect estimates
+    iv_errors = []
+    rom_errors = []
+    mor_errors = []
+
+    for _ in range(n_trials):
+        Y, X, Z = generate_data(n, beta, mu_ZX, sigma_v,
+                                 error_dist=error_dist, alpha_tail=alpha_tail, rng=rng)
+        iv_est = iv_estimator(Y, X, Z)
+        rom_est = rom_estimator(Y, X, Z, k_rom)
+        mor_est = mor_estimator(Y, X, Z, k_mor)
+
+        if not np.isnan(iv_est):
+            iv_errors.append(abs(iv_est - beta))
+        if not np.isnan(rom_est):
+            rom_errors.append(abs(rom_est - beta))
+        if not np.isnan(mor_est):
+            mor_errors.append(abs(mor_est - beta))
+
+    iv_errors = np.sort(iv_errors)
+    rom_errors = np.sort(rom_errors)
+    mor_errors = np.sort(mor_errors)
+
+    # Population quantities for theoretical bounds
+    pop = estimate_population_quantities(beta, mu_ZX, sigma_v,
+                                          error_dist=error_dist, alpha_tail=alpha_tail)
+    sigma_Ze = pop["sigma_Ze"]
+    sigma_ZX = pop["sigma_ZX"]
+    sigma_ZY = pop["sigma_ZY"]
+    mu_zx = pop["mu_ZX"]
+
+    m = n // k_mor
+
+    print(f"  n={n}, k={k_mor}, m={m}")
+    print(f"  sigma_Ze={sigma_Ze:.4f}, sigma_ZX={sigma_ZX:.4f}, mu_ZX={mu_zx:.4f}")
+    print(f"  IV trials: {len(iv_errors)}, RoM: {len(rom_errors)}, MoR: {len(mor_errors)}")
+
+    # Theoretical bounds as functions of t
+    # Standard IV (Chebyshev): P(|beta_IV - beta| > t) <= 4*sigma_Ze^2/(n*t^2*mu_ZX^2)
+    #   + 4*sigma_ZX^2/(n*mu_ZX^2)   [denominator event, constant]
+    # MoR: P(|beta_MoR - beta| > t) <= exp(-k/8) when t = 4*sqrt(2)*sigma_Ze/(|mu_ZX|*sqrt(m))
+
+    t_grid = np.linspace(0.01, np.percentile(iv_errors, 99), 500)
+
+    # IV Chebyshev bound: from the two-event decomposition
+    # P(error > t) <= 4*sigma_ZX^2/(n*mu_zx^2) + 4*sigma_Ze^2/(n*t^2*mu_zx^2)
+    iv_theory = (4 * sigma_ZX**2 / (n * mu_zx**2)
+                 + 4 * sigma_Ze**2 / (n * t_grid**2 * mu_zx**2))
+    iv_theory = np.clip(iv_theory, 0, 1)
+
+    # MoR bound: for each t, the required k is determined by the Chebyshev step
+    # The bound is: P(error > t) <= exp(-k/8)
+    # where the threshold t = 4*sqrt(2)*sigma_Ze / (|mu_ZX|*sqrt(m))
+    # Inverting: for a given t, the bound holds when the per-block
+    # failure prob is <= 1/4, which requires m >= 32*sigma_Ze^2/(t^2*mu_zx^2)
+    # and m >= 32*sigma_ZX^2/mu_zx^2
+    # The failure probability is e^{-k/8}
+    mor_theory = np.full_like(t_grid, np.exp(-k_mor / 8))
+
+    return {
+        "iv_errors": iv_errors, "rom_errors": rom_errors, "mor_errors": mor_errors,
+        "t_grid": t_grid, "iv_theory": iv_theory, "mor_theory": mor_theory,
+        "pop": pop, "k": k_mor, "m": m, "n": n
+    }
+
+
+# ═══════════════════════════════════════════════
+# STUDY 2: Coverage of theoretical confidence intervals
+# ═══════════════════════════════════════════════
+# For each delta, compute the theoretical CI width and check empirical coverage.
+
+def study2_coverage(beta=2.0, n=2000, mu_ZX=1.0, sigma_v=0.8,
+                    error_dist="pareto", alpha_tail=2.1,
+                    n_trials=8000, seed=123):
+    print("\n" + "=" * 60)
+    print("STUDY 2: Coverage of theoretical confidence intervals")
+    print("=" * 60)
+
+    rng = np.random.default_rng(seed)
     deltas = np.array([0.30, 0.20, 0.10, 0.05, 0.02, 0.01])
 
-    # Generate many samples from Pareto (heavy-tailed, finite variance)
-    mu = 0.0
-    samples = np.array([
-        pareto.rvs(alpha_tail, size=n, random_state=rng) - alpha_tail / (alpha_tail - 1)
-        for _ in range(n_trials)
-    ])  # shape (n_trials, n),  mean=0, Var ~ finite
+    pop = estimate_population_quantities(beta, mu_ZX, sigma_v,
+                                          error_dist=error_dist, alpha_tail=alpha_tail)
+    sigma_Ze = pop["sigma_Ze"]
+    sigma_ZX = pop["sigma_ZX"]
+    sigma_ZY = pop["sigma_ZY"]
+    mu_zx = pop["mu_ZX"]
 
-    # Empirical sigma
-    sigma_emp = np.std(samples)
+    print(f"  n={n}, sigma_Ze={sigma_Ze:.4f}, sigma_ZX={sigma_ZX:.4f}, mu_ZX={mu_zx:.4f}")
+    print()
+    print(f"  {'delta':>6}  {'k_MoR':>6}  {'m':>5}  "
+          f"{'IV width':>10}  {'MoR width':>10}  "
+          f"{'IV cover':>10}  {'MoR cover':>10}  "
+          f"{'IV ok':>6}  {'MoR ok':>6}")
 
-    results = {"delta": deltas,
-               "mean_exceed": [],
-               "mom_exceed": [],
-               "mean_bound": [],
-               "mom_bound": []}
-
+    results = []
     for delta in deltas:
-        k = int(np.ceil(8 * np.log(1 / delta)))
+        # MoR: k = ceil(8*ln(1/delta)), threshold = 4*sqrt(2)*sigma_Ze/(|mu_ZX|*sqrt(m))
+        k_mor = int(np.ceil(8 * np.log(1 / delta)))
+        m_mor = n // k_mor
 
-        # MoM threshold (eq. 2, L = sqrt(32))
-        mom_thresh = sigma_emp * np.sqrt(32 * np.log(1 / delta) / n)
-        # Chebyshev threshold for empirical mean  P(|mu_bar - mu| > t) <= sigma^2/(n*t^2)
-        # Inverted: for the same delta, threshold = sigma / sqrt(n*delta)
-        mean_thresh = sigma_emp / np.sqrt(n * delta)
+        # MoR theoretical width (from Theorem 2)
+        mor_width = 4 * np.sqrt(2) * sigma_Ze / (abs(mu_zx) * np.sqrt(m_mor))
 
-        # Empirical mean exceedance
-        emp_means = samples.mean(axis=1)
-        mean_exceed = np.mean(np.abs(emp_means - mu) > mean_thresh)
+        # Standard IV theoretical width (from Theorem in standard_iv.tex, equal split)
+        # t = 2*sqrt(2)*sigma_Ze / (|mu_ZX|*sqrt(delta*n))
+        iv_width = 2 * np.sqrt(2) * sigma_Ze / (abs(mu_zx) * np.sqrt(delta * n))
 
-        # MoM exceedance
-        mom_estimates = np.array([mom_mean(samples[i], k) for i in range(n_trials)])
-        mom_exceed = np.mean(np.abs(mom_estimates - mu) > mom_thresh)
+        # Simulate
+        iv_covered = 0
+        mor_covered = 0
+        iv_valid = 0
+        mor_valid = 0
 
-        results["mean_exceed"].append(mean_exceed)
-        results["mom_exceed"].append(mom_exceed)
-        results["mean_bound"].append(delta)   # Chebyshev bound IS delta by construction
-        results["mom_bound"].append(delta)    # theoretical guarantee
+        for _ in range(n_trials):
+            Y, X, Z = generate_data(n, beta, mu_ZX, sigma_v,
+                                     error_dist=error_dist, alpha_tail=alpha_tail, rng=rng)
 
-        print(f"  delta={delta:.2f} | k={k:2d} | "
-              f"Mean exceed={mean_exceed:.4f} (bound={delta:.2f}) | "
-              f"MoM  exceed={mom_exceed:.4f} (bound={delta:.2f})")
+            iv_est = iv_estimator(Y, X, Z)
+            mor_est = mor_estimator(Y, X, Z, k_mor)
 
-    # Key check: MoM empirical exceedance <= delta?
-    mom_ok = all(e <= d + 0.02 for e, d in zip(results["mom_exceed"], deltas))
-    print(f"\n  [CHECK] MoM sub-Gaussian bound holds (within 2% tolerance): {mom_ok}")
+            if not np.isnan(iv_est):
+                iv_valid += 1
+                if abs(iv_est - beta) <= iv_width:
+                    iv_covered += 1
+
+            if not np.isnan(mor_est):
+                mor_valid += 1
+                if abs(mor_est - beta) <= mor_width:
+                    mor_covered += 1
+
+        iv_coverage = iv_covered / max(iv_valid, 1)
+        mor_coverage = mor_covered / max(mor_valid, 1)
+
+        # Coverage should be >= 1 - delta
+        target = 1 - delta
+        iv_ok = iv_coverage >= target - 0.02   # 2% tolerance for MC noise
+        mor_ok = mor_coverage >= target - 0.02
+
+        results.append({
+            "delta": delta, "k_mor": k_mor, "m_mor": m_mor,
+            "iv_width": iv_width, "mor_width": mor_width,
+            "iv_coverage": iv_coverage, "mor_coverage": mor_coverage,
+            "target": target
+        })
+
+        print(f"  {delta:>6.2f}  {k_mor:>6}  {m_mor:>5}  "
+              f"{iv_width:>10.4f}  {mor_width:>10.4f}  "
+              f"{iv_coverage:>10.4f}  {mor_coverage:>10.4f}  "
+              f"{str(iv_ok):>6}  {str(mor_ok):>6}")
+
     return results
 
 
-# ─────────────────────────────────────────────
-# STUDY 2 – Consistency of RoM and MoR for beta
-# ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════
+# STUDY 3: Consistency and quantile comparison
+# ═══════════════════════════════════════════════
 
-def study2_consistency(beta=2.0, mu_ZX=1.0, sigma_ZX=1.0,
-                       n_list=None, k=16, n_trials=2000,
-                       error_dist="pareto"):
-    """
-    As n grows, RoM, MoR, and IV should all converge to beta.
-    Under heavy tails, standard IV may be erratic.
-    """
+def study3_consistency(beta=2.0, mu_ZX=1.0, sigma_v=0.8,
+                       n_list=None, k=16, n_trials=3000,
+                       error_dist="pareto", alpha_tail=2.1, seed=456):
     if n_list is None:
         n_list = [200, 500, 1000, 2000, 5000]
 
     print("\n" + "=" * 60)
-    print(f"STUDY 2: Consistency  (beta={beta}, dist={error_dist})")
+    print(f"STUDY 3: Consistency and quantiles (dist={error_dist})")
     print("=" * 60)
-    print(f"  {'n':>6}  {'IV bias':>10}  {'RoM bias':>10}  {'MoR bias':>10}  "
-          f"{'IV RMSE':>10}  {'RoM RMSE':>10}  {'MoR RMSE':>10}")
+    print(f"  {'n':>6}  {'IV med':>8}  {'RoM med':>8}  {'MoR med':>8}  "
+          f"{'IV q95':>8}  {'RoM q95':>8}  {'MoR q95':>8}  "
+          f"{'IV q99':>8}  {'RoM q99':>8}  {'MoR q99':>8}")
 
+    rng = np.random.default_rng(seed)
     records = []
+
     for n in n_list:
-        iv_ests, rom_ests, mor_ests = [], [], []
+        iv_errs, rom_errs, mor_errs = [], [], []
+
         for _ in range(n_trials):
-            Y, X, Z = generate_data(n, beta, mu_ZX, sigma_ZX, error_dist=error_dist)
-            iv_ests.append(iv_estimator(Y, X, Z))
-            rom_ests.append(rom_estimator(Y, X, Z, k))
-            mor_ests.append(mor_estimator(Y, X, Z, k))
+            Y, X, Z = generate_data(n, beta, mu_ZX, sigma_v,
+                                     error_dist=error_dist, alpha_tail=alpha_tail, rng=rng)
+            iv_est = iv_estimator(Y, X, Z)
+            rom_est = rom_estimator(Y, X, Z, k)
+            mor_est = mor_estimator(Y, X, Z, k)
 
-        iv_arr  = np.array(iv_ests)
-        rom_arr = np.array(rom_ests)
-        mor_arr = np.array(mor_ests)
+            if not np.isnan(iv_est):
+                iv_errs.append(abs(iv_est - beta))
+            if not np.isnan(rom_est):
+                rom_errs.append(abs(rom_est - beta))
+            if not np.isnan(mor_est):
+                mor_errs.append(abs(mor_est - beta))
 
-        # Trim extreme outliers for display only (IV can diverge under heavy tails)
-        iv_arr_t  = np.clip(iv_arr,  beta - 50, beta + 50)
-        rom_arr_t = np.clip(rom_arr, beta - 50, beta + 50)
-        mor_arr_t = np.clip(mor_arr, beta - 50, beta + 50)
+        iv_errs = np.array(iv_errs)
+        rom_errs = np.array(rom_errs)
+        mor_errs = np.array(mor_errs)
 
-        iv_bias   = np.mean(iv_arr_t)  - beta
-        rom_bias  = np.mean(rom_arr_t) - beta
-        mor_bias  = np.mean(mor_arr_t) - beta
-        iv_rmse   = np.sqrt(np.mean((iv_arr_t  - beta) ** 2))
-        rom_rmse  = np.sqrt(np.mean((rom_arr_t - beta) ** 2))
-        mor_rmse  = np.sqrt(np.mean((mor_arr_t - beta) ** 2))
+        rec = {
+            "n": n,
+            "iv_median": np.median(iv_errs), "rom_median": np.median(rom_errs),
+            "mor_median": np.median(mor_errs),
+            "iv_q95": np.percentile(iv_errs, 95), "rom_q95": np.percentile(rom_errs, 95),
+            "mor_q95": np.percentile(mor_errs, 95),
+            "iv_q99": np.percentile(iv_errs, 99), "rom_q99": np.percentile(rom_errs, 99),
+            "mor_q99": np.percentile(mor_errs, 99),
+        }
+        records.append(rec)
 
-        records.append((n, iv_bias, rom_bias, mor_bias, iv_rmse, rom_rmse, mor_rmse))
-        print(f"  {n:>6}  {iv_bias:>10.4f}  {rom_bias:>10.4f}  {mor_bias:>10.4f}  "
-              f"{iv_rmse:>10.4f}  {rom_rmse:>10.4f}  {mor_rmse:>10.4f}")
+        print(f"  {n:>6}  {rec['iv_median']:>8.4f}  {rec['rom_median']:>8.4f}  "
+              f"{rec['mor_median']:>8.4f}  "
+              f"{rec['iv_q95']:>8.4f}  {rec['rom_q95']:>8.4f}  {rec['mor_q95']:>8.4f}  "
+              f"{rec['iv_q99']:>8.4f}  {rec['rom_q99']:>8.4f}  {rec['mor_q99']:>8.4f}")
 
-    # Check that RMSE decreases with n
-    rom_rmses = [r[5] for r in records]
-    mor_rmses = [r[6] for r in records]
-    rom_consistent = all(rom_rmses[i] >= rom_rmses[i+1] for i in range(len(rom_rmses)-1))
-    mor_consistent = all(mor_rmses[i] >= mor_rmses[i+1] for i in range(len(mor_rmses)-1))
-    print(f"\n  [CHECK] RoM RMSE decreasing in n: {rom_consistent}")
-    print(f"  [CHECK] MoR RMSE decreasing in n: {mor_consistent}")
+    # The key comparison: at the 99th percentile, MoR should dominate IV
+    print(f"\n  [CHECK] MoR q99 < IV q99 for all n: "
+          f"{all(r['mor_q99'] < r['iv_q99'] for r in records)}")
+    print(f"  [CHECK] The tail advantage of MoM grows with n: "
+          f"ratio IV_q99/MoR_q99 at n={n_list[0]}: "
+          f"{records[0]['iv_q99']/records[0]['mor_q99']:.2f}, "
+          f"at n={n_list[-1]}: {records[-1]['iv_q99']/records[-1]['mor_q99']:.2f}")
     return records
 
 
-# ─────────────────────────────────────────────
-# STUDY 3 – Effective variance: sigma_Ze <= sigma_ZY + |beta|*sigma_ZX
-# ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════
+# STUDY 4: Instrument strength boundary
+# ═══════════════════════════════════════════════
 
-def study3_effective_variance(beta=2.0, n=50000, n_rep=200,
-                              error_dist="pareto", mu_ZX=1.0, sigma_ZX=1.0):
-    """
-    Verify the inequality  sigma_Ze <= sigma_ZY + |beta|*sigma_ZX
-    holds empirically for many DGP draws.
-    The paper claims MoR uses sigma_Ze in its bound while RoM uses sigma_ZY + |beta|*sigma_ZX,
-    so the MoR bound is tighter.
-    """
+def study4_instrument_strength(beta=2.0, n=3000, k=16,
+                                sigma_v=1.0, n_trials=5000,
+                                error_dist="pareto", alpha_tail=2.1, seed=789):
     print("\n" + "=" * 60)
-    print("STUDY 3: Effective variance inequality")
-    print("         sigma_Ze <= sigma_ZY + |beta|*sigma_ZX")
+    print("STUDY 4: Instrument strength boundary")
     print("=" * 60)
 
-    violations = 0
-    ratios = []
-    for _ in range(n_rep):
-        Y, X, Z = generate_data(n, beta, mu_ZX, sigma_ZX, error_dist=error_dist)
-        eps = Y - beta * X
-
-        ZY  = Z * Y
-        ZX  = Z * X
-        Ze  = Z * eps
-
-        sigma_ZY_emp  = np.std(ZY)
-        sigma_ZX_emp  = np.std(ZX)
-        sigma_Ze_emp  = np.std(Ze)
-
-        lhs = sigma_Ze_emp
-        rhs = sigma_ZY_emp + abs(beta) * sigma_ZX_emp
-
-        if lhs > rhs + 1e-10:
-            violations += 1
-        ratios.append(lhs / rhs)
-
-    mean_ratio = np.mean(ratios)
-    max_ratio  = np.max(ratios)
-    print(f"  Repetitions: {n_rep}")
-    print(f"  Mean ratio sigma_Ze / (sigma_ZY + |beta|*sigma_ZX): {mean_ratio:.4f}  (should be <= 1)")
-    print(f"  Max  ratio: {max_ratio:.4f}")
-    print(f"  Violations: {violations} / {n_rep}")
-    print(f"\n  [CHECK] Inequality holds in all repetitions: {violations == 0}")
-    return {"mean_ratio": mean_ratio, "max_ratio": max_ratio, "violations": violations}
-
-
-# ─────────────────────────────────────────────
-# STUDY 4 – Instrument strength condition
-# ─────────────────────────────────────────────
-# Claim: sub-Gaussian bounds break down when the instrument strength condition is violated.
-# RoM condition: m > 4 * sigma^2_ZX / mu^2_ZX
-# MoR condition: m >= 32 * sigma^2_ZX / mu^2_ZX
-#
-# We vary m (block size) across the threshold and compare empirical exceedance with delta.
-
-def study4_instrument_strength(beta=2.0, n_total=5000, k=20,
-                                delta=0.10, n_trials=3000,
-                                error_dist="pareto"):
-    """
-    Fix k and vary mu_ZX (instrument strength) to test when the sub-Gaussian bound
-    breaks down.  Weak instrument => small mu_ZX => condition violated.
-    """
-    print("\n" + "=" * 60)
-    print("STUDY 4: Instrument strength condition")
-    print("=" * 60)
-
-    n = n_total
+    rng = np.random.default_rng(seed)
     m = n // k
-    sigma_ZX = 1.0
 
-    # threshold ratio r = m * mu^2_ZX / sigma^2_ZX
-    # RoM condition: r > 4   => mu_ZX > sqrt(4*sigma^2_ZX/m)
-    # MoR condition: r >= 32  => mu_ZX >= sqrt(32*sigma^2_ZX/m)
-    rom_thresh_mu = np.sqrt(4  * sigma_ZX**2 / m)
-    mor_thresh_mu = np.sqrt(32 * sigma_ZX**2 / m)
+    # Vary mu_ZX to cross the instrument strength thresholds
+    # RoM condition: m > 4 * sigma_ZX^2 / mu_ZX^2
+    # MoR condition: m >= 32 * sigma_ZX^2 / mu_ZX^2
+    # With Z in {-1,1} and v ~ sigma_v, sigma_ZX^2 = Var(ZX) = Var(mu_ZX*Z^2 + Zv) = sigma_v^2
+    # (since Z^2=1 always, so mu_ZX*Z^2 = mu_ZX is constant)
+    sigma_ZX_approx = sigma_v  # approximate
 
-    mu_ZX_values = np.array([0.5, 1.0, 1.5, 2.0, 3.0, 5.0]) * rom_thresh_mu
+    rom_critical_mu = np.sqrt(4 * sigma_ZX_approx**2 / m)
+    mor_critical_mu = np.sqrt(32 * sigma_ZX_approx**2 / m)
 
-    print(f"  n={n}, k={k}, m={m}, sigma_ZX={sigma_ZX}")
-    print(f"  RoM threshold mu_ZX = {rom_thresh_mu:.4f}")
-    print(f"  MoR threshold mu_ZX = {mor_thresh_mu:.4f}")
-    print(f"  delta = {delta}")
+    mu_values = np.array([0.3, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 5.0]) * rom_critical_mu
+
+    print(f"  n={n}, k={k}, m={m}")
+    print(f"  Approx sigma_ZX = {sigma_ZX_approx:.4f}")
+    print(f"  RoM critical mu_ZX = {rom_critical_mu:.4f}")
+    print(f"  MoR critical mu_ZX = {mor_critical_mu:.4f}")
     print()
-    print(f"  {'mu_ZX':>8}  {'r=m*mu2/s2':>12}  "
-          f"{'RoM exceed':>12}  {'MoR exceed':>12}  "
-          f"{'IV exceed':>12}  {'bound':>8}")
+    print(f"  {'mu_ZX':>8}  {'r':>8}  {'IV MAE':>10}  {'RoM MAE':>10}  "
+          f"{'MoR MAE':>10}  {'MoR nan%':>10}")
 
     results = []
-    for mu_ZX in mu_ZX_values:
-        rom_ests, mor_ests, iv_ests = [], [], []
+    for mu_ZX in mu_values:
+        iv_errs, rom_errs, mor_errs = [], [], []
+        mor_nans = 0
+
         for _ in range(n_trials):
-            Y, X, Z = generate_data(n, beta, mu_ZX, sigma_ZX, error_dist=error_dist)
-            rom_ests.append(rom_estimator(Y, X, Z, k))
-            mor_ests.append(mor_estimator(Y, X, Z, k))
-            iv_ests.append(iv_estimator(Y, X, Z))
+            Y, X, Z = generate_data(n, beta, mu_ZX, sigma_v,
+                                     error_dist=error_dist, alpha_tail=alpha_tail, rng=rng)
+            iv_est = iv_estimator(Y, X, Z)
+            rom_est = rom_estimator(Y, X, Z, k)
+            mor_est = mor_estimator(Y, X, Z, k)
 
-        # Use a generous threshold: theoretical sub-Gaussian bound magnitude
-        # We check: what fraction of estimates are more than some_threshold away from beta?
-        # Use 2*sigma_ZX/mu_ZX / sqrt(m) as a scale-free threshold
-        scale = sigma_ZX / (mu_ZX * np.sqrt(m))
-        threshold = 5.0 * scale   # 5x the natural scale
+            if not np.isnan(iv_est):
+                iv_errs.append(abs(iv_est - beta))
+            if not np.isnan(rom_est):
+                rom_errs.append(abs(rom_est - beta))
+            if np.isnan(mor_est):
+                mor_nans += 1
+            else:
+                mor_errs.append(abs(mor_est - beta))
 
-        rom_arr = np.array(rom_ests)
-        mor_arr = np.array(mor_ests)
-        iv_arr  = np.array(iv_ests)
+        r = m * mu_ZX**2 / sigma_ZX_approx**2
 
-        rom_exceed = np.mean(np.abs(rom_arr - beta) > threshold)
-        mor_exceed = np.mean(np.abs(mor_arr - beta) > threshold)
-        iv_exceed  = np.mean(np.abs(iv_arr  - beta) > threshold)
+        rec = {
+            "mu_ZX": mu_ZX, "r": r,
+            "iv_mae": np.median(iv_errs) if iv_errs else np.inf,
+            "rom_mae": np.median(rom_errs) if rom_errs else np.inf,
+            "mor_mae": np.median(mor_errs) if mor_errs else np.inf,
+            "mor_nan_pct": 100 * mor_nans / n_trials
+        }
+        results.append(rec)
 
-        r = m * mu_ZX**2 / sigma_ZX**2
-        results.append((mu_ZX, r, rom_exceed, mor_exceed, iv_exceed))
-        print(f"  {mu_ZX:>8.4f}  {r:>12.2f}  "
-              f"{rom_exceed:>12.4f}  {mor_exceed:>12.4f}  "
-              f"{iv_exceed:>12.4f}  {delta:>8.2f}")
+        print(f"  {mu_ZX:>8.4f}  {r:>8.2f}  {rec['iv_mae']:>10.4f}  "
+              f"{rec['rom_mae']:>10.4f}  {rec['mor_mae']:>10.4f}  "
+              f"{rec['mor_nan_pct']:>10.1f}%")
 
-    # Check: exceedance drops as instrument strengthens
-    roms = [r[2] for r in results]
-    mors = [r[3] for r in results]
-    rom_improves = roms[-1] < roms[0]
-    mor_improves = mors[-1] < mors[0]
-    print(f"\n  [CHECK] RoM exceedance improves with stronger instrument: {rom_improves}")
-    print(f"  [CHECK] MoR exceedance improves with stronger instrument: {mor_improves}")
-    return results
+    return results, rom_critical_mu, mor_critical_mu
 
 
-# ─────────────────────────────────────────────
-# STUDY 5 – Block count: RoM vs MoR
-# ─────────────────────────────────────────────
-# RoM needs k = ceil(8*ln(2/delta)), MoR needs k = ceil(8*ln(1/delta))
-# For a fixed n and delta, MoR needs ~5-6 more blocks.
-# We verify that both estimators achieve their guaranteed exceedance probability
-# when using exactly their prescribed k.
+# ═══════════════════════════════════════════════
+# STUDY 5: Tail heaviness comparison
+# ═══════════════════════════════════════════════
 
-def study5_block_count(beta=2.0, n=3000, delta_vals=None,
-                       n_trials=4000, error_dist="pareto",
-                       mu_ZX=1.0, sigma_ZX=0.5):
-    """
-    For each delta, use the prescribed k for RoM and MoR.
-    Check that empirical exceedance probability <= delta.
-    """
-    if delta_vals is None:
-        delta_vals = [0.30, 0.20, 0.10, 0.05, 0.02]
-
+def study5_tail_heaviness(beta=2.0, n=1500, k=16, mu_ZX=1.0, sigma_v=0.8,
+                           n_trials=5000, seed=321):
     print("\n" + "=" * 60)
-    print("STUDY 5: Block count — prescribed k achieves delta guarantee")
+    print("STUDY 5: Performance across distributions")
     print("=" * 60)
-    print(f"  n={n}, mu_ZX={mu_ZX}, sigma_ZX={sigma_ZX}")
+
+    configs = [
+        ("Gaussian", "gaussian", {}),
+        ("Student t(3)", "student", {"df_student": 3.0}),
+        ("Pareto(3.5)", "pareto", {"alpha_tail": 3.5}),
+        ("Pareto(2.5)", "pareto", {"alpha_tail": 2.5}),
+        ("Pareto(2.1)", "pareto", {"alpha_tail": 2.1}),
+    ]
+
+    print(f"  n={n}, k={k}")
     print()
-    print(f"  {'delta':>6}  {'k_RoM':>6}  {'k_MoR':>6}  "
-          f"{'RoM exceed':>12}  {'MoR exceed':>12}  "
-          f"{'RoM ok':>8}  {'MoR ok':>8}")
+    print(f"  {'Distribution':>14}  {'IV q50':>8}  {'RoM q50':>8}  {'MoR q50':>8}  "
+          f"{'IV q95':>8}  {'RoM q95':>8}  {'MoR q95':>8}  "
+          f"{'IV q99':>8}  {'RoM q99':>8}  {'MoR q99':>8}")
 
     results = []
-    tol = 0.03   # allow 3% above delta (Monte Carlo noise)
+    for label, dist, kwargs in configs:
+        rng = np.random.default_rng(seed)
+        iv_errs, rom_errs, mor_errs = [], [], []
 
-    for delta in delta_vals:
-        k_rom = int(np.ceil(8 * np.log(2 / delta)))
-        k_mor = int(np.ceil(8 * np.log(1 / delta)))
-
-        # Use a meaningful threshold: 2 * theoretical scale
-        # scale ~ sigma_Ze / (mu_ZX * sqrt(m))  where m = n/k
-        m_rom = n // k_rom
-        m_mor = n // k_mor
-
-        # Approximate sigma_Ze empirically from one large sample
-        Y0, X0, Z0 = generate_data(100000, beta, mu_ZX, sigma_ZX, error_dist=error_dist)
-        eps0 = Y0 - beta * X0
-        sigma_Ze = np.std(Z0 * eps0)
-
-        thresh_rom = 3 * sigma_Ze / (abs(mu_ZX) * np.sqrt(m_rom))
-        thresh_mor = 3 * sigma_Ze / (abs(mu_ZX) * np.sqrt(m_mor))
-
-        rom_ests, mor_ests = [], []
         for _ in range(n_trials):
-            Y, X, Z = generate_data(n, beta, mu_ZX, sigma_ZX, error_dist=error_dist)
-            rom_ests.append(rom_estimator(Y, X, Z, k_rom))
-            mor_ests.append(mor_estimator(Y, X, Z, k_mor))
+            Y, X, Z = generate_data(n, beta, mu_ZX, sigma_v,
+                                     error_dist=dist, rng=rng, **kwargs)
+            iv_est = iv_estimator(Y, X, Z)
+            rom_est = rom_estimator(Y, X, Z, k)
+            mor_est = mor_estimator(Y, X, Z, k)
 
-        rom_arr = np.array(rom_ests)
-        mor_arr = np.array(mor_ests)
+            if not np.isnan(iv_est):
+                iv_errs.append(abs(iv_est - beta))
+            if not np.isnan(rom_est):
+                rom_errs.append(abs(rom_est - beta))
+            if not np.isnan(mor_est):
+                mor_errs.append(abs(mor_est - beta))
 
-        rom_exceed = np.mean(np.abs(rom_arr - beta) > thresh_rom)
-        mor_exceed = np.mean(np.abs(mor_arr - beta) > thresh_mor)
+        iv_errs = np.array(iv_errs)
+        rom_errs = np.array(rom_errs)
+        mor_errs = np.array(mor_errs)
 
-        rom_ok = rom_exceed <= delta + tol
-        mor_ok = mor_exceed <= delta + tol
+        rec = {
+            "label": label,
+            "iv_q50": np.median(iv_errs), "rom_q50": np.median(rom_errs),
+            "mor_q50": np.median(mor_errs),
+            "iv_q95": np.percentile(iv_errs, 95), "rom_q95": np.percentile(rom_errs, 95),
+            "mor_q95": np.percentile(mor_errs, 95),
+            "iv_q99": np.percentile(iv_errs, 99), "rom_q99": np.percentile(rom_errs, 99),
+            "mor_q99": np.percentile(mor_errs, 99),
+        }
+        results.append(rec)
 
-        results.append((delta, k_rom, k_mor, rom_exceed, mor_exceed))
-        print(f"  {delta:>6.2f}  {k_rom:>6}  {k_mor:>6}  "
-              f"{rom_exceed:>12.4f}  {mor_exceed:>12.4f}  "
-              f"{str(rom_ok):>8}  {str(mor_ok):>8}")
+        print(f"  {label:>14}  {rec['iv_q50']:>8.4f}  {rec['rom_q50']:>8.4f}  "
+              f"{rec['mor_q50']:>8.4f}  "
+              f"{rec['iv_q95']:>8.4f}  {rec['rom_q95']:>8.4f}  {rec['mor_q95']:>8.4f}  "
+              f"{rec['iv_q99']:>8.4f}  {rec['rom_q99']:>8.4f}  {rec['mor_q99']:>8.4f}")
 
-    # Verify k_MoR > k_RoM always
-    k_diff_ok = all(r[2] > r[1] for r in results)
-    print(f"\n  [CHECK] k_MoR > k_RoM for all delta values: {k_diff_ok}")
-    # Expected additive difference is 8*ln(2) ~ 5.5
-    avg_diff = np.mean([r[2] - r[1] for r in results])
-    print(f"  Mean k_MoR - k_RoM = {avg_diff:.2f}  (theory: 8*ln(2) ≈ {8*np.log(2):.2f})")
+    # Key check: MoM advantage grows with tail heaviness
+    iv_ratios = [r['iv_q99'] / r['mor_q99'] for r in results]
+    print(f"\n  [CHECK] IV_q99/MoR_q99 ratio across distributions: "
+          f"{', '.join(f'{r:.2f}' for r in iv_ratios)}")
+    print(f"  [CHECK] Ratio increases with tail heaviness: "
+          f"{iv_ratios[-1] > iv_ratios[0]}")
     return results
 
 
-# ─────────────────────────────────────────────
-# STUDY 6 – Tail comparison: MoR vs IV under increasing tail heaviness
-# ─────────────────────────────────────────────
-
-def study6_heavy_tails(beta=2.0, n=1000, k=16,
-                       alpha_list=None, n_trials=3000,
-                       mu_ZX=1.0, sigma_ZX=0.5):
-    """
-    Pareto tail index alpha: larger alpha = lighter tail, finite variance needs alpha>2.
-    As alpha decreases toward 2, tails get heavier.
-    MoM-based estimators should degrade less than standard IV.
-    """
-    if alpha_list is None:
-        alpha_list = [5.0, 3.5, 2.5, 2.1]
-
-    print("\n" + "=" * 60)
-    print("STUDY 6: Performance under increasing tail heaviness (Pareto)")
-    print("=" * 60)
-    print(f"  n={n}, k={k}, mu_ZX={mu_ZX}")
-    print()
-    print(f"  {'alpha':>7}  {'IV RMSE':>10}  {'RoM RMSE':>10}  {'MoR RMSE':>10}  "
-          f"{'IV MAE':>10}  {'RoM MAE':>10}  {'MoR MAE':>10}")
-
-    results = []
-    for alpha in alpha_list:
-        iv_ests, rom_ests, mor_ests = [], [], []
-        for _ in range(n_trials):
-            Y, X, Z = generate_data(n, beta, mu_ZX, sigma_ZX,
-                                     error_dist="pareto", alpha_tail=alpha)
-            iv_ests.append(iv_estimator(Y, X, Z))
-            rom_ests.append(rom_estimator(Y, X, Z, k))
-            mor_ests.append(mor_estimator(Y, X, Z, k))
-
-        def robust_stats(arr, center=beta, clip=200):
-            a = np.clip(arr, center - clip, center + clip)
-            rmse = np.sqrt(np.mean((a - center) ** 2))
-            mae  = np.mean(np.abs(a - center))
-            return rmse, mae
-
-        iv_rmse,  iv_mae  = robust_stats(np.array(iv_ests))
-        rom_rmse, rom_mae = robust_stats(np.array(rom_ests))
-        mor_rmse, mor_mae = robust_stats(np.array(mor_ests))
-
-        results.append((alpha, iv_rmse, rom_rmse, mor_rmse, iv_mae, rom_mae, mor_mae))
-        print(f"  {alpha:>7.1f}  {iv_rmse:>10.4f}  {rom_rmse:>10.4f}  {mor_rmse:>10.4f}  "
-              f"{iv_mae:>10.4f}  {rom_mae:>10.4f}  {mor_mae:>10.4f}")
-
-    # Check: MoR RMSE <= IV RMSE for all alpha (robust advantage)
-    mor_beats_iv = all(r[3] <= r[1] for r in results)
-    print(f"\n  [CHECK] MoR RMSE <= IV RMSE across all tail heaviness: {mor_beats_iv}")
-    return results
-
-
-# ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════
 # Plotting
-# ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════
 
-def make_plots(res1, res2, res3, res4, res5, res6):
-    fig = plt.figure(figsize=(18, 14))
-    gs  = gridspec.GridSpec(3, 3, figure=fig, hspace=0.45, wspace=0.35)
+def make_plots(res1, res2, res3, res4, res5, output_path="simulation_results.png"):
+    fig = plt.figure(figsize=(18, 12))
+    gs = gridspec.GridSpec(2, 3, figure=fig, hspace=0.40, wspace=0.35)
 
-    # ── Plot 1: Tail bound (Study 1) ──────────────────────────
+    # ── Plot 1: Survival function (THE key plot) ──────────────
     ax1 = fig.add_subplot(gs[0, 0])
-    deltas = res1["delta"]
-    ax1.plot(deltas, res1["mom_exceed"],  "b-o", label="MoM empirical")
-    ax1.plot(deltas, res1["mean_exceed"], "r-s", label="Mean empirical")
-    ax1.plot(deltas, deltas, "k--", label="y = delta (bound)")
-    ax1.set_xlabel("delta")
-    ax1.set_ylabel("Empirical exceedance prob.")
-    ax1.set_title("Study 1: Tail Bounds\n(MoM vs Empirical Mean)")
-    ax1.legend(fontsize=7)
+
+    for errors, label, color, ls in [
+        (res1["iv_errors"],  "Standard IV", "red", "--"),
+        (res1["rom_errors"], "RoM",         "blue", "-"),
+        (res1["mor_errors"], "MoR",         "green", "-"),
+    ]:
+        sorted_e = np.sort(errors)
+        survival = 1 - np.arange(1, len(sorted_e) + 1) / len(sorted_e)
+        ax1.plot(sorted_e, survival, color=color, linestyle=ls, label=label, linewidth=1.2)
+
+    # Overlay IV Chebyshev bound
+    ax1.plot(res1["t_grid"], res1["iv_theory"], "r:", alpha=0.7,
+             label="IV Chebyshev bound", linewidth=1.5)
+
+    ax1.set_xlabel(r"$t = |\hat{\beta} - \beta|$")
+    ax1.set_ylabel(r"$P(|\hat{\beta} - \beta| > t)$")
+    ax1.set_title("Empirical Survival Functions\n(log-log scale)")
     ax1.set_yscale("log")
     ax1.set_xscale("log")
+    ax1.set_ylim(1e-4, 1)
+    ax1.legend(fontsize=7)
+    ax1.grid(True, alpha=0.3)
 
-    # ── Plot 2: Consistency (Study 2) ─────────────────────────
+    # ── Plot 2: Coverage study ────────────────────────────────
     ax2 = fig.add_subplot(gs[0, 1])
-    ns = [r[0] for r in res2]
-    ax2.plot(ns, [r[5] for r in res2], "b-o", label="RoM RMSE")
-    ax2.plot(ns, [r[6] for r in res2], "g-^", label="MoR RMSE")
-    ax2.plot(ns, [r[4] for r in res2], "r--s", label="IV RMSE", alpha=0.6)
-    ax2.set_xlabel("n")
-    ax2.set_ylabel("RMSE")
-    ax2.set_title("Study 2: Consistency\n(Heavy-tailed errors)")
+    deltas = [r["delta"] for r in res2]
+    targets = [r["target"] for r in res2]
+    iv_cov = [r["iv_coverage"] for r in res2]
+    mor_cov = [r["mor_coverage"] for r in res2]
+
+    ax2.plot(deltas, targets, "k--", label="Target (1-δ)", linewidth=1.5)
+    ax2.plot(deltas, iv_cov, "r-s", label="IV coverage", markersize=5)
+    ax2.plot(deltas, mor_cov, "g-^", label="MoR coverage", markersize=5)
+    ax2.set_xlabel("δ")
+    ax2.set_ylabel("Coverage probability")
+    ax2.set_title("Coverage of Theoretical CIs\n(should be above dashed line)")
     ax2.legend(fontsize=7)
-    ax2.set_xscale("log")
+    ax2.grid(True, alpha=0.3)
 
-    # ── Plot 3: Effective variance (Study 3) ──────────────────
-    ax3 = fig.add_subplot(gs[0, 2])
-    ax3.axhline(1.0, color="k", linestyle="--", label="Ratio = 1 (bound)")
-    ratio_label = r"$\sigma_{Z\varepsilon} / (\sigma_{ZY} + |\beta|\sigma_{ZX})$"
-    ax3.bar(["Mean ratio", "Max ratio"],
-            [res3["mean_ratio"], res3["max_ratio"]],
-            color=["steelblue", "tomato"], alpha=0.8)
-    ax3.set_ylabel("Ratio")
-    ax3.set_title(f"Study 3: Effective Variance\n{ratio_label}")
-    ax3.set_ylim(0, max(1.2, res3["max_ratio"] * 1.1))
-    ax3.legend(fontsize=7)
+    # ── Plot 2b: CI width comparison ──────────────────────────
+    ax2b = fig.add_subplot(gs[0, 2])
+    iv_widths = [r["iv_width"] for r in res2]
+    mor_widths = [r["mor_width"] for r in res2]
+    ax2b.plot(deltas, iv_widths, "r-s", label="IV width ~ 1/√δ")
+    ax2b.plot(deltas, mor_widths, "g-^", label="MoR width ~ √ln(1/δ)")
+    ax2b.set_xlabel("δ")
+    ax2b.set_ylabel("CI half-width")
+    ax2b.set_title("Confidence Interval Widths\n(polynomial vs logarithmic)")
+    ax2b.set_yscale("log")
+    ax2b.legend(fontsize=7)
+    ax2b.grid(True, alpha=0.3)
 
-    # ── Plot 4: Instrument strength (Study 4) ─────────────────
-    ax4 = fig.add_subplot(gs[1, 0])
-    rs   = [r[1] for r in res4]
-    rom4 = [r[2] for r in res4]
-    mor4 = [r[3] for r in res4]
-    iv4  = [r[4] for r in res4]
-    ax4.plot(rs, rom4, "b-o", label="RoM exceed")
-    ax4.plot(rs, mor4, "g-^", label="MoR exceed")
-    ax4.plot(rs, iv4,  "r--s", label="IV exceed", alpha=0.6)
-    ax4.axvline(4,  color="blue",  linestyle=":", linewidth=1.5, label="RoM threshold (r=4)")
-    ax4.axvline(32, color="green", linestyle=":", linewidth=1.5, label="MoR threshold (r=32)")
-    ax4.set_xlabel(r"$r = m \cdot \mu^2_{ZX} / \sigma^2_{ZX}$")
-    ax4.set_ylabel("Exceedance prob.")
-    ax4.set_title("Study 4: Instrument Strength\n(Exceedance vs strength ratio)")
+    # ── Plot 3: Consistency quantiles ─────────────────────────
+    ax3 = fig.add_subplot(gs[1, 0])
+    ns = [r["n"] for r in res3]
+    ax3.plot(ns, [r["iv_q99"] for r in res3], "r--s", label="IV q99", alpha=0.7)
+    ax3.plot(ns, [r["rom_q99"] for r in res3], "b-o", label="RoM q99")
+    ax3.plot(ns, [r["mor_q99"] for r in res3], "g-^", label="MoR q99")
+    ax3.plot(ns, [r["iv_median"] for r in res3], "r--s", label="IV median", alpha=0.3, markersize=3)
+    ax3.plot(ns, [r["mor_median"] for r in res3], "g-^", label="MoR median", alpha=0.3, markersize=3)
+    ax3.set_xlabel("n")
+    ax3.set_ylabel(r"$|\hat{\beta} - \beta|$")
+    ax3.set_title("Consistency: Error Quantiles vs n\n(99th percentile and median)")
+    ax3.set_xscale("log")
+    ax3.set_yscale("log")
+    ax3.legend(fontsize=6)
+    ax3.grid(True, alpha=0.3)
+
+    # ── Plot 4: Instrument strength ───────────────────────────
+    ax4 = fig.add_subplot(gs[1, 1])
+    res4_data, rom_crit, mor_crit = res4
+    rs = [r["r"] for r in res4_data]
+    ax4.plot(rs, [r["iv_mae"] for r in res4_data], "r--s", label="IV", alpha=0.7)
+    ax4.plot(rs, [r["rom_mae"] for r in res4_data], "b-o", label="RoM")
+    ax4.plot(rs, [r["mor_mae"] for r in res4_data], "g-^", label="MoR")
+    ax4.axvline(4, color="blue", linestyle=":", label="RoM threshold (r=4)")
+    ax4.axvline(32, color="green", linestyle=":", label="MoR threshold (r=32)")
+    ax4.set_xlabel(r"$r = m \cdot \mu_{ZX}^2 / \sigma_{ZX}^2$")
+    ax4.set_ylabel("Median absolute error")
+    ax4.set_title("Instrument Strength\n(performance vs strength ratio)")
+    ax4.set_xscale("log")
     ax4.legend(fontsize=6)
+    ax4.grid(True, alpha=0.3)
 
-    # ── Plot 5: Block count (Study 5) ─────────────────────────
-    ax5 = fig.add_subplot(gs[1, 1])
-    ds5 = [r[0] for r in res5]
-    ax5.plot(ds5, [r[1] for r in res5], "b-o", label="k_RoM = ⌈8 ln(2/δ)⌉")
-    ax5.plot(ds5, [r[2] for r in res5], "g-^", label="k_MoR = ⌈8 ln(1/δ)⌉")
-    ax5.set_xlabel("delta")
-    ax5.set_ylabel("Number of blocks k")
-    ax5.set_title("Study 5: Prescribed Block Counts\n(k_MoR > k_RoM by ~5.5)")
+    # ── Plot 5: Tail heaviness ────────────────────────────────
+    ax5 = fig.add_subplot(gs[1, 2])
+    labels = [r["label"] for r in res5]
+    x_pos = range(len(labels))
+    width = 0.25
+
+    ax5.bar([x - width for x in x_pos], [r["iv_q99"] for r in res5],
+            width, label="IV q99", color="red", alpha=0.7)
+    ax5.bar(x_pos, [r["rom_q99"] for r in res5],
+            width, label="RoM q99", color="blue", alpha=0.7)
+    ax5.bar([x + width for x in x_pos], [r["mor_q99"] for r in res5],
+            width, label="MoR q99", color="green", alpha=0.7)
+    ax5.set_xticks(x_pos)
+    ax5.set_xticklabels(labels, rotation=25, fontsize=7)
+    ax5.set_ylabel("99th percentile of |error|")
+    ax5.set_title("Tail Heaviness Comparison\n(99th percentile across distributions)")
     ax5.legend(fontsize=7)
+    ax5.grid(True, alpha=0.3, axis="y")
 
-    # ── Plot 5b: exceedance vs delta ─────────────────────────
-    ax5b = fig.add_subplot(gs[1, 2])
-    ax5b.plot(ds5, [r[3] for r in res5], "b-o", label="RoM empirical")
-    ax5b.plot(ds5, [r[4] for r in res5], "g-^", label="MoR empirical")
-    ax5b.plot(ds5, ds5, "k--", label="y = delta")
-    ax5b.set_xlabel("delta")
-    ax5b.set_ylabel("Empirical exceedance prob.")
-    ax5b.set_title("Study 5: Exceedance vs Delta\n(should lie below diagonal)")
-    ax5b.legend(fontsize=7)
+    fig.suptitle("MoM-2SLS Simulation Study: Verifying Theoretical Claims",
+                 fontsize=13, fontweight="bold")
 
-    # ── Plot 6: Heavy tails (Study 6) ─────────────────────────
-    ax6a = fig.add_subplot(gs[2, 0])
-    alphas = [r[0] for r in res6]
-    ax6a.plot(alphas, [r[1] for r in res6], "r--s", label="IV")
-    ax6a.plot(alphas, [r[2] for r in res6], "b-o",  label="RoM")
-    ax6a.plot(alphas, [r[3] for r in res6], "g-^",  label="MoR")
-    ax6a.set_xlabel("Pareto tail index alpha (lighter  →)")
-    ax6a.set_ylabel("RMSE")
-    ax6a.set_title("Study 6: RMSE vs Tail Heaviness")
-    ax6a.invert_xaxis()
-    ax6a.legend(fontsize=7)
-
-    ax6b = fig.add_subplot(gs[2, 1])
-    ax6b.plot(alphas, [r[4] for r in res6], "r--s", label="IV")
-    ax6b.plot(alphas, [r[5] for r in res6], "b-o",  label="RoM")
-    ax6b.plot(alphas, [r[6] for r in res6], "g-^",  label="MoR")
-    ax6b.set_xlabel("Pareto tail index alpha (lighter  →)")
-    ax6b.set_ylabel("MAE")
-    ax6b.set_title("Study 6: MAE vs Tail Heaviness")
-    ax6b.invert_xaxis()
-    ax6b.legend(fontsize=7)
-
-    # ── Summary table ─────────────────────────────────────────
-    ax_t = fig.add_subplot(gs[2, 2])
-    ax_t.axis("off")
-    table_data = [
-        ["Claim", "Result"],
-        ["MoM sub-Gaussian bound", "Study 1"],
-        ["RoM / MoR consistency", "Study 2"],
-        [r"$\sigma_{Z\varepsilon} \leq \sigma_{ZY}+|\beta|\sigma_{ZX}$", "Study 3"],
-        ["Instrument strength cond.", "Study 4"],
-        ["k_MoR > k_RoM by ~5.5", "Study 5"],
-        ["Robustness to heavy tails", "Study 6"],
-    ]
-    tbl = ax_t.table(cellText=table_data[1:], colLabels=table_data[0],
-                      loc="center", cellLoc="left")
-    tbl.auto_set_font_size(False)
-    tbl.set_fontsize(9)
-    tbl.scale(1.2, 1.5)
-    ax_t.set_title("Simulation Study Summary", fontsize=10, pad=10)
-
-    fig.suptitle("MoM-2SLS Simulation Study\n"
-                 "(Verifying theoretical claims in 'Median-of-Means Two-Stage Least Squares')",
-                 fontsize=12, fontweight="bold")
-
-    plt.savefig("c:/Users/Pavilion/Documents/Thesis/VScode/Code/simulation_results.png",
-                dpi=150, bbox_inches="tight")
-    print("\n  Figure saved: Code/simulation_results.png")
-    plt.show()
+    plt.savefig(output_path, dpi=150, bbox_inches="tight")
+    print(f"\n  Figure saved: {output_path}")
+    plt.close()
 
 
-# ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════
 # Main
-# ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════
 
 if __name__ == "__main__":
     print("MoM-2SLS Simulation Study")
-    print("Testing theoretical claims from the paper")
     print("=" * 60)
 
-    res1 = study1_mom_tail_bound(n=2000, n_trials=5000)
-    res2 = study2_consistency(beta=2.0, mu_ZX=1.0, sigma_ZX=0.8,
-                               k=16, n_trials=2000, error_dist="pareto")
-    res3 = study3_effective_variance(beta=2.0, n=50000, n_rep=200,
-                                      error_dist="pareto", mu_ZX=1.0, sigma_ZX=0.8)
-    res4 = study4_instrument_strength(beta=2.0, n_total=5000, k=20,
-                                       delta=0.10, n_trials=3000,
-                                       error_dist="pareto")
-    res5 = study5_block_count(beta=2.0, n=3000, delta_vals=[0.30, 0.20, 0.10, 0.05, 0.02],
-                               n_trials=4000, error_dist="pareto",
-                               mu_ZX=1.0, sigma_ZX=0.5)
-    res6 = study6_heavy_tails(beta=2.0, n=1000, k=16,
-                               alpha_list=[5.0, 3.5, 2.5, 2.1],
-                               n_trials=3000, mu_ZX=1.0, sigma_ZX=0.5)
+    res1 = study1_survival_function()
+    res2 = study2_coverage()
+    res3 = study3_consistency()
+    res4 = study4_instrument_strength()
+    res5 = study5_tail_heaviness()
 
     print("\n" + "=" * 60)
     print("ALL STUDIES COMPLETE — generating figures...")
-    make_plots(res1, res2, res3, res4, res5, res6)
+
+    make_plots(res1, res2, res3, res4, res5,
+               output_path="simulation_results.png")
