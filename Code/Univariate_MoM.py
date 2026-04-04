@@ -850,4 +850,4 @@ if __name__ == "__main__":
     print("ALL STUDIES COMPLETE — generating figures...")
 
     make_plots(res1, res2a, res2b, res3, res4, res5,
-               output_path="simulation_results.png")
+               output_path="Code\simulation_results.png")
