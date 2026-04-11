@@ -75,15 +75,11 @@ Let $k = \lceil 8\ln(1/\delta) \rceil$ and $m = \lfloor n/k \rfloor$. Suppose $m
 \end{theorem}
 The proofs for these results can be found in the tablet notes.
 
-The error bounds can then be written as
+\textit{Note: This paragraph here is so that I do not forget. }The error bounds can then be written as
 \[
     \abs{\hat{\beta} - \beta} \leq C \cdot \frac{\sigma_{\mathrm{eff}}}{\abs{\mu_{ZX}}} \cdot g(\delta, n),
 \]
-where $C$ is an absolute constant, $\sigma_{\mathrm{eff}}$ is an effective standard deviation, and $g(\delta, n)$ captures the dependence on confidence and sample size. Note that this definition is directly comparable to \refeq{eq:subgaussian}. We utilise these definitions for the following comparisons.
-
-
-\subsection{Comparison of the Estimators}
-
+where $C$ is an absolute constant, $\sigma_{\mathrm{eff}}$ is an effective standard deviation, and $g(\delta, n)$ captures the dependence on confidence and sample size. Note that this definition is directly comparable to \refeq{eq:subgaussian}.
 
 \subsubsection{Numerical Impact}
  
@@ -110,7 +106,6 @@ The RoM and IV bound have $\sigma_{ZY} + |\beta|\sigma_{ZX}$ in the numerator wh
 \]
 Thus, the MoR and IV bounds are tighter. The proof is found in the tablet notes.
 
-\subsubsection{Number of Blocks}
 \subsubsection{Instrument Strength Condition}
 \begin{center}
 \renewcommand{\arraystretch}{1.4}
@@ -132,4 +127,4 @@ Comparing the two MoM-based estimators, the RoM condition is eight times less st
 
 \subsubsection{Conclusion for the Univariate Case}
 
-no single estimator dominates. The standard IV has the tightest constants but the weakest instrument strength for moderate $\delta$. Its polynomial tail makes it unsuitable for high-confidence inference. The MoR achieves the tightes sub-Gaussian bound, but requires the strongest instrument condition. The RoM has a mild instrument condition, but a looser effective variance.
+No single estimator dominates. The standard IV has the tightest constants but the weakest instrument strength for moderate $\delta$. Its polynomial tail makes it unsuitable for high-confidence inference. The MoR achieves the tightes sub-Gaussian bound, but requires the strongest instrument condition. The RoM has a mild instrument condition, but a looser effective variance.

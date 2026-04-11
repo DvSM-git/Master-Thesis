@@ -14,7 +14,6 @@ Key improvements over initial version:
 
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 from scipy.stats import pareto, t as t_dist
 from joblib import Parallel, delayed
 import warnings
@@ -290,7 +289,7 @@ def study2a_coverage_validation(beta=2.0, n=2000, mu_ZX=1.0, sigma_v=0.8,
                           for _, _, _, iv_est in trial_results
                           if not np.isnan(iv_est)])
  
-    c_grid = np.linspace(0.02, 1.0, 50)
+    c_grid = np.linspace(0.001, 1.0, 1000)
  
     results = []
     for delta in deltas:
@@ -685,12 +684,17 @@ def study5_tail_heaviness(beta=2.0, n=1500, k=16, mu_ZX=1.0, sigma_v=0.8,
 # ═══════════════════════════════════════════════
 
 def make_plots(res1, res2a, res2b, res3, res4, res5, output_path="simulation_results.png"):
-    fig = plt.figure(figsize=(18, 12))
-    gs = gridspec.GridSpec(2, 3, figure=fig, hspace=0.40, wspace=0.35)
+    out_dir = os.path.dirname(output_path)
+    base = os.path.splitext(os.path.basename(output_path))[0]
+
+    def save(fig, suffix):
+        path = os.path.join(out_dir, f"{base}_{suffix}.png")
+        fig.savefig(path, dpi=150, bbox_inches="tight")
+        print(f"  Figure saved: {path}")
+        plt.close(fig)
 
     # ── Plot 1: Survival function ──────────────
-    ax1 = fig.add_subplot(gs[0, 0])
-
+    fig, ax1 = plt.subplots(figsize=(6, 5))
     for errors, label, color, ls in [
         (res1["iv_errors"],  "Standard IV", "red", "--"),
         (res1["rom_errors"], "RoM",         "blue", "-"),
@@ -699,11 +703,6 @@ def make_plots(res1, res2a, res2b, res3, res4, res5, output_path="simulation_res
         sorted_e = np.sort(errors)
         survival = 1 - np.arange(1, len(sorted_e) + 1) / len(sorted_e)
         ax1.plot(sorted_e, survival, color=color, linestyle=ls, label=label, linewidth=1.2)
-
-    # Overlay IV Chebyshev bound
-    ax1.plot(res1["t_grid"], res1["iv_theory"], "r:", alpha=0.7,
-             label="IV Chebyshev bound", linewidth=1.5)
-
     ax1.set_xlabel(r"$t = |\hat{\beta} - \beta|$")
     ax1.set_ylabel(r"$P(|\hat{\beta} - \beta| > t)$")
     ax1.set_title("Empirical Survival Functions\n(log-log scale)")
@@ -713,16 +712,14 @@ def make_plots(res1, res2a, res2b, res3, res4, res5, output_path="simulation_res
     ax1.set_xlim(1e-3, 10)
     ax1.legend(fontsize=7)
     ax1.grid(True, alpha=0.3)
+    save(fig, "1_survival")
 
     # ── Plot 2a: Coverage study ────────────────────────────────
-    ax2a = fig.add_subplot(gs[0, 1])
- 
-    # Pick delta = 0.05
+    fig, ax2a = plt.subplots(figsize=(6, 5))
     idx = next(i for i, r in enumerate(res2a) if abs(r["delta"] - 0.05) < 0.001)
     r = res2a[idx]
     delta = r["delta"]
     c_grid = r["c_grid"]
- 
     ax2a.plot(c_grid, r["iv_cov_curve"], "r-", linewidth=1.5, label="IV")
     ax2a.plot(c_grid, r["mor_cov_curve"], "g-", linewidth=1.5, label="MoR")
     ax2a.plot(c_grid, r["rom_cov_curve"], "b-", linewidth=1.5, label="RoM")
@@ -731,7 +728,6 @@ def make_plots(res1, res2a, res2b, res3, res4, res5, output_path="simulation_res
     ax2a.axvline(r["iv_cstar"], color="r", linestyle=":", alpha=0.6)
     ax2a.axvline(r["mor_cstar"], color="g", linestyle=":", alpha=0.6)
     ax2a.axvline(r["rom_cstar"], color="b", linestyle=":", alpha=0.6)
-
     ax2a.annotate(f'IV c*={r["iv_cstar"]:.2f}\n({1/r["iv_cstar"]:.1f}x conserv.)',
                  xy=(r["iv_cstar"], 1 - delta), fontsize=7,
                  xytext=(r["iv_cstar"] + 0.08, 1 - delta - 0.10),
@@ -744,7 +740,6 @@ def make_plots(res1, res2a, res2b, res3, res4, res5, output_path="simulation_res
                  xy=(r["rom_cstar"], 1 - delta), fontsize=7,
                  xytext=(r["rom_cstar"] + 0.08, 1 - delta - 0.30),
                  arrowprops=dict(arrowstyle="->", color="blue"), color="blue")
- 
     ax2a.set_xlabel("Fraction c of theoretical width")
     ax2a.set_ylabel("Coverage probability")
     ax2a.set_title(f"Bound Tightness (δ = {delta})\nHow much of theoretical width is needed?")
@@ -752,14 +747,14 @@ def make_plots(res1, res2a, res2b, res3, res4, res5, output_path="simulation_res
     ax2a.set_xlim(0, 1.05)
     ax2a.set_ylim(0.5, 1.02)
     ax2a.grid(True, alpha=0.3)
+    save(fig, "2a_coverage")
 
     # ── Plot 2b: CI width comparison ──────────────────────────
-    ax2b = fig.add_subplot(gs[0, 2])
+    fig, ax2b = plt.subplots(figsize=(6, 5))
     deltas_a = [r["delta"] for r in res2a]
     iv_cstars = [r["iv_cstar"] for r in res2a]
     mor_cstars = [r["mor_cstar"] for r in res2a]
     rom_cstars = [r["rom_cstar"] for r in res2a]
-
     ax2b.plot(deltas_a, [1/c for c in iv_cstars], "r-s", label="IV conservativeness",
              markersize=5)
     ax2b.plot(deltas_a, [1/c for c in mor_cstars], "g-^", label="MoR conservativeness",
@@ -771,9 +766,10 @@ def make_plots(res1, res2a, res2b, res3, res4, res5, output_path="simulation_res
     ax2b.set_title("Bound Conservativeness vs δ\n(higher = more conservative)")
     ax2b.legend(fontsize=7)
     ax2b.grid(True, alpha=0.3)
+    save(fig, "2b_conservativeness")
 
     # ── Plot 3: Consistency quantiles ─────────────────────────
-    ax3 = fig.add_subplot(gs[1, 0])
+    fig, ax3 = plt.subplots(figsize=(6, 5))
     ns = [r["n"] for r in res3]
     ax3.plot(ns, [r["iv_q99"] for r in res3], "r--s", label="IV q99", alpha=0.7)
     ax3.plot(ns, [r["rom_q99"] for r in res3], "b-o", label="RoM q99")
@@ -787,9 +783,10 @@ def make_plots(res1, res2a, res2b, res3, res4, res5, output_path="simulation_res
     ax3.set_yscale("log")
     ax3.legend(fontsize=6)
     ax3.grid(True, alpha=0.3)
+    save(fig, "3_consistency")
 
     # ── Plot 4: Instrument strength ───────────────────────────
-    ax4 = fig.add_subplot(gs[1, 1])
+    fig, ax4 = plt.subplots(figsize=(6, 5))
     res4_data, rom_crit, mor_crit = res4
     rs = [r["r"] for r in res4_data]
     ax4.plot(rs, [r["iv_mae"] for r in res4_data], "r--s", label="IV", alpha=0.7)
@@ -803,13 +800,13 @@ def make_plots(res1, res2a, res2b, res3, res4, res5, output_path="simulation_res
     ax4.set_xscale("log")
     ax4.legend(fontsize=6)
     ax4.grid(True, alpha=0.3)
+    save(fig, "4_instrument_strength")
 
     # ── Plot 5: Tail heaviness ────────────────────────────────
-    ax5 = fig.add_subplot(gs[1, 2])
+    fig, ax5 = plt.subplots(figsize=(6, 5))
     labels = [r["label"] for r in res5]
     x_pos = range(len(labels))
     width = 0.25
-
     ax5.bar([x - width for x in x_pos], [r["iv_q99"] for r in res5],
             width, label="IV q99", color="red", alpha=0.7)
     ax5.bar(x_pos, [r["rom_q99"] for r in res5],
@@ -822,13 +819,7 @@ def make_plots(res1, res2a, res2b, res3, res4, res5, output_path="simulation_res
     ax5.set_title("Tail Heaviness Comparison\n(99th percentile across distributions)")
     ax5.legend(fontsize=7)
     ax5.grid(True, alpha=0.3, axis="y")
-
-    fig.suptitle("MoM-2SLS Simulation Study: Verifying Theoretical Claims",
-                 fontsize=13, fontweight="bold")
-
-    plt.savefig(output_path, dpi=150, bbox_inches="tight")
-    print(f"\n  Figure saved: {output_path}")
-    plt.close()
+    save(fig, "5_tail_heaviness")
 
 
 # ═══════════════════════════════════════════════
@@ -850,4 +841,4 @@ if __name__ == "__main__":
     print("ALL STUDIES COMPLETE — generating figures...")
 
     make_plots(res1, res2a, res2b, res3, res4, res5,
-               output_path="Code\simulation_results.png")
+               output_path="Paper\images\graphs\sim.png")
