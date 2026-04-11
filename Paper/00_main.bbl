@@ -30,31 +30,28 @@ Devroye, L.%
 \PrintBackRefs{\CurrentBib}
 
 \bibitem [\protect \citeauthoryear {%
-Jerrum%
-, Valiant%
-\BCBL {}\ \BBA {} Vazirani%
+Hoeffding%
 }{%
-Jerrum%
-\ \protect \BOthers {.}}{%
-{\protect \APACyear {1986}}%
+Hoeffding%
+}{%
+{\protect \APACyear {1963}}%
 }]{%
-jerrum1986random}
+hoeffding1963probability}
 \APACinsertmetastar {%
-jerrum1986random}%
+hoeffding1963probability}%
 \begin{APACrefauthors}%
-Jerrum, M\BPBI R.%
-, Valiant, L\BPBI G.%
-\BCBL {}\ \BBA {} Vazirani, V\BPBI V.%
+Hoeffding, W.%
 \end{APACrefauthors}%
 \unskip\
 \newblock
-\APACrefYearMonthDay{1986}{}{}.
+\APACrefYearMonthDay{1963}{}{}.
 \newblock
-{\BBOQ}\APACrefatitle {Random generation of combinatorial structures from a
-  uniform distribution} {Random generation of combinatorial structures from a
-  uniform distribution}.{\BBCQ}
+{\BBOQ}\APACrefatitle {Probability inequalities for sums of bounded random
+  variables} {Probability inequalities for sums of bounded random
+  variables}.{\BBCQ}
 \newblock
-\APACjournalVolNumPages{Theoretical computer science}{43}{}{169--188}.
+\APACjournalVolNumPages{Journal of the American statistical
+  association}{58}{301}{13--30}.
 \PrintBackRefs{\CurrentBib}
 
 \bibitem [\protect \citeauthoryear {%
@@ -83,33 +80,6 @@ Lugosi, G.%
 \newblock
 \APACjournalVolNumPages{Foundations of Computational
   Mathematics}{19}{5}{1145--1190}.
-\PrintBackRefs{\CurrentBib}
-
-\bibitem [\protect \citeauthoryear {%
-Nemirovskij%
-\ \BBA {} Yudin%
-}{%
-Nemirovskij%
-\ \BBA {} Yudin%
-}{%
-{\protect \APACyear {1983}}%
-}]{%
-nemirovskij1983problem}
-\APACinsertmetastar {%
-nemirovskij1983problem}%
-\begin{APACrefauthors}%
-Nemirovskij, A\BPBI S.%
-\BCBT {}\ \BBA {} Yudin, D\BPBI B.%
-\end{APACrefauthors}%
-\unskip\
-\newblock
-\APACrefYearMonthDay{1983}{}{}.
-\newblock
-{\BBOQ}\APACrefatitle {Problem complexity and method efficiency in
-  optimization} {Problem complexity and method efficiency in
-  optimization}.{\BBCQ}
-\newblock
-
 \PrintBackRefs{\CurrentBib}
 
 \end{thebibliography}

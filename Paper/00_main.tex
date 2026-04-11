@@ -7,28 +7,34 @@
 \newcommand{\supervisor}{Mikhail Zhelonkin}
 \newcommand{\secondassesor}{-}
 
-\usepackage[british]{babel} % Use British English
-\usepackage[onehalfspacing]{setspace} % Increase line spacing
-\usepackage[margin=2.5cm]{geometry} % Modify margins
+\usepackage[british]{babel}
+\usepackage[onehalfspacing]{setspace}
+\usepackage[margin=2.5cm]{geometry}
 \usepackage{graphicx, booktabs}
-\usepackage{amsmath, amsfonts, amssymb, amsthm, mathtools}
+\usepackage{amsmath, amsfonts, amssymb, amsthm}
+\usepackage{mathtools}
+\usepackage{array}
 \usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{todonotes}
 \usepackage[natbibapa]{apacite}
 \usepackage[ruled, vlined]{algorithm2e}
 
-\newtheorem{theorem}{Theorem}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
 \newtheorem{definition}[theorem]{Definition}
 \newtheorem{remark}[theorem]{Remark}
-\newtheorem{corollary}[theorem]{Corollary}
 
-\DeclareMathOperator{\med}{median}
-\newcommand{\E}[1][]{\mathbb{E}\ifx&#1&\else\!\left[#1\right]\fi}
-\newcommand{\Var}[1][]{\mathrm{Var}\ifx&#1&\else\!\left[#1\right]\fi}
-\newcommand{\Cov}[1][]{\mathrm{Cov}\ifx&#1&\else\!\left[#1\right]\fi}
-\newcommand{\Prob}[1][]{\mathbb{P}\ifx&#1&\else\!\left(#1\right)\fi}
+\DeclareMathOperator{\E}{\mathbb{E}}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\Cov}{Cov}
+\DeclareMathOperator{\Prob}{\mathbb{P}}
+\DeclareMathOperator{\med}{med}
+
 \newcommand{\abs}[1]{\left|#1\right|}
-\newcommand{\norm}[1]{\left\|#1\right\|}
-
+\newcommand{\R}{\mathbb{R}}
 
 \begin{document}
 
@@ -67,11 +73,7 @@
 \end{abstract}
 
 
-\input{note}
-\input{introduction}
-\input{mom}
-\input{2sls}
-\input{simulation}
+\input{iteration2/preliminaries.tex}
 
 \newpage
 
