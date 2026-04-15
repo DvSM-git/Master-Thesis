@@ -1,0 +1,12 @@
+\section{The Median-of-Ratios MoM-IV Estimator}
+\label{sec:mor}
+
+\begin{definition}[Median-of-Ratios (MoR) estimator]
+\label{def:mor}
+Given a sample $(Y_i, X_i, Z_i)_{i=1}^{n}$ and a number of blocks $k$:
+\begin{enumerate}
+    \item Partition and compute block means $\hat{S}_{ZY}^{(j)}$, $\hat{S}_{ZX}^{(j)}$ as in Definition~\ref{def:rom}.
+    \item Compute block-level IV estimates $\hat{\beta}^{(j)} = \hat{S}_{ZY}^{(j)}/\hat{S}_{ZX}^{(j)}$ for $j = 1, \dots, k$.
+    \item Return $\hat{\beta}_{\mathrm{MR}} = \med(\hat{\beta}^{(1)}, \dots, \hat{\beta}^{(k)})$.
+\end{enumerate}
+\end{definition}

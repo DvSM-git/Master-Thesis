@@ -1,0 +1,82 @@
+\section{The Ratio-of-Medians MoM-IV Estimator}
+\label{sec:rom}
+
+\begin{algorithm}[H]
+\label{alg:rom}
+\caption{Ratio-of-Medians Estimator}
+\KwIn{Sample $(Y_i,X_i,Z_i)_{i=1}^{n}$, number of blocks $k$}
+\KwOut{Estimate $\hat{\beta}_{\mathrm{RM}}$}
+
+Partition $(Y_i,X_i,Z_i)_{i=1}^{n}$ into $k$ blocks $B_1, \dots, B_k$ of size $m = \lfloor n/k \rfloor$\;
+
+\For{$j = 1, \dots, k$}{
+    Compute the block means $\hat{S}_{ZY}^{(j)} = \frac{1}{m}\sum_{i \in B_j} Z_iY_i$ and $\hat{S}_{ZX}^{(j)} = \frac{1}{m}\sum_{i \in B_j} Z_iX_i$\;
+    Compute coordinate-wise medians $\widetilde{S}_{ZY} = \med\left(\hat{S}_{ZY}^{(1)}, \dots, \hat{S}_{ZY}^{(k)}\right)$ and $\widetilde{S}_{ZX} = \med\left(\hat{S}_{ZX}^{(1)}, \dots, \hat{S}_{ZX}^{(k)}\right)$\;
+}
+
+\Return{$\hat{\mu} = \med(\bar{\mu}_1, \dots, \bar{\mu}_k)$}\;
+\end{algorithm}\todo{Fix formatting}
+
+\begin{theorem}[RoM concentration]
+\label{thm:rom}
+Assume \ref{ass:exog}--\ref{ass:moments}. Let $\delta \in (0,1)$, $k = \lceil 8\ln(2/\delta) \rceil$, and $m = \lfloor n/k \rfloor$. If the instrument strength condition
+\begin{equation}
+\label{eq:rom_strength}
+    m > \frac{4\sigma_{ZX}^2}{\mu_{ZX}^2}
+\end{equation}
+holds, then
+\begin{equation}
+\label{eq:rom_bound}
+    \Prob\!\left[\abs{\hat{\beta}_{\mathrm{RM}} - \beta} > \frac{2\left(\sigma_{ZY} + \abs{\beta}\sigma_{ZX}\right)}{\abs{\mu_{ZX}}\sqrt{m} - 2\sigma_{ZX}}\right] \leq \delta.
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+The proof applies the scalar MoM result (Theorem~\ref{thm:mom_scalar}) to each coordinate separately and combines the results with a union bound.
+
+\medskip\noindent\textbf{Step 1 (MoM on each coordinate).} By Theorem~\ref{thm:mom_scalar} applied to the sequences $(Z_iY_i)_{i=1}^{n}$ and $(Z_iX_i)_{i=1}^{n}$,
+\[
+    \Prob\!\left[\abs{\widetilde{S}_{ZY} - \mu_{ZY}} > \frac{2\sigma_{ZY}}{\sqrt{m}}\right] \leq e^{-k/8}, \qquad
+    \Prob\!\left[\abs{\widetilde{S}_{ZX} - \mu_{ZX}} > \frac{2\sigma_{ZX}}{\sqrt{m}}\right] \leq e^{-k/8}.
+\]
+
+\medskip\noindent\textbf{Step 2 (Union bound).} Define the events
+\[
+    A = \left\{\abs{\widetilde{S}_{ZY} - \mu_{ZY}} \leq \frac{2\sigma_{ZY}}{\sqrt{m}}\right\}, \qquad B = \left\{\abs{\widetilde{S}_{ZX} - \mu_{ZX}} \leq \frac{2\sigma_{ZX}}{\sqrt{m}}\right\}.
+\]
+By Step~1, $\Prob[A^c] \leq e^{-k/8}$ and $\Prob[B^c] \leq e^{-k/8}$. Note that $A$ and $B$ are not independent (both are constructed from the same data), so we use the union bound:
+\[
+    \Prob[(A \cap B)^c] = \Prob[A^c \cup B^c] \leq \Prob[A^c] + \Prob[B^c] \leq 2e^{-k/8}.
+\]
+Setting $k = \lceil 8\ln(2/\delta)\rceil$ ensures $2e^{-k/8} \leq \delta$.
+
+\medskip\noindent\textbf{Step 3 (Algebraic bound on the ratio).} On $A \cap B$, we decompose
+\begin{align*}
+    \hat{\beta}_{\mathrm{RM}} - \beta
+    &= \frac{\widetilde{S}_{ZY}}{\widetilde{S}_{ZX}} - \frac{\mu_{ZY}}{\mu_{ZX}}
+    = \frac{\widetilde{S}_{ZY}\mu_{ZX} - \mu_{ZY}\widetilde{S}_{ZX}}{\widetilde{S}_{ZX}\cdot\mu_{ZX}}.
+\end{align*}
+Adding and subtracting $\mu_{ZY}\mu_{ZX}$ in the numerator and using $\mu_{ZY} = \beta\mu_{ZX}$,
+\[
+    \widetilde{S}_{ZY}\mu_{ZX} - \mu_{ZY}\widetilde{S}_{ZX}
+    = \mu_{ZX}\!\left[(\widetilde{S}_{ZY} - \mu_{ZY}) - \beta(\widetilde{S}_{ZX} - \mu_{ZX})\right].
+\]
+The factor $\mu_{ZX}$ cancels with the $\mu_{ZX}$ in the denominator, giving
+\[
+    \hat{\beta}_{\mathrm{RM}} - \beta = \frac{(\widetilde{S}_{ZY} - \mu_{ZY}) - \beta(\widetilde{S}_{ZX} - \mu_{ZX})}{\widetilde{S}_{ZX}}.
+\]
+Taking absolute values and applying the triangle inequality to the numerator,
+\[
+    \abs{\hat{\beta}_{\mathrm{RM}} - \beta} \leq \frac{\abs{\widetilde{S}_{ZY} - \mu_{ZY}} + \abs{\beta}\abs{\widetilde{S}_{ZX} - \mu_{ZX}}}{\abs{\widetilde{S}_{ZX}}}.
+\]
+
+\medskip\noindent\textbf{Step 4 (Substitute bounds).} On event $A$, $\abs{\widetilde{S}_{ZY} - \mu_{ZY}} \leq 2\sigma_{ZY}/\sqrt{m}$. On event $B$, $\abs{\widetilde{S}_{ZX} - \mu_{ZX}} \leq 2\sigma_{ZX}/\sqrt{m}$, and by the reverse triangle inequality,
+\[
+    \abs{\widetilde{S}_{ZX}} \geq \abs{\mu_{ZX}} - \abs{\widetilde{S}_{ZX} - \mu_{ZX}} \geq \abs{\mu_{ZX}} - \frac{2\sigma_{ZX}}{\sqrt{m}}.
+\]
+The instrument strength condition \eqref{eq:rom_strength} ensures $2\sigma_{ZX}/\sqrt{m} < \abs{\mu_{ZX}}$, so the denominator is strictly positive. Substituting,
+\[
+    \abs{\hat{\beta}_{\mathrm{RM}} - \beta} \leq \frac{2\sigma_{ZY}/\sqrt{m} + \abs{\beta}\cdot 2\sigma_{ZX}/\sqrt{m}}{\abs{\mu_{ZX}} - 2\sigma_{ZX}/\sqrt{m}} = \frac{2(\sigma_{ZY} + \abs{\beta}\sigma_{ZX})}{\abs{\mu_{ZX}}\sqrt{m} - 2\sigma_{ZX}}.
+\]
+Since this holds on $A \cap B$ and $\Prob[(A \cap B)^c] \leq \delta$, the result follows.
+\end{proof}

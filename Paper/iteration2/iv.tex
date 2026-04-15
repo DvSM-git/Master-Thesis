@@ -1,0 +1,78 @@
+\section{The Standard Instrumental Variable Estimator}
+\label{sec:standard_iv}
+
+\begin{definition}[Standard IV estimator]
+    Consider the setup given in \ref{eq:structural}. The standard IV estimator $\hat{\beta}_{\mathrm{IV}}$ is given by
+\[
+    \hat{\beta}_{\mathrm{IV}} = \frac{\bar{S}_{ZY}}{\bar{S}_{ZX}}, \qquad \bar{S}_{ZY} = \frac{1}{n}\sum_{i=1}^{n}Z_iY_i, \quad \bar{S}_{ZX} = \frac{1}{n}\sum_{i=1}^{n}Z_iX_i.
+\]
+\end{definition}
+
+\begin{lemma}[Error decomposition]
+\label{lem:iv_decomp}
+Under \eqref{eq:structural} and \ref{ass:exog},
+\begin{equation}
+\label{eq:iv_error}
+    \hat{\beta}_{\mathrm{IV}} - \beta = \frac{\bar{S}_{Z\varepsilon}}{\bar{S}_{ZX}},
+\end{equation}
+where $\bar{S}_{Z\varepsilon} = \frac{1}{n}\sum_{i=1}^{n}Z_i\varepsilon_i$ satisfies $\E[\bar{S}_{Z\varepsilon}] = 0$.
+\end{lemma}
+
+\begin{proof}
+Multiply both sides of $Y_i = \beta X_i + \varepsilon_i$ by $Z_i$ and average:
+\[
+    \bar{S}_{ZY} = \frac{1}{n}\sum_{i=1}^{n}Z_i(\beta X_i + \varepsilon_i) = \beta\bar{S}_{ZX} + \bar{S}_{Z\varepsilon}.
+\]
+Dividing by $\bar{S}_{ZX}$ gives $\hat{\beta}_{\mathrm{IV}} = \beta + \bar{S}_{Z\varepsilon}/\bar{S}_{ZX}$. Furthermore, by \ref{ass:exog}, $\E[Z_i\varepsilon_i] = 0$, so $\E[\bar{S}_{Z\varepsilon}] = 0$ by linearity of expectation. So $\hat{\beta}_{\mathrm{IV}}$ is unbiased.
+\end{proof}
+
+\begin{theorem}[Standard IV concentration]
+\label{thm:iv}
+Assume \ref{ass:exog}--\ref{ass:moments}. For any $\delta \in (0,1)$, if
+\begin{equation}
+\label{eq:iv_strength}
+    n \geq \frac{8\sigma_{ZX}^2}{\delta\,\mu_{ZX}^2},
+\end{equation}
+then
+\begin{equation}
+\label{eq:iv_bound}
+    \Prob\!\left[\abs{\hat{\beta}_{\mathrm{IV}} - \beta} > \frac{2\sqrt{2}\,\sigma_{Z\varepsilon}}{\abs{\mu_{ZX}}\sqrt{\delta\, n}}\right] \leq \delta.
+\end{equation}
+\end{theorem}
+
+
+\begin{proof}
+The proof uses the two-event strategy applied to the full-sample decomposition~\eqref{eq:iv_error}.
+
+\medskip\noindent\textbf{Step 1 (Two-event decomposition).} For a threshold $t > 0$ to be determined, define
+\[
+    A = \left\{\abs{\bar{S}_{ZX} - \mu_{ZX}} \leq \frac{\abs{\mu_{ZX}}}{2}\right\}, \qquad B = \left\{\abs{\bar{S}_{Z\varepsilon}} \leq \frac{t\abs{\mu_{ZX}}}{2}\right\}.
+\]
+\todo{Why?}
+On event $A$, the reverse triangle inequality gives $\abs{\bar{S}_{ZX}} \geq \abs{\mu_{ZX}} - \abs{\bar{S}_{ZX} - \mu_{ZX}} \geq \abs{\mu_{ZX}}/2$. On $A \cap B$,
+\[
+    \abs{\hat{\beta}_{\mathrm{IV}} - \beta} = \frac{\abs{\bar{S}_{Z\varepsilon}}}{\abs{\bar{S}_{ZX}}} \leq \frac{t\abs{\mu_{ZX}}/2}{\abs{\mu_{ZX}}/2} = t.
+\]
+
+\medskip\noindent\textbf{Step 2 (Chebyshev on each event).} Since $\Var(\bar{S}_{ZX}) = \sigma_{ZX}^2/n$ and $\Var(\bar{S}_{Z\varepsilon}) = \sigma_{Z\varepsilon}^2/n$, Chebyshev's inequality gives
+\[
+    \Prob[A^c] \leq \frac{\sigma_{ZX}^2/n}{\mu_{ZX}^2/4} = \frac{4\sigma_{ZX}^2}{n\mu_{ZX}^2}, \qquad
+    \Prob[B^c] \leq \frac{\sigma_{Z\varepsilon}^2/n}{t^2\mu_{ZX}^2/4} = \frac{4\sigma_{Z\varepsilon}^2}{nt^2\mu_{ZX}^2}. 
+\]
+
+\medskip\noindent\textbf{Step 3 (Union bound and solve for $t$).} We allocate $\delta/2$ to each event. The condition~\eqref{eq:iv_strength} ensures $\Prob[A^c] \leq \delta/2$. Setting $\Prob[B^c] \leq \delta/2$ and solving for $t$:
+\[
+    \frac{4\sigma_{Z\varepsilon}^2}{nt^2\mu_{ZX}^2} = \frac{\delta}{2} \implies t = \frac{2\sqrt{2}\,\sigma_{Z\varepsilon}}{\abs{\mu_{ZX}}\sqrt{\delta n}}.
+\]
+By the union bound, $\Prob\left[\abs{\hat{\beta}_{\mathrm{IV}} - \beta} > t\right] \leq \Prob[A^c] + \Prob[B^c] \leq \delta/2 + \delta/2 = \delta$.
+\end{proof}
+
+\begin{remark}[Polynomial dependence on $\delta$]
+\label{rem:iv_polynomial}
+The bound~\eqref{eq:iv_bound} depends on $\delta$ through the factor $1/\sqrt{\delta}$, which is polynomial. \cite{devroye2016sub} show that for any estimator based solely on the empirical mean of i.i.d.\ observations with finite variance, polynomial dependence on $\delta$ is unavoidable without additional distributional assumptions.
+\end{remark}
+
+\begin{remark}[Instrument strength depends on $\delta$]
+The condition \eqref{eq:iv_strength} involves $\delta$: achieving higher confidence (smaller $\delta$) requires more samples to control the denominator. This dependence is polynomial in $1/\delta$.
+\end{remark}
+
