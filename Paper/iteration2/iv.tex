@@ -23,7 +23,7 @@ Multiply both sides of $Y_i = \beta X_i + \varepsilon_i$ by $Z_i$ and average:
 \[
     \bar{S}_{ZY} = \frac{1}{n}\sum_{i=1}^{n}Z_i(\beta X_i + \varepsilon_i) = \beta\bar{S}_{ZX} + \bar{S}_{Z\varepsilon}.
 \]
-Dividing by $\bar{S}_{ZX}$ gives $\hat{\beta}_{\mathrm{IV}} = \beta + \bar{S}_{Z\varepsilon}/\bar{S}_{ZX}$. Furthermore, by \ref{ass:exog}, $\E[Z_i\varepsilon_i] = 0$, so $\E[\bar{S}_{Z\varepsilon}] = 0$ by linearity of expectation. So $\hat{\beta}_{\mathrm{IV}}$ is unbiased.
+Dividing by $\bar{S}_{ZX}$ gives $\hat{\beta}_{\mathrm{IV}} = \beta + \bar{S}_{Z\varepsilon}/\bar{S}_{ZX}$. By \ref{ass:exog}, $\E[Z_i\varepsilon_i] = 0$, so $\E[\bar{S}_{Z\varepsilon}] = 0$ by linearity of expectation. Thus, $\hat{\beta}_{\mathrm{IV}}$ is unbiased.
 \end{proof}
 
 \begin{theorem}[Standard IV concentration]

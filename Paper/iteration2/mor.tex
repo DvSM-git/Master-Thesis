@@ -1,12 +1,91 @@
 \section{The Median-of-Ratios MoM-IV Estimator}
 \label{sec:mor}
 
-\begin{definition}[Median-of-Ratios (MoR) estimator]
-\label{def:mor}
-Given a sample $(Y_i, X_i, Z_i)_{i=1}^{n}$ and a number of blocks $k$:
-\begin{enumerate}
-    \item Partition and compute block means $\hat{S}_{ZY}^{(j)}$, $\hat{S}_{ZX}^{(j)}$ as in Definition~\ref{def:rom}.
-    \item Compute block-level IV estimates $\hat{\beta}^{(j)} = \hat{S}_{ZY}^{(j)}/\hat{S}_{ZX}^{(j)}$ for $j = 1, \dots, k$.
-    \item Return $\hat{\beta}_{\mathrm{MR}} = \med(\hat{\beta}^{(1)}, \dots, \hat{\beta}^{(k)})$.
-\end{enumerate}
-\end{definition}
+\begin{algorithm}[H]
+\label{alg:mor}
+\caption{Median-of-Ratios Estimator}
+\KwIn{Sample $(Y_i,X_i,Z_i)_{i=1}^{n}$, number of blocks $k$}
+\KwOut{Estimate $\hat{\beta}_{\mathrm{RM}}$}
+
+Partition $(Y_i,X_i,Z_i)_{i=1}^{n}$ into $k$ blocks $B_1, \dots, B_k$ of size $m = \lfloor n/k \rfloor$\;
+
+\For{$j = 1, \dots, k$}{
+    Compute the block means $\hat{S}_{ZY}^{(j)} = \frac{1}{m}\sum_{i \in B_j} Z_iY_i$ and $\hat{S}_{ZX}^{(j)} = \frac{1}{m}\sum_{i \in B_j} Z_iX_i$\;
+    Compute block level IV estimates $\hat{\beta}^{(j)}=\frac{\hat{S}_{ZY}^{(j)}}{\hat{S}_{ZX}^{(j)}}$
+}
+
+\Return{$\hat{\beta}_{\mathrm{MR}} = \med\left(\hat{\beta}^{(1)}, \dots, \hat{\beta}^{(k)}\right)$}\;
+\end{algorithm}
+
+\begin{lemma}[Block-level error decomposition]
+\label{lem:mor_decomp}
+Under \eqref{eq:structural} and \ref{ass:exog}, for each block $j$,
+\begin{equation}
+\label{eq:block_error}
+    \hat{\beta}^{(j)} - \beta = \frac{\bar{\varepsilon}_j^Z}{\hat{S}_{ZX}^{(j)}},
+\end{equation}
+where $\bar{\varepsilon}_j^Z = \frac{1}{m}\sum_{i \in B_j}Z_i\varepsilon_i$ satisfies $\E[\bar{\varepsilon}_j^Z] = 0$.
+\end{lemma}
+
+\begin{proof}
+Multiply $Y_i = \beta X_i + \varepsilon_i$ by $Z_i$ and average over block $B_j$:
+\[
+    \hat{S}_{ZY}^{(j)} = \frac{1}{m}\sum_{i \in B_j}Z_i(\beta X_i + \varepsilon_i) = \beta\hat{S}_{ZX}^{(j)} + \bar{\varepsilon}_j^Z.
+\]
+Dividing by $\hat{S}_{ZX}^{(j)}$ gives $\hat{\beta}^{(j)} = \beta + \bar{\varepsilon}_j^Z/\hat{S}_{ZX}^{(j)}$. By \ref{ass:exog} and linearity of expectation, $\E[\bar{\varepsilon}_j^Z] = \frac{1}{m}\sum_{i \in B_j}\E[Z_i\varepsilon_i] = 0$.
+\end{proof}
+
+\begin{theorem}[MoR concentration]
+\label{thm:mor}
+Assume \ref{ass:exog}--\ref{ass:moments}. Let $\delta \in (0,1)$, $k = \lceil 8\ln(1/\delta) \rceil$, and $m = \lfloor n/k \rfloor$. If the instrument strength condition
+\begin{equation}
+\label{eq:mor_strength}
+    m \geq \frac{32\sigma_{ZX}^2}{\mu_{ZX}^2}
+\end{equation}
+holds, then
+\begin{equation}
+\label{eq:mor_bound}
+    \Prob\!\left[\abs{\hat{\beta}_{\mathrm{MR}} - \beta} > \frac{4\sqrt{2}\,\sigma_{Z\varepsilon}}{\abs{\mu_{ZX}}\sqrt{m}}\right] \leq \delta.
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+The proof applies the MoM counting argument directly to the block-level IV estimates $\hat{\beta}^{(j)}$.
+
+\medskip\noindent\textbf{Step 1 (Two-event decomposition).} By Lemma~\ref{lem:mor_decomp}, $\abs{\hat{\beta}^{(j)} - \beta} = \abs{\bar{\varepsilon}_j^Z}/\abs{\hat{S}_{ZX}^{(j)}}$. To bound this ratio, we control the numerator above and the denominator below. For a threshold $t > 0$ to be determined, define
+\[
+    A_j = \left\{\abs{\hat{S}_{ZX}^{(j)} - \mu_{ZX}} \leq \frac{\abs{\mu_{ZX}}}{2}\right\}, \qquad B_j = \left\{\abs{\bar{\varepsilon}_j^Z} \leq \frac{t\abs{\mu_{ZX}}}{2}\right\}.
+\]
+On $A_j$, the reverse triangle inequality gives $\abs{\hat{S}_{ZX}^{(j)}} \geq \abs{\mu_{ZX}}/2$. On $A_j \cap B_j$,
+\[
+    \abs{\hat{\beta}^{(j)} - \beta} = \frac{\abs{\bar{\varepsilon}_j^Z}}{\abs{\hat{S}_{ZX}^{(j)}}} \leq \frac{t\abs{\mu_{ZX}}/2}{\abs{\mu_{ZX}}/2} = t.
+\]
+The thresholds $\abs{\mu_{ZX}}/2$ and $t\abs{\mu_{ZX}}/2$ are chosen so that $\abs{\mu_{ZX}}/2$ cancels in the ratio, leaving exactly $t$.
+
+\medskip\noindent\textbf{Step 2 (Chebyshev on each event).} Since $\Var(\hat{S}_{ZX}^{(j)}) = \sigma_{ZX}^2/m$ and $\Var(\bar{\varepsilon}_j^Z) = \sigma_{Z\varepsilon}^2/m$, Chebyshev's inequality gives
+\[
+    \Prob[A_j^c] \leq \frac{\sigma_{ZX}^2/m}{\mu_{ZX}^2/4} = \frac{4\sigma_{ZX}^2}{m\mu_{ZX}^2}, \qquad
+    \Prob[B_j^c] \leq \frac{\sigma_{Z\varepsilon}^2/m}{t^2\mu_{ZX}^2/4} = \frac{4\sigma_{Z\varepsilon}^2}{mt^2\mu_{ZX}^2}.
+\]
+The instrument strength condition \eqref{eq:mor_strength} ensures $\Prob[A_j^c] \leq 1/8$. Setting $t = 4\sqrt{2}\,\sigma_{Z\varepsilon}/(|\mu_{ZX}|\sqrt{m})$ gives $\Prob[B_j^c] \leq 1/8$.
+
+To verify the latter: substituting $t = 4\sqrt{2}\,\sigma_{Z\varepsilon}/(|\mu_{ZX}|\sqrt{m})$,
+\[
+    \Prob[B_j^c] \leq \frac{4\sigma_{Z\varepsilon}^2}{m \cdot \frac{32\sigma_{Z\varepsilon}^2}{m\mu_{ZX}^2} \cdot \mu_{ZX}^2} = \frac{4\sigma_{Z\varepsilon}^2}{32\sigma_{Z\varepsilon}^2} = \frac{1}{8}.
+\]
+By the union bound over the two events,
+\[
+    \Prob\!\left[\abs{\hat{\beta}^{(j)} - \beta} > t\right] \leq \Prob[A_j^c] + \Prob[B_j^c] \leq \frac{1}{8} + \frac{1}{8} = \frac{1}{4}.
+\]
+
+\medskip\noindent\textbf{Step 3 (Counting argument).} Define $\zeta_j = \mathbf{1}\{|\hat{\beta}^{(j)} - \beta| > t\}$. By Step~2, $\E[\zeta_j] \leq 1/4$. Since the blocks are disjoint, the $(\zeta_j)_{j=1}^{k}$ are independent. If $|\hat{\beta}_{\mathrm{MR}} - \beta| > t$, the median of the block estimates lies outside $(\beta - t, \beta + t)$, which requires at least $k/2$ blocks to satisfy $|\hat{\beta}^{(j)} - \beta| > t$. Therefore,
+\[
+    \Prob\!\left[\abs{\hat{\beta}_{\mathrm{MR}} - \beta} > t\right] \leq \Prob\!\left[\sum_{j=1}^{k}\zeta_j \geq \frac{k}{2}\right].
+\]
+
+\medskip\noindent\textbf{Step 4 (Hoeffding).} By Hoeffding's inequality, with overshoot $k/2 - k/4 = k/4$,
+\[
+    \Prob\!\left[\sum_{j=1}^{k}\zeta_j \geq \frac{k}{2}\right] \leq \exp\!\left(\frac{-2(k/4)^2}{k}\right) = e^{-k/8}.
+\]
+Setting $k = \lceil 8\ln(1/\delta)\rceil$ gives $e^{-k/8} \leq \delta$, completing the proof.
+\end{proof}

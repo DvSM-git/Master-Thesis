@@ -14,7 +14,7 @@ Partition $(Y_i,X_i,Z_i)_{i=1}^{n}$ into $k$ blocks $B_1, \dots, B_k$ of size $m
     Compute coordinate-wise medians $\widetilde{S}_{ZY} = \med\left(\hat{S}_{ZY}^{(1)}, \dots, \hat{S}_{ZY}^{(k)}\right)$ and $\widetilde{S}_{ZX} = \med\left(\hat{S}_{ZX}^{(1)}, \dots, \hat{S}_{ZX}^{(k)}\right)$\;
 }
 
-\Return{$\hat{\mu} = \med(\bar{\mu}_1, \dots, \bar{\mu}_k)$}\;
+\Return{$\hat{\beta}_{\mathrm{RM}} = \frac{\widetilde{S}_{ZY}}{\widetilde{S}_{ZX}}$\;}
 \end{algorithm}\todo{Fix formatting}
 
 \begin{theorem}[RoM concentration]
