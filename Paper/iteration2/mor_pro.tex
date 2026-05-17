@@ -137,11 +137,11 @@ The proof of Theorem~\ref{thm:mor} introduced a general threshold $D$ but then
 fixed it symetrically. Here we keep $D$ free and choose it to minimise the
 resulting error bound symmetrically, at the cost of a more involved Step~3.
 
-\begin{theorem}[Standard IV concentration, optimised threshold]
-\label{thm:iv_opt}
+\begin{theorem}[Standard MoR concentration, optimised threshold]
+\label{thm:mor_opt}
     Assume \ref{ass:exog}--\ref{ass:moments}. Define
     \[
-        \rho = \frac{\sigma_{ZX}^2}{\delta n\mu_{ZX}^2}.
+        \rho = \frac{4\sigma_{ZX}^2}{m\mu_{ZX}^2}.
     \]
     For any $\delta\in(0,1)$, if $\rho < 1$ (i.e., $n > \sigma_{ZX}^2/(\delta\mu_{ZX}^2)$),
     then the choice $D^* = (1-\rho^{1/3})\abs{\mu_{ZX}}$ is optimal and
