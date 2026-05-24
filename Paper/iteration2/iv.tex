@@ -206,7 +206,7 @@ The Chebyshev bound applied to $A(D)^c$ in the proofs above is two-sided. Howeve
 \label{thm:iv_cantelli}
     Assume \ref{ass:exog}--\ref{ass:moments} and $\mu_{ZX}>0$. Write $\gamma_{\mathrm{IV}} = \sigma_{ZX}^2/(n\mu_{ZX}^2)$ and define
     \begin{equation}
-    \label{eq:h_eta}
+    \label{eq:h_eta_iv}
         h(\eta) = \eta^2
         \frac{\delta\bigl(\gamma_{\mathrm{IV}}+(1-\eta)^2\bigr)-\gamma_{\mathrm{IV}}}
             {\gamma_{\mathrm{IV}}+(1-\eta)^2},
@@ -265,7 +265,7 @@ The Chebyshev bound applied to $A(D)^c$ in the proofs above is two-sided. Howeve
     \[
         t^2 \geq \frac{\sigma_{Z\varepsilon}^2}{n\mu_{ZX}^2h(\eta)},
     \]
-    where $h(\eta)$ is defined in~\eqref{eq:h_eta}. The function $h(\eta)$ is positive only when $\delta(\gamma_{\mathrm{IV}}+(1-\eta)^2)>\gamma_{\mathrm{IV}}$, i.e., $(1-\eta)^2>\gamma_{\mathrm{IV}}(1-\delta)/\delta$. The feasible region is non-empty if and only if $\gamma_{\mathrm{IV}}<\delta/(1-\delta)$, which is condition~\eqref{eq:iv_cantelli_strength}. Minimizing $t$ over the feasible region by maximizing $h$ and applying the union bound gives~\eqref{eq:iv_cantelli_bound}.
+    where $h(\eta)$ is defined in~\eqref{eq:h_eta_iv}. The function $h(\eta)$ is positive only when $\delta(\gamma_{\mathrm{IV}}+(1-\eta)^2)>\gamma_{\mathrm{IV}}$, i.e., $(1-\eta)^2>\gamma_{\mathrm{IV}}(1-\delta)/\delta$. The feasible region is non-empty if and only if $\gamma_{\mathrm{IV}}<\delta/(1-\delta)$, which is condition~\eqref{eq:iv_cantelli_strength}. Minimizing $t$ over the feasible region by maximizing $h$ and applying the union bound gives~\eqref{eq:iv_cantelli_bound}.
 \end{proof}
 
 \begin{remark}[When Cantelli helps]
