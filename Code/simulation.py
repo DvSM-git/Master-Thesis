@@ -139,6 +139,170 @@ def iv_estimate(data: pd.DataFrame) -> dict[str, float]:
     return {"beta_hat": float(beta_hat), "se": float(se), "n": n}
 
 
+def iv_estimate_rm(
+    data: pd.DataFrame,
+    delta: float = 0.05,
+    rng: np.random.Generator | None = None,
+    shuffle: bool = True,
+) -> dict[str, float]:
+    """
+    Ratio-of-Medians (RM) IV estimator (Algorithm 2).
+
+    The number of blocks is set from the confidence parameter delta as
+
+        k = ceil(8 * ln(2 / delta)),
+
+    and each block has size m = floor(n / k). For each block B_j compute the
+    block means
+
+        S_ZY^(j) = (1/m) sum_{i in B_j} Z_i Y_i
+        S_ZX^(j) = (1/m) sum_{i in B_j} Z_i X_i
+
+    then take the coordinate-wise medians across blocks and return their ratio:
+
+        beta_RM = median_j(S_ZY^(j)) / median_j(S_ZX^(j))
+
+    The median of block means is robust to heavy-tailed Z*Y and Z*X, so this
+    estimator can outperform the plain mean-based IV estimator when the
+    error terms have heavy tails (e.g. small t degrees of freedom).
+
+    Parameters
+    ----------
+    data    : DataFrame with columns 'Y', 'X', 'Z' (e.g. from generate_data)
+    delta   : confidence parameter; number of blocks k = ceil(8 ln(2/delta))
+    rng     : numpy Generator used for shuffling; fresh seed if None
+    shuffle : if True, randomly permute rows before blocking so block
+              assignment does not depend on the (arbitrary) row order
+
+    Returns
+    -------
+    dict with keys 'beta_hat', 'delta', 'k', 'm', 'n'
+    """
+    Y = data["Y"].to_numpy()
+    X = data["X"].to_numpy()
+    Z = data["Z"].to_numpy()
+    n = len(Y)
+
+    if not 0.0 < delta < 1.0:
+        raise ValueError(f"delta must be in (0, 1), got {delta}")
+
+    k = int(np.ceil(8 * np.log(2 / delta)))
+    if k > n:
+        raise ValueError(
+            f"k = ceil(8 ln(2/delta)) = {k} exceeds n={n}; "
+            "increase n or delta"
+        )
+
+    m = n // k  # block size; the last n - k*m rows are dropped
+    if m == 0:
+        raise ValueError(f"k={k} too large: block size floor(n/k) is 0")
+
+    ZY = Z * Y
+    ZX = Z * X
+
+    if shuffle:
+        if rng is None:
+            rng = np.random.default_rng()
+        perm = rng.permutation(n)
+        ZY = ZY[perm]
+        ZX = ZX[perm]
+
+    # Reshape the first k*m elements into k blocks of size m, then mean over each block.
+    block_means_ZY = ZY[: k * m].reshape(k, m).mean(axis=1)
+    block_means_ZX = ZX[: k * m].reshape(k, m).mean(axis=1)
+
+    S_ZY = np.median(block_means_ZY)
+    S_ZX = np.median(block_means_ZX)
+    if S_ZX == 0:
+        raise ValueError("median of block means(Z * X) is zero; instrument not relevant")
+
+    beta_hat = S_ZY / S_ZX
+
+    return {"beta_hat": float(beta_hat), "delta": delta, "k": k, "m": m, "n": n}
+
+
+def iv_estimate_mr(
+    data: pd.DataFrame,
+    delta: float = 0.05,
+    rng: np.random.Generator | None = None,
+    shuffle: bool = True,
+) -> dict[str, float]:
+    """
+    Median-of-Ratios (MoR) IV estimator (Algorithm 3).
+
+    Per Theorem 4.2, the number of blocks is set from the confidence
+    parameter delta as
+
+        k = ceil(8 * ln(1 / delta)),
+
+    and each block has size m = floor(n / k). For each block B_j compute the
+    block means
+
+        S_ZY^(j) = (1/m) sum_{i in B_j} Z_i Y_i
+        S_ZX^(j) = (1/m) sum_{i in B_j} Z_i X_i
+
+    form a block-level IV estimate, then take the median across blocks:
+
+        beta^(j) = S_ZY^(j) / S_ZX^(j)
+        beta_MR  = median_j(beta^(j))
+
+    Differs from the Ratio-of-Medians estimator (iv_estimate_rm) in that the
+    ratio is taken inside each block *before* the median, rather than after.
+
+    Parameters
+    ----------
+    data    : DataFrame with columns 'Y', 'X', 'Z' (e.g. from generate_data)
+    delta   : confidence parameter; number of blocks k = ceil(8 ln(1/delta))
+    rng     : numpy Generator used for shuffling; fresh seed if None
+    shuffle : if True, randomly permute rows before blocking so block
+              assignment does not depend on the (arbitrary) row order
+
+    Returns
+    -------
+    dict with keys 'beta_hat', 'delta', 'k', 'm', 'n'
+    """
+    Y = data["Y"].to_numpy()
+    X = data["X"].to_numpy()
+    Z = data["Z"].to_numpy()
+    n = len(Y)
+
+    if not 0.0 < delta < 1.0:
+        raise ValueError(f"delta must be in (0, 1), got {delta}")
+
+    k = int(np.ceil(8 * np.log(1 / delta)))
+    if k > n:
+        raise ValueError(
+            f"k = ceil(8 ln(1/delta)) = {k} exceeds n={n}; "
+            "increase n or delta"
+        )
+
+    m = n // k  # block size; the last n - k*m rows are dropped
+    if m == 0:
+        raise ValueError(f"k={k} too large: block size floor(n/k) is 0")
+
+    ZY = Z * Y
+    ZX = Z * X
+
+    if shuffle:
+        if rng is None:
+            rng = np.random.default_rng()
+        perm = rng.permutation(n)
+        ZY = ZY[perm]
+        ZX = ZX[perm]
+
+    # Reshape the first k*m elements into k blocks of size m, then mean over each block.
+    block_means_ZY = ZY[: k * m].reshape(k, m).mean(axis=1)
+    block_means_ZX = ZX[: k * m].reshape(k, m).mean(axis=1)
+
+    # Block-level IV estimates, then median.
+    if np.any(block_means_ZX == 0):
+        raise ValueError("a block mean(Z * X) is zero; instrument not relevant")
+    block_betas = block_means_ZY / block_means_ZX
+    beta_hat = np.median(block_betas)
+
+    return {"beta_hat": float(beta_hat), "delta": delta, "k": k, "m": m, "n": n}
+
+
 if __name__ == "__main__":
     df = generate_data(
         n=10_000,
@@ -151,8 +315,18 @@ if __name__ == "__main__":
         eps_X_df=5,
         rng=np.random.default_rng(seed=42),
     )
+
+    delta = 0.05
     print(df.head(5))
 
     result = iv_estimate(df)
-    print(f"\nIV estimate: beta_hat = {result['beta_hat']:.4f} "
+    print(f"\nMean IV estimate:      beta_hat = {result['beta_hat']:.4f} "
           f"(se = {result['se']:.4f}, true beta = 1.5)")
+
+    result_rm = iv_estimate_rm(df, delta=delta, rng=np.random.default_rng(seed=0))
+    print(f"Ratio-of-Medians (delta={result_rm['delta']}, k={result_rm['k']}): "
+          f"beta_hat = {result_rm['beta_hat']:.4f} (true beta = 1.5)")
+
+    result_mr = iv_estimate_mr(df, delta=delta, rng=np.random.default_rng(seed=0))
+    print(f"Median-of-Ratios (delta={result_mr['delta']}, k={result_mr['k']}): "
+          f"beta_hat = {result_mr['beta_hat']:.4f} (true beta = 1.5)")
