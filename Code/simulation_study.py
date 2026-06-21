@@ -44,6 +44,7 @@ ESTIMATOR_COLORS = {
 }
 
 from simulation import (
+    ar_test_mom,
     generate_data,
     iv_estimate,
     iv_estimate_mr,
@@ -109,9 +110,10 @@ def min_sample_sizes(mu_ZX: float, sigma2_ZX: float, delta: float) -> dict[str, 
 
 
 def _one_replication(data_seed, n, beta, mu_ZX, sigma2_ZX, sigma2_Ze,
-                     rho, eps_Y_df, eps_X_df, delta) -> tuple[float, float, float]:
+                     rho, eps_Y_df, eps_X_df, delta) -> tuple[float, float, float, bool]:
     """
-    Run a single Monte Carlo replication and return the three beta estimates.
+    Run a single Monte Carlo replication and return the three beta estimates
+    plus the MoM AR test rejection decision at the true beta (size check).
 
     Module-level (not a closure) so joblib can pickle it for worker processes.
     The per-rep rng is built from `data_seed` (a spawned SeedSequence), making
@@ -133,6 +135,7 @@ def _one_replication(data_seed, n, beta, mu_ZX, sigma2_ZX, sigma2_Ze,
         iv_estimate(df)["beta_hat"],
         iv_estimate_rm(df, delta=delta, rng=rep_rng)["beta_hat"],
         iv_estimate_mr(df, delta=delta, rng=rep_rng)["beta_hat"],
+        ar_test_mom(df, beta_0=beta, delta=delta, rng=rep_rng)["reject"],
     )
 
 
@@ -192,8 +195,8 @@ def run_simulation_study(
     )
     runtime = time.perf_counter() - t_start
 
-    # results is a list of (mean_iv, rm, mr) tuples; unpack column-wise.
-    mean_iv, rm, mr = (np.asarray(col) for col in zip(*results))
+    # results is a list of (mean_iv, rm, mr, ar_reject) tuples; unpack column-wise.
+    mean_iv, rm, mr, ar_reject = (np.asarray(col) for col in zip(*results))
     estimates = {
         "Mean IV": mean_iv,
         "Ratio-of-Medians": rm,
@@ -279,6 +282,11 @@ def run_simulation_study(
     for name in labels:
         arr = np.asarray(estimates[name])
         print(f"{name:<20} {arr.mean():>10.4f} {np.median(arr):>10.4f} {arr.std():>10.4f}")
+
+    # --- MoM AR test empirical size ---
+    empirical_size = ar_reject.mean()
+    print(f"\nMoM AR test (H0: beta = {beta:g}, nominal delta = {delta:g}):")
+    print(f"  empirical size = {empirical_size:.3f}  ({int(ar_reject.sum())}/{n_reps} rejections)")
 
     # --- theoretical minimum sample sizes ---
     n_min = min_sample_sizes(mu_ZX, sigma2_ZX, delta)

@@ -303,6 +303,90 @@ def iv_estimate_mr(
     return {"beta_hat": float(beta_hat), "delta": delta, "k": k, "m": m, "n": n}
 
 
+def ar_test_mom(
+    data: pd.DataFrame,
+    beta_0: float,
+    delta: float = 0.05,
+    rng: np.random.Generator | None = None,
+    shuffle: bool = True,
+) -> dict:
+    """
+    Median-of-Means Anderson-Rubin test (Algorithm 4).
+
+    Tests H_0: beta = beta_0 by checking whether the median of block-level
+    moment conditions is significantly different from zero.
+
+    For each of k = ceil(8 ln(2/delta)) blocks of size m = floor(n/k):
+
+        W_bar_j(beta_0) = S_hat_ZY^(j) - beta_0 * S_hat_ZX^(j)
+                        = (1/m) sum_{i in B_j} Z_i (Y_i - beta_0 X_i)
+
+    Under H_0, E[Z(Y - beta_0 X)] = 0, so the block means should cluster near
+    zero. The test statistic is their median:
+
+        W_tilde(beta_0) = med(W_bar_1, ..., W_bar_k)
+
+    The threshold tau_n(delta) comes from the MoM concentration inequality:
+
+        tau_n(delta) = sqrt(8 ln(2/delta) * sigma2_Ze_hat / (k*m))
+
+    where sigma2_Ze_hat = mean((Z*(Y - beta_0*X))^2) is a plug-in variance
+    estimate. Reject H_0 if |W_tilde(beta_0)| > tau_n(delta).
+
+    Parameters
+    ----------
+    data    : DataFrame with columns 'Y', 'X', 'Z' (e.g. from generate_data)
+    beta_0  : null value for beta
+    delta   : significance level; number of blocks k = ceil(8 ln(1/delta))
+    rng     : numpy Generator used for shuffling; fresh seed if None
+    shuffle : if True, randomly permute rows before blocking
+
+    Returns
+    -------
+    dict with keys 'reject', 'W_tilde', 'threshold', 'k', 'm', 'n'
+    """
+    Y = data["Y"].to_numpy()
+    X = data["X"].to_numpy()
+    Z = data["Z"].to_numpy()
+    n = len(Y)
+
+    if not 0.0 < delta < 1.0:
+        raise ValueError(f"delta must be in (0, 1), got {delta}")
+
+    k = int(np.ceil(8 * np.log(1 / delta)))
+    if k > n:
+        raise ValueError(
+            f"k = ceil(8 ln(1/delta)) = {k} exceeds n={n}; "
+            "increase n or delta"
+        )
+    m = n // k
+    if m == 0:
+        raise ValueError(f"k={k} too large: block size floor(n/k) is 0")
+
+    W = Z * (Y - beta_0 * X)
+
+    if shuffle:
+        if rng is None:
+            rng = np.random.default_rng()
+        perm = rng.permutation(n)
+        W = W[perm]
+
+    block_means_W = W[: k * m].reshape(k, m).mean(axis=1)
+    W_tilde = float(np.median(block_means_W))
+
+    sigma2_Ze_hat = float(np.mean(W ** 2))
+    threshold = 2.0 * np.sqrt(sigma2_Ze_hat / m)
+
+    return {
+        "reject": bool(abs(W_tilde) > threshold),
+        "W_tilde": W_tilde,
+        "threshold": threshold,
+        "k": k,
+        "m": m,
+        "n": n,
+    }
+
+
 if __name__ == "__main__":
     df = generate_data(
         n=10_000,

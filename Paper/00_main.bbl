@@ -30,31 +30,6 @@ Devroye, L.%
 \PrintBackRefs{\CurrentBib}
 
 \bibitem [\protect \citeauthoryear {%
-Dufour%
-}{%
-Dufour%
-}{%
-{\protect \APACyear {1997}}%
-}]{%
-dufour1997some}
-\APACinsertmetastar {%
-dufour1997some}%
-\begin{APACrefauthors}%
-Dufour, J\BHBI M.%
-\end{APACrefauthors}%
-\unskip\
-\newblock
-\APACrefYearMonthDay{1997}{}{}.
-\newblock
-{\BBOQ}\APACrefatitle {Some impossibility theorems in econometrics with
-  applications to structural and dynamic models} {Some impossibility theorems
-  in econometrics with applications to structural and dynamic models}.{\BBCQ}
-\newblock
-\APACjournalVolNumPages{Econometrica: Journal of the Econometric
-  Society}{}{}{1365--1387}.
-\PrintBackRefs{\CurrentBib}
-
-\bibitem [\protect \citeauthoryear {%
 Hoeffding%
 }{%
 Hoeffding%
