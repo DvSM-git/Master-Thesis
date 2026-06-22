@@ -59,7 +59,7 @@
     \[
         \abs{\hat{\beta}_{\mathrm{IV}} - \beta}= \frac{\abs{\hat{\mu}_{Z \varepsilon}}}{\abs{\hat{\mu}_{ZX}}} \leq \frac{tD}{D} = t.
     \]
-    Hence $\Prob\!\left[\abs{\hat\beta_{IV}-\beta}>t\right] \leq \Prob[A(D)^c] + \Prob[B(D,t)^c]$ by the union bound. For the remainder of this proof we set $D = \abs{\mu_{ZX}}/2$, the symmetric choice that yields the cleanest constants.
+    Hence $\Prob\!\left[\abs{\hat\beta_{IV}-\beta}>t\right] \leq \Prob[A(D)^c] + \Prob[B(D,t)^c]$ by the union bound. For the remainder of this proof we set $D = \abs{\mu_{ZX}}/2$; the symmetric choice that yields the cleanest constants.
 
     \medskip\noindent\textbf{Step 2 (Chebyshev bounds).}
     We bound each failure probability in turn.
@@ -123,13 +123,13 @@ resulting error bound symmetrically, at the cost of a more involved Step~3.
 \label{thm:iv_opt}
     Assume \ref{ass:exog}--\ref{ass:moments}. Define
     \[
-        \rho = \frac{\sigma_{ZX}^2}{\delta n\mu_{ZX}^2}.
+        \rho_\mathrm{IV} = \frac{\sigma_{ZX}^2}{\delta n\mu_{ZX}^2}.
     \]
-    For any $\delta\in(0,1)$, if $\rho < 1$ (i.e., $n > \sigma_{ZX}^2/(\delta\mu_{ZX}^2)$),
-    then the choice $D^* = (1-\rho^{1/3})\abs{\mu_{ZX}}$ is optimal and
+    For any $\delta\in(0,1)$, if $\rho_\mathrm{IV} < 1$ (i.e., $n > \sigma_{ZX}^2/(\delta\mu_{ZX}^2)$),
+    then the choice $D^* = (1-\rho_\mathrm{IV}^{1/3})\abs{\mu_{ZX}}$ is optimal and
     \begin{equation}
     \label{eq:iv_bound_opt}
-        \Prob\!\left[\abs{\hat{\beta}_{\mathrm{IV}} - \beta} > \frac{\sigma_{Z\varepsilon}}{\abs{\mu_{ZX}}\sqrt{\delta n}(1-\rho^{1/3})^{3/2}} \right] \leq \delta.
+        \Prob\!\left[\abs{\hat{\beta}_{\mathrm{IV}} - \beta} > \frac{\sigma_{Z\varepsilon}}{\abs{\mu_{ZX}}\sqrt{\delta n}(1-\rho_\mathrm{IV}^{1/3})^{3/2}} \right] \leq \delta.
     \end{equation}
 \end{theorem}
 
@@ -145,9 +145,9 @@ resulting error bound symmetrically, at the cost of a more involved Step~3.
     \end{equation}
 
     \medskip\noindent\textbf{Step 3 (Optimise $D$, then solve for $t$).}
-    Write $D = \eta\abs{\mu_{ZX}}$ with $\eta\in(0,1)$. Dividing~\eqref{eq:iv_opt_constraint} through by $\delta$ and substituting $\rho = \sigma_{ZX}^2/(\delta n\mu_{ZX}^2)$:
+    Write $D = \eta\abs{\mu_{ZX}}$ with $\eta\in(0,1)$. Dividing~\eqref{eq:iv_opt_constraint} through by $\delta$ and substituting $\rho_\mathrm{IV} = \sigma_{ZX}^2/(\delta n\mu_{ZX}^2)$:
     \[
-        \frac{\rho}{(1-\eta)^2} + \frac{\sigma_{Z\varepsilon}^2}{\delta n\mu_{ZX}^2\eta^2 t^2} \leq 1.
+        \frac{\rho_\mathrm{IV}}{(1-\eta)^2} + \frac{\sigma_{Z\varepsilon}^2}{\delta n\mu_{ZX}^2\eta^2 t^2} \leq 1.
     \]
     Solving for $t^2$:
     \[
@@ -155,30 +155,30 @@ resulting error bound symmetrically, at the cost of a more involved Step~3.
         \frac{\sigma_{Z\varepsilon}^2}{\delta n\mu_{ZX}^2}
         \cdot \frac{1}{f(\eta)},
         \qquad
-        f(\eta) = \eta^2\!\left(1 - \frac{\rho}{(1-\eta)^2}\right).
+        f(\eta) = \eta^2\!\left(1 - \frac{\rho_\mathrm{IV}}{(1-\eta)^2}\right).
     \]
     Minimising $t$ is equivalent to maximising $f$ over $\eta\in(0,1)$. Differentiating and setting $f'(\eta)=0$:
     \[
-        f'(\eta) = 2\eta\!\left(1 - \frac{\rho}{(1-\eta)^2}\right) - \frac{2\rho\eta^2}{(1-\eta)^3} = 0.
+        f'(\eta) = 2\eta\!\left(1 - \frac{\rho_\mathrm{IV}}{(1-\eta)^2}\right) - \frac{2\rho_\mathrm{IV}\eta^2}{(1-\eta)^3} = 0.
     \]
     Dividing through by $2\eta > 0$:
     \[
-        1 - \frac{\rho}{(1-\eta)^2} - \frac{\rho\eta}{(1-\eta)^3} = 0 \iff (1-\eta)^3 - \rho(1-\eta) - \rho\eta = 0 \iff (1-\eta)^3 = \rho.
+        1 - \frac{\rho_\mathrm{IV}}{(1-\eta)^2} - \frac{\rho_\mathrm{IV}\eta}{(1-\eta)^3} = 0 \iff (1-\eta)^3 - \rho_\mathrm{IV}(1-\eta) - \rho_\mathrm{IV}\eta = 0 \iff (1-\eta)^3 = \rho_\mathrm{IV}.
     \]
-    Hence $\eta^* = 1 - \rho^{1/3}$, which lies in $(0,1)$ if and only if $\rho < 1$, the stated instrument strength condition. Substituting $(1-\eta^*)^2 = \rho^{2/3}$:
+    Hence $\eta^* = 1 - \rho_\mathrm{IV}^{1/3}$, which lies in $(0,1)$ if and only if $\rho_\mathrm{IV} < 1$, the stated instrument strength condition. Substituting $(1-\eta^*)^2 = \rho_\mathrm{IV}^{2/3}$:
     \[
-        f(\eta^*) = (1-\rho^{1/3})^2\!\left(1 - \frac{\rho}{\rho^{2/3}}\right) = (1-\rho^{1/3})^2(1 - \rho^{1/3}) = (1-\rho^{1/3})^3.
+        f(\eta^*) = (1-\rho_\mathrm{IV}^{1/3})^2\!\left(1 - \frac{\rho_\mathrm{IV}}{\rho_\mathrm{IV}^{2/3}}\right) = (1-\rho_\mathrm{IV}^{1/3})^2(1 - \rho_\mathrm{IV}^{1/3}) = (1-\rho_\mathrm{IV}^{1/3})^3.
     \]
     The minimised threshold is therefore
     \[
-        t^* = \frac{\sigma_{Z\varepsilon}}{\abs{\mu_{ZX}}\sqrt{\delta n}(1-\rho^{1/3})^{3/2}},
+        t^* = \frac{\sigma_{Z\varepsilon}}{\abs{\mu_{ZX}}\sqrt{\delta n}(1-\rho_\mathrm{IV}^{1/3})^{3/2}},
     \]
-    and the union bound gives $\Prob[\abs{\hat\beta_{IV}-\beta}>t^*]\leq\delta$.
+    and the union bound gives $\Prob\left[\abs{\hat\beta_{IV}-\beta}>t^*\right]\leq\delta$.
 \end{proof}
 
 \begin{remark}[Comparison with the symmetric bound]
 \label{rem:iv_opt_compare}
-    As $\rho\to 0$ (strong instruments or large $n$), the correction factor $(1-\rho^{1/3})^{-3/2}\to 1$ and~\eqref{eq:iv_bound_opt} approaches $\sigma_{Z\varepsilon}/(\abs{\mu_{ZX}}\sqrt{\delta n})$, a factor of $2\sqrt{2}\approx 2.83$ tighter than~\eqref{eq:iv_bound}. As $\rho\to 1$ (approaching the boundary of instrument relevance), the factor diverges, reflecting the genuine difficulty of ratio estimation near instrument irrelevance. The instrument strength condition is eight times weaker than Theorem~\ref{thm:iv}: $\rho < 1$ versus $\rho < 1/8$.
+    As $\rho_\mathrm{IV}\to 0$ (strong instruments or large $n$), the correction factor $(1-\rho_\mathrm{IV}^{1/3})^{-3/2}\to 1$ and~\eqref{eq:iv_bound_opt} approaches $\sigma_{Z\varepsilon}/(\abs{\mu_{ZX}}\sqrt{\delta n})$, a factor of $2\sqrt{2}\approx 2.83$ tighter than~\eqref{eq:iv_bound}. As $\rho_\mathrm{IV}\to 1$ (approaching the boundary of instrument relevance), the factor diverges, reflecting the genuine difficulty of ratio estimation near instrument irrelevance. The instrument strength condition is eight times weaker than Theorem~\ref{thm:iv}: $\rho_\mathrm{IV} < 1$ versus $\rho_\mathrm{IV} < 1/8$.
 \end{remark}
 
 
@@ -270,5 +270,5 @@ The Chebyshev bound applied to $A(D)^c$ in the proofs above is two-sided. Howeve
 
 \begin{remark}[No closed form for $\eta^*_{\mathrm{IV}}$]
     \label{rem:cantelli_noform}
-    The first-order condition $h'(\eta)=0$ reduces to a quartic in $\eta$ with no general closed-form solution. The optimised Chebyshev version (Theorem~\ref{thm:iv_opt}) yielded the clean form $\eta^*=1-\rho^{1/3}$ because the Chebyshev bound $\sigma^2/\tau^2$ produces a simpler algebraic structure than the Cantelli bound $\sigma^2/(\sigma^2+\tau^2)$. The bound~\eqref{eq:iv_cantelli_bound} must therefore be evaluated numerically for specific parameter values.
+    The first-order condition $h'(\eta)=0$ reduces to a quartic in $\eta$ with no general closed-form solution. The optimised Chebyshev version (Theorem~\ref{thm:iv_opt}) yielded the clean form $\eta^*=1-\rho_\mathrm{IV}^{1/3}$ because the Chebyshev bound $\sigma^2/\tau^2$ produces a simpler algebraic structure than the Cantelli bound $\sigma^2/(\sigma^2+\tau^2)$. The bound~\eqref{eq:iv_cantelli_bound} must therefore be evaluated numerically for specific parameter values.
 \end{remark}
