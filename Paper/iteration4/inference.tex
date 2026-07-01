@@ -1,0 +1,311 @@
+\section{Inference}
+\label{s:inference}
+
+\subsection{Test Inversion}
+\label{ss:inversion}
+
+Fix a null hypothesis $H_0\colon \beta = \beta_0$ and define
+\begin{equation}
+  W_i(\beta_0) := Z_i\bigl(Y_i - \beta_0 X_i\bigr), \qquad i = 1,\dots,n.
+  \label{eq:Wdef}
+\end{equation}
+Under $H_0$ we have $W_i(\beta_0) = Z_i\varepsilon_i$, so by \ref{ass:exog} $\E[W_i(\beta_0)] = \E[Z_i\varepsilon_i] = 0$ and by \ref{ass:moments} $\Var(W_i(\beta_0)) = \sigma_{Z\varepsilon}^2 < \infty$.
+
+\citet{dufour1997some} explains why test inversion is necessary under weak instruments: in any model whose identification region
+\[
+  \Theta_0 := \{\theta\in\Theta : \mu_{ZX}(\theta) = 0\}
+\]
+is non-empty, no confidence set procedure can be simultaneously valid and bounded with probability one. A Wald-type interval built around a point estimate is therefore not generally valid, whereas inverting a test of $H_0\colon\beta=\beta_0$ over a grid of null values remains so.
+
+\subsection{The Median-of-Means Anderson--Rubin Test}
+\label{sec:mom_ar_test}
+
+We partition the sample into $k$ blocks as in the preceding sections and form, within each block $B_j$, the block mean of the moment~\eqref{eq:Wdef}. Because $W_i(\beta_0) = Z_iY_i - \beta_0 Z_iX_i$ is linear in $\beta_0$, the block mean is
+an \emph{affine} function of $\beta_0$:
+\begin{equation}
+  \bar{W}_j(\beta_0)
+    := \frac{1}{m}\sum_{i\in B_j} W_i(\beta_0)
+    = \hat{\mu}_{ZY}^{(j)} - \beta_0\,\hat{\mu}_{ZX}^{(j)},
+    \qquad j = 1,\dots,k.
+  \label{eq:Wbar}
+\end{equation}
+The median-of-means AR statistic is the coordinate-wise median of these block
+means,
+\begin{equation}
+  \widetilde{W}(\beta_0)
+    := \med\bigl(\bar{W}_1(\beta_0),\dots,\bar{W}_k(\beta_0)\bigr).
+  \label{eq:Wtilde}
+\end{equation}
+
+
+\begin{algorithm}[H]
+\label{alg:mom_ar}
+\caption{Median-of-Means Anderson--Rubin Test}
+\KwIn{Sample $(Y_i,X_i,Z_i)_{i=1}^{n}$, number of blocks $k$, null value
+      $\beta_0$, threshold $\tau_n(\delta)$}
+\KwOut{Decision: reject or fail to reject $H_0\colon\beta=\beta_0$}
+Partition $(Y_i,X_i,Z_i)_{i=1}^{n}$ into $k$ blocks $B_1,\dots,B_k$ of size
+$m=\lfloor n/k\rfloor$\;
+\For{$j=1,\dots,k$}{
+  Compute $\hat{\mu}_{ZY}^{(j)} = \frac{1}{m}\sum_{i\in B_j} Z_iY_i$ and
+          $\hat{\mu}_{ZX}^{(j)} = \frac{1}{m}\sum_{i\in B_j} Z_iX_i$\;
+  Form $\bar{W}_j(\beta_0) = \hat{\mu}_{ZY}^{(j)} - \beta_0\hat{\mu}_{ZX}^{(j)}$\;
+}
+$\widetilde{W}(\beta_0) \leftarrow
+  \med\bigl(\bar{W}_1(\beta_0),\dots,\bar{W}_k(\beta_0)\bigr)$\;
+\Return{reject if $\abs{\widetilde{W}(\beta_0)} > \tau_n(\delta)$, else fail to
+        reject}\;
+\end{algorithm}
+
+
+\begin{theorem}[Size of the MoM-AR test]
+\label{thm:mom_ar_size}
+Assume \ref{ass:exog}--\ref{ass:moments}. Fix $\delta\in(0,1)$, set
+$k=\lceil 8\ln(1/\delta)\rceil$ and $m=\lfloor n/k\rfloor$, and define
+\begin{equation}
+  \tau_n(\delta) := \sigma_{Z\varepsilon}\sqrt{\frac{32\ln(1/\delta)}{n}}.
+  \label{eq:tau}
+\end{equation}
+Then under $H_0\colon\beta=\beta_0$,
+\begin{equation}
+  \Prob_{H_0}\!\left[\,\abs{\widetilde{W}(\beta_0)} > \tau_n(\delta)\,\right]
+    \le \delta.
+  \label{eq:size}
+\end{equation}
+Consequently the test of Algorithm~\ref{alg:mom_ar} has size at most $\delta$.
+\end{theorem}
+ 
+\begin{proof}
+The proof reduces the statistic to the scalar median-of-means estimator of Section~\ref{sec:mom_prelim} and applies its concentration bound.
+
+\medskip\noindent\textbf{Step 1 (Moments of the block moment under $H_0$).} Under $H_0\colon\beta=\beta_0$ we have $W_i(\beta_0)=Z_i\varepsilon_i$, so the $(W_i(\beta_0))_{i=1}^{n}$ are i.i.d.\ with $\E[W_i(\beta_0)] = \E[Z_i\varepsilon_i] = 0$ by \ref{ass:exog} and $\Var(W_i(\beta_0)) = \sigma_{Z\varepsilon}^2 < \infty$ by \ref{ass:moments}.
+
+\medskip\noindent\textbf{Step 2 (Reduction to the scalar MoM estimator).} By~\eqref{eq:Wbar} and~\eqref{eq:Wtilde}, $\widetilde{W}(\beta_0)$ is the coordinate-wise median of the $k$ block means of $(W_i(\beta_0))_{i=1}^{n}$; that is, it is exactly the scalar median-of-means estimator of Algorithm~\ref{alg:mom} applied to this sequence, estimating its mean $\mu = 0$. Theorem~\ref{thm:mom_scalar}, taken with $\sigma^2 = \sigma_{Z\varepsilon}^2$ and $k = \lceil 8\ln(1/\delta)\rceil$, therefore gives
+\[
+  \Prob_{H_0}\!\left[\,\abs{\widetilde{W}(\beta_0)}
+       > \sigma_{Z\varepsilon}\sqrt{\tfrac{32\ln(1/\delta)}{n}}\,\right]
+       \le \delta.
+\]
+The deviation on the left is precisely $\tau_n(\delta)$ of~\eqref{eq:tau}, so this is~\eqref{eq:size}.
+\end{proof}
+
+
+\subsection{The MoM-AR Confidence Set}
+\label{sec:mom_ar_cs}
+
+Inverting the test of Theorem~\ref{thm:mom_ar_size} produces a confidence set.
+\todo{Cite confidence set}
+
+\begin{definition}[MoM-AR confidence set]
+\label{def:cs}
+For $\delta\in(0,1)$ and $\tau_n(\delta)$ as in~\eqref{eq:tau}, the MoM-AR
+confidence set is
+\begin{equation}
+  CS_{1-\delta}
+    := \bigl\{\beta_0\in\R : \abs{\widetilde{W}(\beta_0)}\le\tau_n(\delta)\bigr\}.
+  \label{eq:cs}
+\end{equation}
+\end{definition}
+
+
+\begin{theorem}[Coverage]
+\label{thm:coverage}
+Assume \ref{ass:exog}--\ref{ass:moments} and let
+$k=\lceil 8\ln(1/\delta)\rceil$. Then
+\[
+  \Prob_{\beta}\bigl[\beta\in CS_{1-\delta}\bigr] \ge 1-\delta.
+\]
+\end{theorem}
+
+\begin{proof}
+The result is the test-inversion dual of the size bound. By Definition~\ref{def:cs}, the true parameter lies in the confidence set exactly when the statistic evaluated at the truth stays below the threshold:
+\[
+    \beta\in CS_{1-\delta} \iff \abs{\widetilde{W}(\beta)}\le\tau_n(\delta).
+\]
+Evaluating the moment at the true parameter gives $W_i(\beta) = Z_i\varepsilon_i$, which has mean zero by \ref{ass:exog}. Applying the size bound of Theorem~\ref{thm:mom_ar_size} at the true null $\beta_0=\beta$ therefore yields $\Prob_\beta\!\left[\,\abs{\widetilde{W}(\beta)}>\tau_n(\delta)\,\right]\le\delta$. Taking complements,
+\[
+    \Prob_\beta\!\left[\beta\in CS_{1-\delta}\right]
+    = \Prob_\beta\!\left[\abs{\widetilde{W}(\beta)}\le\tau_n(\delta)\right]
+    \ge 1-\delta. \qedhere
+\]
+\end{proof}
+
+\subsection{Geometry of the Confidence Set}
+\label{sec:geometry}
+
+\begin{theorem}[Piecewise-affine structure]
+\label{thm:piecewise}
+The map $\beta_0\mapsto\widetilde{W}(\beta_0)$ is continuous and piecewise affine. There exist finitely many breakpoints $\beta^{(1)}<\beta^{(2)}<\dots<\beta^{(M)}$, with $M\le\binom{k}{2}$, such that on each open interval of $\R\setminus\{\beta^{(1)},\dots,\beta^{(M)}\}$ the function $\widetilde{W}$ coincides with a single block mean $\bar{W}_j$ and is therefore affine.
+\end{theorem}
+
+\begin{proof}
+The median of $k$ numbers is the value occupying rank $r:=\lceil k/2\rceil$ once the numbers are sorted. We therefore study how the sorted order of $\bar{W}_1(\beta_0),\dots,\bar{W}_k(\beta_0)$ varies with $\beta_0$.
+ 
+\medskip\noindent\textbf{Step 1 (Crossings are finite).} For a pair $i\neq j$, the equation $\bar{W}_i(\beta_0)=\bar{W}_j(\beta_0)$ reads $\hat{\mu}_{ZY}^{(i)}-\beta_0\hat{\mu}_{ZX}^{(i)} =\hat{\mu}_{ZY}^{(j)}-\beta_0\hat{\mu}_{ZX}^{(j)}$, i.e.\ $(\hat{\mu}_{ZX}^{(j)}-\hat{\mu}_{ZX}^{(i)})\beta_0 =\hat{\mu}_{ZY}^{(j)}-\hat{\mu}_{ZY}^{(i)}$. If $\hat{\mu}_{ZX}^{(i)}\neq\hat{\mu}_{ZX}^{(j)}$ this has a unique solution; if the slopes are equal the lines are parallel and never cross (or coincide, in which case the pair may be merged). Hence the crossing set $\mathcal{C}:=\{\beta_0 : \bar{W}_i(\beta_0)=\bar{W}_j(\beta_0)\text{ for some } i\neq j\}$ satisfies $\abs{\mathcal{C}}\le\binom{k}{2}$. Enumerate it as $\beta^{(1)}<\dots<\beta^{(M)}$ and set $\beta^{(0)}:=-\infty$, $\beta^{(M+1)}:=+\infty$.
+ 
+\medskip\noindent\textbf{Step 2 (The order is constant between crossings).} Fix an interval $I_\ell:=(\beta^{(\ell)},\beta^{(\ell+1)})$. For any pair $i\neq j$ the difference $D_{ij}(\beta_0):=\bar{W}_i(\beta_0)-\bar{W}_j(\beta_0)$ is affine, hence continuous, and vanishes only on $\mathcal{C}$. Since $I_\ell\cap\mathcal{C}=\varnothing$, $D_{ij}$ has constant sign on $I_\ell$. As this holds for every pair, the total ordering of $\bar{W}_1(\beta_0),\dots,\bar{W}_k(\beta_0)$ is constant on $I_\ell$; let $\pi_\ell$ be the permutation realising it, so that $\bar{W}_{\pi_\ell(1)}(\beta_0)\le\dots\le\bar{W}_{\pi_\ell(k)}(\beta_0)$ throughout $I_\ell$.
+ 
+\medskip\noindent\textbf{Step 3 (The median is one block mean on each interval).} By Step~2 the rank-$r$ value on $I_\ell$ is always supplied by the same index, so $\widetilde{W}(\beta_0)=\bar{W}_{\pi_\ell(r)}(\beta_0)$ for all $\beta_0\in I_\ell$; this is affine. With at most $M+1\le\binom{k}{2}+1$ intervals, $\widetilde{W}$ is piecewise affine.
+ 
+\medskip\noindent\textbf{Step 4 (Continuity).} Let $i=\pi_{\ell-1}(r)$ and $j=\pi_\ell(r)$ be the active median indices on either side of a breakpoint $\beta^{(\ell)}$. If $i=j$ there is nothing to prove. If $i\neq j$, the rank-$r$ slot changes occupant across $\beta^{(\ell)}$, which can occur only if lines $i$ and $j$ exchange ranks there; by continuity of $D_{ij}$ this requires $\bar{W}_i(\beta^{(\ell)})=\bar{W}_j(\beta^{(\ell)})$. Hence the left and right limits of $\widetilde{W}$ at $\beta^{(\ell)}$ coincide with this common value, and $\widetilde{W}$ is continuous. (If three or more lines meet at $\beta^{(\ell)}$, any reshuffling is confined to the indices sharing the common value there, and the same conclusion holds.)
+\end{proof}
+
+\begin{corollary}[Candidate boundary points]
+\label{cor:endpoints}
+Every boundary point of $CS_{1-\delta}$ lies in the set
+\begin{equation}
+  \mathcal{B}_{\mathrm{cand}}
+    := \bigcup_{\,j:\,\hat{\mu}_{ZX}^{(j)}\neq 0}
+       \left\{
+         \frac{\hat{\mu}_{ZY}^{(j)}-\tau_n(\delta)}{\hat{\mu}_{ZX}^{(j)}},\;
+         \frac{\hat{\mu}_{ZY}^{(j)}+\tau_n(\delta)}{\hat{\mu}_{ZX}^{(j)}}
+       \right\},
+  \label{eq:candidates}
+\end{equation}
+a set of at most $2k$ explicitly computable points.
+\end{corollary}
+ 
+\begin{proof}
+A boundary point $\beta_0$ of $CS_{1-\delta}$ lies on the boundary of the band, so $\abs{\widetilde{W}(\beta_0)}=\tau_n(\delta)$, i.e.\ $\widetilde{W}(\beta_0)=+\tau_n(\delta)$ or $\widetilde{W}(\beta_0)=-\tau_n(\delta)$. By Theorem~\ref{thm:piecewise}, $\beta_0$ lies in the closure of an interval on which $\widetilde{W}$ coincides with a single block mean $\bar{W}_j$, so it solves $\bar{W}_j(\beta_0)=\pm\tau_n(\delta)$ for some $j$. Two cases arise, according to the slope $-\hat{\mu}_{ZX}^{(j)}$ of that piece.
+
+If $\hat{\mu}_{ZX}^{(j)}\neq 0$, then $\bar{W}_j$ is strictly monotone and $\hat{\mu}_{ZY}^{(j)}-\beta_0\hat{\mu}_{ZX}^{(j)}=\pm\tau_n(\delta)$ has the unique solutions
+\[
+    \beta_0 = \frac{\hat{\mu}_{ZY}^{(j)}\mp\tau_n(\delta)}{\hat{\mu}_{ZX}^{(j)}},
+\]
+namely the two values contributed by block $j$ in~\eqref{eq:candidates}. If $\hat{\mu}_{ZX}^{(j)}=0$, then $\bar{W}_j\equiv\hat{\mu}_{ZY}^{(j)}$ is constant and equals $\pm\tau_n(\delta)$ only in the non-generic event $\hat{\mu}_{ZY}^{(j)}=\pm\tau_n(\delta)$; such a block contributes no isolated boundary point. Ranging over the $k$ blocks, each of which contributes at most two candidates, gives $\abs{\mathcal{B}_{\mathrm{cand}}}\le 2k$.
+\end{proof}
+
+\begin{corollary}[Finite union of intervals]
+\label{cor:union}
+$CS_{1-\delta}$ is a finite union of at most $k + 1$ closed intervals, each possibly a single point or unbounded.
+\end{corollary}
+ 
+\begin{proof}
+By Theorem~\ref{thm:piecewise}, $\abs{\widetilde{W}}$ is continuous and piecewise affine. The set $CS_{1-\delta}=\{\beta_0:\abs{\widetilde{W}(\beta_0)}\le\tau_n(\delta)\}$ is the preimage of the closed interval $[-\tau_n(\delta),\tau_n(\delta)]$ under this continuous function, hence closed; being a sublevel set of a piecewise-affine function with finitely many pieces, it is a finite union of closed intervals.
+
+To count the components, note that the endpoints of these intervals are boundary points of $CS_{1-\delta}$, and by Corollary~\ref{cor:endpoints} there are at most $2k$ such points. Ordering them partitions $\R$ into at most $2k+1$ open intervals, on each of which $\abs{\widetilde{W}}-\tau_n(\delta)$ has constant sign and so lies either entirely inside or entirely outside the band. Since the in-band and out-of-band intervals alternate along the line, at most $\lceil (2k+1)/2\rceil = k+1$ of them lie in the band. Merging any in-band intervals that meet at a shared boundary point can only reduce this count, so $CS_{1-\delta}$ has at most $k+1$ components.
+\end{proof}
+
+\subsection{Monotonicity and Single-Interval Confidence Sets}
+\label{sec:monotonicity}
+
+The slope of $\widetilde{W}$ on any affine piece is $-\hat{\mu}_{ZX}^{(j)}$ for the active index $j$. When all block slopes share a sign, $\widetilde{W}$ is monotonic and the confidence set is a single interval.
+
+\begin{proposition}[Deterministic single-interval condition]
+\label{prop:mono_det}
+If the block sums $\hat{\mu}_{ZX}^{(1)},\dots,\hat{\mu}_{ZX}^{(k)}$ all share the same sign, then $\widetilde{W}$ is monotonic on $\R$ and $CS_{1-\delta}$ is a single (possibly empty or unbounded) interval.
+\end{proposition}
+
+\begin{proof}
+By Theorem~\ref{thm:piecewise} the slope of $\widetilde{W}$ on each affine piece equals $-\hat{\mu}_{ZX}^{(j)}$ for the active index $j$. If all $\hat{\mu}_{ZX}^{(j)}>0$ then every such slope is negative, so the continuous piecewise-affine function $\widetilde{W}$ is non-increasing on $\R$; if all $\hat{\mu}_{ZX}^{(j)}<0$ it is non-decreasing. In either case $\widetilde{W}$ is monotone, so each of the level sets $\{\widetilde{W}\le\tau_n(\delta)\}$ and $\{\widetilde{W}\ge-\tau_n(\delta)\}$ is a half-line (a ray). The confidence set $CS_{1-\delta}$ is their intersection, hence a single interval, which may be empty or unbounded.
+\end{proof}
+
+\begin{proposition}[Single-interval condition, Chebyshev]
+\label{prop:mono_cheby}
+Assume \ref{ass:exog}--\ref{ass:moments} with $\mu_{ZX}\neq 0$. If
+\begin{equation}
+  m \ge \frac{k\,\sigma_{ZX}^2}{\delta\,\mu_{ZX}^2},
+  \label{eq:mono_cheby}
+\end{equation}
+then with probability at least $1-\delta$ all block sums $\hat{\mu}_{ZX}^{(j)}$
+share the sign of $\mu_{ZX}$; consequently $\widetilde{W}$ is monotone and
+$CS_{1-\delta}$ is a single interval.
+\end{proposition}
+ 
+\begin{proof}
+Assume without loss of generality that $\mu_{ZX}>0$; the case $\mu_{ZX}<0$ is symmetric. By Proposition~\ref{prop:mono_det} it suffices to show that all block sums are positive with probability at least $1-\delta$, since sign-consistency then forces $\widetilde{W}$ to be monotone. Sign-consistency fails on the event
+\[
+    \mathcal{F} = \bigcup_{j=1}^{k}\bigl\{\hat{\mu}_{ZX}^{(j)}\le 0\bigr\}.
+\]
+
+\medskip\noindent\textbf{Step 1 (Chebyshev on each block).} A non-positive block sum is a large downward deviation from $\mu_{ZX}>0$: if $\hat{\mu}_{ZX}^{(j)}\le 0$ then $\abs{\hat{\mu}_{ZX}^{(j)}-\mu_{ZX}} = \mu_{ZX}-\hat{\mu}_{ZX}^{(j)}\ge\mu_{ZX}$, so $\{\hat{\mu}_{ZX}^{(j)}\le 0\}\subseteq\{\abs{\hat{\mu}_{ZX}^{(j)}-\mu_{ZX}}\ge\mu_{ZX}\}$. Since $\Var(\hat{\mu}_{ZX}^{(j)})=\sigma_{ZX}^2/m$, Chebyshev's inequality applied with threshold $\mu_{ZX}$ gives
+\[
+    \Prob\bigl[\hat{\mu}_{ZX}^{(j)}\le 0\bigr]\le\frac{\sigma_{ZX}^2/m}{\mu_{ZX}^2}=\frac{\sigma_{ZX}^2}{m\mu_{ZX}^2}.
+\]
+
+\medskip\noindent\textbf{Step 2 (Union bound over blocks).} Summing over the $k$ blocks,
+\[
+    \Prob[\mathcal{F}]\le\sum_{j=1}^{k}\Prob\bigl[\hat{\mu}_{ZX}^{(j)}\le 0\bigr]\le\frac{k\sigma_{ZX}^2}{m\mu_{ZX}^2},
+\]
+which is at most $\delta$ precisely when $m\ge k\sigma_{ZX}^2/(\delta\mu_{ZX}^2)$, i.e.\ condition~\eqref{eq:mono_cheby}. On the complement $\mathcal{F}^c$, all block sums share the sign of $\mu_{ZX}$, and Proposition~\ref{prop:mono_det} makes $CS_{1-\delta}$ a single interval.
+\end{proof}
+\begin{remark}[Cantelli refinement]
+\label{rem:mono_cantelli}
+Replacing Chebyshev's inequality by the one-sided Cantelli bound (Lemma~\ref{lem:cantelli}) in Step~1 sharpens the per-block probability, and hence the constant in condition~\eqref{eq:mono_cheby}. As for the standard IV estimator (Remark~\ref{rem:cantelli_gain}), the resulting improvement is minor, so we retain the Chebyshev form.
+\end{remark}
+
+\subsection{Computation}
+
+The confidence set can be computed exactly and in closed form. The idea is to enumerate the crossing points of the block-mean lines $\bar{W}_1,\dots,\bar{W}_k$ to obtain the affine pieces of $\widetilde{W}$ (Theorem~\ref{thm:piecewise}), identify the active median line on each piece, and retain the sub-intervals on which this line lies within the band $[-\tau_n(\delta),\tau_n(\delta)]$. Algorithm~\ref{alg:mom_ar_cs} collects these steps.
+
+
+
+\begin{algorithm}[H]
+
+\label{alg:mom_ar_cs}
+
+\caption{MoM-AR Confidence Set}
+
+\KwIn{Sample $(Y_i,X_i,Z_i)_{i=1}^{n}$, number of blocks $k$, threshold $\tau_n(\delta)$}
+
+\KwOut{Confidence set $CS_{1-\delta}$}
+
+Partition $(Y_i,X_i,Z_i)_{i=1}^{n}$ into $k$ blocks $B_1,\dots,B_k$ of size
+
+$m=\lfloor n/k\rfloor$\;
+
+\For{$j=1,\dots,k$}{
+
+  Compute $\hat{\mu}_{ZY}^{(j)} = \frac{1}{m}\sum_{i\in B_j} Z_iY_i$ and
+
+          $\hat{\mu}_{ZX}^{(j)} = \frac{1}{m}\sum_{i\in B_j} Z_iX_i$\;
+
+}
+
+$\mathcal{C}\leftarrow\varnothing$\;
+
+\ForEach{pair $1\le i<j\le k$ with $\hat{\mu}_{ZX}^{(i)}\neq\hat{\mu}_{ZX}^{(j)}$}{
+
+  $\mathcal{C}\leftarrow\mathcal{C}\cup\bigl\{(\hat{\mu}_{ZY}^{(j)}-\hat{\mu}_{ZY}^{(i)})/(\hat{\mu}_{ZX}^{(j)}-\hat{\mu}_{ZX}^{(i)})\bigr\}$\;
+
+}
+
+Sort $\mathcal{C}$ as $\beta^{(1)}<\dots<\beta^{(M)}$ and set $\beta^{(0)}=-\infty$,
+
+$\beta^{(M+1)}=+\infty$\;
+
+$CS_{1-\delta}\leftarrow\varnothing$\;
+
+\For{$\ell=0,\dots,M$}{
+
+  Choose any $\beta_\star\in(\beta^{(\ell)},\beta^{(\ell+1)})$\;
+
+  Find the active median index $a$ with
+
+  $\bar{W}_a(\beta_\star)=\med\bigl(\bar{W}_1(\beta_\star),\dots,\bar{W}_k(\beta_\star)\bigr)$\;
+
+  \eIf{$\hat{\mu}_{ZX}^{(a)}\neq 0$}{
+
+    $J\leftarrow$ closed interval with endpoints
+
+    $(\hat{\mu}_{ZY}^{(a)}\pm\tau_n(\delta))/\hat{\mu}_{ZX}^{(a)}$\;
+
+  }{
+
+    $J\leftarrow\R$ if $\abs{\hat{\mu}_{ZY}^{(a)}}\le\tau_n(\delta)$, else
+
+    $J\leftarrow\varnothing$\;
+
+  }
+
+  $CS_{1-\delta}\leftarrow CS_{1-\delta}\cup\bigl([\beta^{(\ell)},\beta^{(\ell+1)}]\cap J\bigr)$\;
+
+}
+
+\Return{$CS_{1-\delta}$, merging intervals that share an endpoint}\;
+
+\end{algorithm}
+
+
+
+On each interval $(\beta^{(\ell)},\beta^{(\ell+1)})$ the statistic $\widetilde{W}$ coincides with a single affine piece $\bar{W}_a$, so intersecting the band constraint $\abs{\bar{W}_a(\beta_0)}\le\tau_n(\delta)$ with that interval is exact. By Corollary~\ref{cor:union} the returned set consists of at most $k+1$ closed intervals, whose endpoints lie among the $2k$ candidates of Corollary~\ref{cor:endpoints}.

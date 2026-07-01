@@ -1,0 +1,274 @@
+\section{The Standard Instrumental Variable Estimator}
+\label{sec:standard_iv}
+
+\begin{definition}[Standard IV estimator]
+    Consider the structural equation~\eqref{eq:structural}. The standard IV estimator
+    $\hat{\beta}_{\mathrm{IV}}$ is defined by
+    \[
+        \hat{\beta}_{\mathrm{IV}} = \frac{\hat{\mu}_{ZY}}{\hat{\mu}_{ZX}},
+    \]
+\end{definition}
+
+\begin{lemma}[Error decomposition]
+    \label{lem:iv_decomp}
+    Under \eqref{eq:structural} and \ref{ass:exog},
+    \begin{equation}
+    \label{eq:iv_error}
+        \hat{\beta}_{\mathrm{IV}} - \beta = \frac{\hat{\mu}_{Z\varepsilon}}{\hat{\mu}_{ZX}},
+    \end{equation}
+    where $\E[\hat{\mu}_{Z\varepsilon}] = 0$.
+\end{lemma}
+
+\begin{proof}
+    Multiply both sides of $Y_i = \beta X_i + \varepsilon_i$ by $Z_i$ and average:
+    \[
+        \hat{\mu}_{ZY}
+        = \frac{1}{n}\sum_{i=1}^{n}Z_i(\beta X_i + \varepsilon_i)
+        = \beta\hat{\mu}_{ZX} + \hat{\mu}_{Z\varepsilon}.
+    \]
+    Rearranging and dividing by $\hat{\mu}_{ZX}$ gives $\hat{\beta}_{\mathrm{IV}} = \beta + \hat{\mu}_{Z\varepsilon}/\hat{\mu}_{ZX}$, which is~\eqref{eq:iv_error}. By \ref{ass:exog}, $\E[Z_i\varepsilon_i] = 0$, so $\E[\hat{\mu}_{Z\varepsilon}] = 0$ by linearity of expectation.
+\end{proof}
+
+\begin{theorem}[Standard IV concentration]
+\label{thm:iv}
+    Assume \ref{ass:exog}--\ref{ass:moments}. For any $\delta \in (0,1)$, if
+    \begin{equation}
+        \label{eq:iv_strength}
+            n \geq \frac{8\sigma_{ZX}^2}{\delta \mu_{ZX}^2},
+    \end{equation}
+    then
+    \begin{equation}
+    \label{eq:iv_bound}
+        \Prob\!\left[\abs{\hat{\beta}_{\mathrm{IV}} - \beta}
+            > \frac{2\sqrt{2}\sigma_{Z\varepsilon}}{\abs{\mu_{ZX}}\sqrt{\delta n}}
+            \right] \leq \delta.
+    \end{equation}
+\end{theorem}
+
+\begin{proof}
+    By Lemma~\ref{lem:iv_decomp}, the estimation error equals the ratio $\hat{\mu}_{Z\varepsilon}/\hat{\mu}_{ZX}$. To bound this ratio we need two things simultaneously: the denominator must be bounded away from zero, and the numerator must be small. We control each requirement with a separate probability event and then combine them via the union bound.
+
+    \medskip\noindent\textbf{Step 1 (Two-event decomposition).}
+    For a denominator threshold $D \in (0,\abs{\mu_{ZX}})$ and an error threshold $t > 0$, both to be chosen below, define
+    \[
+        A(D)   = \bigl\{\abs{\hat{\mu}_{ZX}} \geq D\bigr\},
+        \qquad
+        B(D,t) = \bigl\{\abs{\hat{\mu}_{Z\varepsilon}} \leq tD\bigr\}.
+    \]
+    On $A(D)\cap B(D,t)$, the denominator satisfies $\abs{\hat{\mu}_{ZX}}\geq D$ by definition of $A(D)$, so
+    \[
+        \abs{\hat{\beta}_{\mathrm{IV}} - \beta}= \frac{\abs{\hat{\mu}_{Z \varepsilon}}}{\abs{\hat{\mu}_{ZX}}} \leq \frac{tD}{D} = t.
+    \]
+    Hence $\Prob\!\left[\abs{\hat\beta_{IV}-\beta}>t\right] \leq \Prob[A(D)^c] + \Prob[B(D,t)^c]$ by the union bound. For the remainder of this proof we set $D = \abs{\mu_{ZX}}/2$, the symmetric choice that yields the cleanest constants.
+
+    \medskip\noindent\textbf{Step 2 (Chebyshev bounds).}
+    We bound each failure probability in turn.
+
+    The failure event $A^c = \{\abs{\hat{\mu}_{ZX}} < \abs{\mu_{ZX}}/2\}$ implies a large deviation of $\hat{\mu}_{ZX}$ from its mean. Specifically, if $\abs{\hat{\mu}_{ZX}} < \abs{\mu_{ZX}}/2$ then, by the reverse triangle inequality,
+    \[
+        \abs{\hat{\mu}_{ZX} - \mu_{ZX}} \geq \abs{\mu_{ZX}} - \abs{\hat{\mu}_{ZX}} > \abs{\mu_{ZX}} - \frac{\abs{\mu_{ZX}}}{2} = \frac{\abs{\mu_{ZX}}}{2}.
+    \]
+    Hence $A^c \subseteq \{\abs{\hat{\mu}_{ZX}-\mu_{ZX}} > \abs{\mu_{ZX}}/2\}$. Since $\Var(\hat{\mu}_{ZX}) = \sigma_{ZX}^2/n$, Chebyshev's inequality applied with threshold $\abs{\mu_{ZX}}/2$ gives
+    \[
+        \Prob[A^c] \leq \frac{\sigma_{ZX}^2/n}{\mu_{ZX}^2/4} = \frac{4\sigma_{ZX}^2}{n\mu_{ZX}^2}.
+    \]
+
+    The failure event is $B^c = \{\abs{\hat{\mu}_{Z\varepsilon}} > t\abs{\mu_{ZX}}/2\}$. Since $\E[\hat{\mu}_{Z\varepsilon}] = 0$ and $\Var(\hat{\mu}_{Z\varepsilon}) = \sigma_{Z\varepsilon}^2/n$, Chebyshev's inequality gives
+    \[
+        \Prob[B^c] \leq \frac{\sigma_{Z\varepsilon}^2/n}{t^2\mu_{ZX}^2/4} = \frac{4\sigma_{Z\varepsilon}^2}{nt^2\mu_{ZX}^2}.
+    \]
+
+    \medskip\noindent\textbf{Step 3 (Allocate the error budget and solve for $t$).}
+    We require the total failure probability $\Prob[A^c]+\Prob[B^c]$ to be at most $\delta$, and we allocate half the budget to each event.
+
+    \emph{Budget for $A^c$.}
+    Setting $\Prob[A^c]\leq\delta/2$ requires
+    \[
+        \frac{4\sigma_{ZX}^2}{n\mu_{ZX}^2} \leq \frac{\delta}{2}
+        \iff
+        n \geq \frac{8\sigma_{ZX}^2}{\delta\mu_{ZX}^2},
+    \]
+    which is exactly condition~\eqref{eq:iv_strength}.
+
+    Setting $\Prob[B^c]\leq\delta/2$ and solving for $t$:
+    \[
+        \frac{4\sigma_{Z\varepsilon}^2}{nt^2\mu_{ZX}^2} = \frac{\delta}{2} \implies t = \frac{2\sqrt{2}\sigma_{Z\varepsilon}}{\abs{\mu_{ZX}}\sqrt{\delta n}}.
+    \]
+    By the union bound,
+    \[
+        \Prob\!\left[\abs{\hat{\beta}_{\mathrm{IV}}-\beta} > t\right] \leq \Prob[A^c] + \Prob[B^c] \leq \frac{\delta}{2} + \frac{\delta}{2} = \delta. \qedhere
+    \]
+\end{proof}
+
+\begin{remark}[Polynomial dependence on $\delta$]
+\label{rem:iv_polynomial}
+    The bound~\eqref{eq:iv_bound} contains the factor $1/\sqrt{\delta}$, which is polynomial in $1/\delta$. \citet{devroye2016sub} show that this is unavoidable: for any estimator formed from the empirical mean of i.i.d.\ observations with only finite variance, the $1/\sqrt{\delta}$ rate cannot be improved without additional distributional assumptions. The MoM-based estimators in Sections~\ref{sec:rom}--\ref{sec:mor} circumvent this by operating on block means.
+\end{remark}
+
+\begin{remark}[The symmetric threshold is not optimal]
+\label{rem:iv_D_choice}
+    The choice $D = \abs{\mu_{ZX}}/2$ was made for simplicity. It splits the distance between $0$ and $\abs{\mu_{ZX}}$ evenly, but this is not the split that minimises the error bound for given $n$ and $\delta$. Section~\ref{sec:iv_optimised} shows that treating $D$ as a free parameter and optimising it reduces the instrument strength constant from $8$ to $1$ and improves the error constant by a factor
+    of $2\sqrt{2}$.
+\end{remark}
+
+
+\subsection{Optimised Threshold}
+\label{sec:iv_optimised}
+
+The proof of Theorem~\ref{thm:iv} introduced a general threshold $D$ but then
+fixed it symmetrically. Here we keep $D$ free and choose it to minimise the
+resulting error bound, at the cost of a more involved Step~3.
+
+\begin{theorem}[Standard IV concentration, optimised threshold]
+\label{thm:iv_opt}
+    Assume \ref{ass:exog}--\ref{ass:moments}. Define
+    \[
+        \rho_\mathrm{IV} = \frac{\sigma_{ZX}^2}{\delta n\mu_{ZX}^2}.
+    \]
+    For any $\delta\in(0,1)$, if $\rho_\mathrm{IV} < 1$ (i.e., $n > \sigma_{ZX}^2/(\delta\mu_{ZX}^2)$),
+    then the choice $D^* = (1-\rho_\mathrm{IV}^{1/3})\abs{\mu_{ZX}}$ is optimal and
+    \begin{equation}
+    \label{eq:iv_bound_opt}
+        \Prob\!\left[\abs{\hat{\beta}_{\mathrm{IV}} - \beta} > \frac{\sigma_{Z\varepsilon}}{\abs{\mu_{ZX}}\sqrt{\delta n}(1-\rho_\mathrm{IV}^{1/3})^{3/2}} \right] \leq \delta.
+    \end{equation}
+\end{theorem}
+
+\begin{proof}
+    Steps~1 and~2 are identical to those of Theorem~\ref{thm:iv} but with $D$ left as a free parameter; we arrive at the Chebyshev bounds
+    \[
+        \Prob[A(D)^c] \leq \frac{\sigma_{ZX}^2/n}{(\abs{\mu_{ZX}}-D)^2}, \qquad \Prob[B(D,t)^c] \leq \frac{\sigma_{Z\varepsilon}^2/n}{t^2 D^2}.
+    \]
+    Requiring their sum to be at most $\delta$ gives the joint constraint
+    \begin{equation}
+    \label{eq:iv_opt_constraint}
+        \frac{\sigma_{ZX}^2}{n(\abs{\mu_{ZX}}-D)^2} + \frac{\sigma_{Z\varepsilon}^2}{n t^2 D^2} \leq \delta.
+    \end{equation}
+
+    \medskip\noindent\textbf{Step 3 (Optimise $D$, then solve for $t$).}
+    Write $D = \eta\abs{\mu_{ZX}}$ with $\eta\in(0,1)$. Dividing~\eqref{eq:iv_opt_constraint} through by $\delta$ and substituting $\rho_\mathrm{IV} = \sigma_{ZX}^2/(\delta n\mu_{ZX}^2)$:
+    \[
+        \frac{\rho_\mathrm{IV}}{(1-\eta)^2} + \frac{\sigma_{Z\varepsilon}^2}{\delta n\mu_{ZX}^2\eta^2 t^2} \leq 1.
+    \]
+    Solving for $t^2$:
+    \[
+        t^2 \geq
+        \frac{\sigma_{Z\varepsilon}^2}{\delta n\mu_{ZX}^2}
+        \cdot \frac{1}{f(\eta)},
+        \qquad
+        f(\eta) = \eta^2\!\left(1 - \frac{\rho_\mathrm{IV}}{(1-\eta)^2}\right).
+    \]
+    Minimising $t$ is equivalent to maximising $f$ over $\eta\in(0,1)$. Differentiating and setting $f'(\eta)=0$:
+    \[
+        f'(\eta) = 2\eta\!\left(1 - \frac{\rho_\mathrm{IV}}{(1-\eta)^2}\right) - \frac{2\rho_\mathrm{IV}\eta^2}{(1-\eta)^3} = 0.
+    \]
+    Dividing through by $2\eta > 0$:
+    \[
+        1 - \frac{\rho_\mathrm{IV}}{(1-\eta)^2} - \frac{\rho_\mathrm{IV}\eta}{(1-\eta)^3} = 0 \iff (1-\eta)^3 - \rho_\mathrm{IV}(1-\eta) - \rho_\mathrm{IV}\eta = 0 \iff (1-\eta)^3 = \rho_\mathrm{IV}.
+    \]
+    Hence $\eta^* = 1 - \rho_\mathrm{IV}^{1/3}$, which lies in $(0,1)$ if and only if $\rho_\mathrm{IV} < 1$, the stated instrument strength condition. Substituting $(1-\eta^*)^2 = \rho_\mathrm{IV}^{2/3}$:
+    \[
+        f(\eta^*) = (1-\rho_\mathrm{IV}^{1/3})^2\!\left(1 - \frac{\rho_\mathrm{IV}}{\rho_\mathrm{IV}^{2/3}}\right) = (1-\rho_\mathrm{IV}^{1/3})^2(1 - \rho_\mathrm{IV}^{1/3}) = (1-\rho_\mathrm{IV}^{1/3})^3.
+    \]
+    The minimised threshold is therefore
+    \[
+        t^* = \frac{\sigma_{Z\varepsilon}}{\abs{\mu_{ZX}}\sqrt{\delta n}(1-\rho_\mathrm{IV}^{1/3})^{3/2}},
+    \]
+    and the union bound gives $\Prob\left[\abs{\hat\beta_{IV}-\beta}>t^*\right]\leq\delta$.
+\end{proof}
+
+\begin{remark}[Comparison with the symmetric bound]
+\label{rem:iv_opt_compare}
+    As $\rho_\mathrm{IV}\to 0$ (strong instruments or large $n$), the correction factor $(1-\rho_\mathrm{IV}^{1/3})^{-3/2}\to 1$ and~\eqref{eq:iv_bound_opt} approaches $\sigma_{Z\varepsilon}/(\abs{\mu_{ZX}}\sqrt{\delta n})$, a factor of $2\sqrt{2}\approx 2.83$ tighter than~\eqref{eq:iv_bound}. As $\rho_\mathrm{IV}\to 1$ (approaching the boundary of instrument relevance), the factor diverges, reflecting the genuine difficulty of ratio estimation near instrument irrelevance. The instrument strength condition is eight times weaker than Theorem~\ref{thm:iv}: $\rho_\mathrm{IV} < 1$ versus $\rho_\mathrm{IV} < 1/8$.
+\end{remark}
+
+
+\subsection{Cantelli Improvement}
+\label{sec:iv_cantelli}
+
+The Chebyshev bound applied to $A(D)^c$ in the proofs above is two-sided. However, $A(D)^c = \{\abs{\hat{\mu}_{ZX}} < D\}$ is a one-sided failure event: only a \emph{downward} deviation of $\hat{\mu}_{ZX}$ from $\mu_{ZX}$ causes the denominator to be too small; an upward deviation makes it larger and is harmless. Cantelli's inequality exploits this one-sidedness.
+
+\begin{lemma}[Cantelli's inequality]
+    \label{lem:cantelli}
+    Let $W$ be a random variable with $\E[W]=\mu$ and $\Var(W)=\sigma^2<\infty$.
+    For any $\tau>0$,
+    \[
+        \Prob[W - \mu \leq -\tau] \leq \frac{\sigma^2}{\sigma^2 + \tau^2}.
+    \]
+    This is strictly smaller than the Chebyshev bound $\sigma^2/\tau^2$ for all $\tau>0$, with the greatest relative gain when $\tau\approx\sigma$.
+\end{lemma}
+
+\begin{theorem}[Standard IV concentration, Cantelli improvement]
+\label{thm:iv_cantelli}
+    Assume \ref{ass:exog}--\ref{ass:moments} and $\mu_{ZX}>0$. Write $\gamma_{\mathrm{IV}} = \sigma_{ZX}^2/(n\mu_{ZX}^2)$ and define
+    \begin{equation}
+    \label{eq:h_eta_iv}
+        h(\eta) = \eta^2
+        \frac{\delta\bigl(\gamma_{\mathrm{IV}}+(1-\eta)^2\bigr)-\gamma_{\mathrm{IV}}}
+            {\gamma_{\mathrm{IV}}+(1-\eta)^2},
+        \quad \eta\in(0,1).
+    \end{equation}
+    If
+    \begin{equation}
+    \label{eq:iv_cantelli_strength}
+        n > \frac{(1-\delta)\sigma_{ZX}^2}{\delta\mu_{ZX}^2}, \quad\text{equivalently,}\quad \gamma_{\mathrm{IV}} < \frac{\delta}{1-\delta},
+    \end{equation}
+    then $h(\eta)>0$ on a non-empty interval and the estimator satisfies
+    \begin{equation}
+    \label{eq:iv_cantelli_bound}
+        \Prob\!\left[\abs{\hat{\beta}_{\mathrm{IV}} - \beta}
+            > \frac{\sigma_{Z\varepsilon}}{\abs{\mu_{ZX}}\sqrt{nh(\eta^*_{\mathrm{IV}})}}
+            \right] \leq \delta,
+    \end{equation}
+    where $\eta^*_{\mathrm{IV}}$ is the maximiser of $h$ over its feasible domain.
+\end{theorem}
+
+\begin{proof}
+    We use the same two-event framework with $D = \eta\mu_{ZX}$ kept general.
+
+    \medskip\noindent\textbf{Step 1 (Two-event decomposition).}
+    As in Theorem~\ref{thm:iv}, define $A(D) = \{\hat{\mu}_{ZX}\geq D\}$ and $B(D,t) = \{\abs{\hat{\mu}_{Z\varepsilon}}\leq tD\}$.
+    On $A(D)\cap B(D,t)$, $\abs{\hat\beta_{IV}-\beta}\leq t$.
+
+    \medskip\noindent\textbf{Step 2 (Cantelli on $A^c$, Chebyshev on $B^c$).}
+
+    Since $\mu_{ZX}>0$ and $D<\mu_{ZX}$, the failure event satisfies
+    \[
+        A(D)^c = \{\hat{\mu}_{ZX} < D\}
+        \subseteq
+        \{\hat{\mu}_{ZX} - \mu_{ZX} < -(\mu_{ZX}-D)\}.
+    \]
+    This is a one-sided downward deviation, so Lemma~\ref{lem:cantelli} applies with $W=\hat{\mu}_{ZX}$, $\sigma^2=\sigma_{ZX}^2/n$, and $\tau=\mu_{ZX}-D$:
+    \[
+        \Prob[A(D)^c]
+        \leq
+        \frac{\sigma_{ZX}^2/n}{\sigma_{ZX}^2/n + (\mu_{ZX}-D)^2}.
+    \]
+
+    The event $B(D,t)^c = \{\abs{\hat{\mu}_{Z\varepsilon}}>tD\}$ is two-sided (a large residual of either sign causes failure), so Chebyshev is appropriate:
+    \[
+        \Prob[B(D,t)^c] \leq \frac{\sigma_{Z\varepsilon}^2/n}{t^2 D^2}.
+    \]
+
+    \medskip\noindent\textbf{Step 3 (Constraint and optimization).}
+    Setting the total failure probability to at most $\delta$ and substituting $D=\eta\mu_{ZX}$, $\gamma_{\mathrm{IV}}=\sigma_{ZX}^2/(n\mu_{ZX}^2)$:
+    \[
+        \frac{\gamma_{\mathrm{IV}}}{\gamma_{\mathrm{IV}}+(1-\eta)^2}
+        + \frac{\sigma_{Z\varepsilon}^2}{n t^2\eta^2\mu_{ZX}^2}
+        \leq \delta.
+    \]
+    Isolating the second term and solving for $t^2$:
+    \[
+        t^2 \geq \frac{\sigma_{Z\varepsilon}^2}{n\mu_{ZX}^2h(\eta)},
+    \]
+    where $h(\eta)$ is defined in~\eqref{eq:h_eta_iv}. The function $h(\eta)$ is positive only when $\delta(\gamma_{\mathrm{IV}}+(1-\eta)^2)>\gamma_{\mathrm{IV}}$, i.e., $(1-\eta)^2>\gamma_{\mathrm{IV}}(1-\delta)/\delta$. The feasible region is non-empty if and only if $\gamma_{\mathrm{IV}}<\delta/(1-\delta)$, which is condition~\eqref{eq:iv_cantelli_strength}. Minimizing $t$ over the feasible region by maximizing $h$ and applying the union bound gives~\eqref{eq:iv_cantelli_bound}.
+\end{proof}
+
+\begin{remark}[When Cantelli helps]
+\label{rem:cantelli_gain}
+    Compared with the optimised Chebyshev condition ($n>\sigma_{ZX}^2/(\delta\mu_{ZX}^2)$), the Cantelli condition~\eqref{eq:iv_cantelli_strength} is weaker by a factor of $1/(1-\delta)$. At $\delta=0.05$ this ratio is $1/0.95\approx 1.05$, so the gain is negligible for typical significance levels. The improvement is more meaningful at moderate confidence levels: at $\delta=0.5$ the factor reaches $2$. For the standard IV estimator the Cantelli improvement is therefore primarily of theoretical interest. By contrast, for the MoR estimator (Section~\ref{sec:mor_cantelli}), Cantelli extends the valid range of the instrument strength parameter from $\gamma<1/4$ to $\gamma<1/3$, a qualitatively more substantial gain.
+\end{remark}
+
+\begin{remark}[No closed form for $\eta^*_{\mathrm{IV}}$]
+    \label{rem:cantelli_noform}
+    The first-order condition $h'(\eta)=0$ reduces to a quartic in $\eta$ with no general closed-form solution. The optimised Chebyshev version (Theorem~\ref{thm:iv_opt}) yielded the clean form $\eta^*=1-\rho_\mathrm{IV}^{1/3}$ because the Chebyshev bound $\sigma^2/\tau^2$ produces a simpler algebraic structure than the Cantelli bound $\sigma^2/(\sigma^2+\tau^2)$. The bound~\eqref{eq:iv_cantelli_bound} must therefore be evaluated numerically for specific parameter values.
+\end{remark}

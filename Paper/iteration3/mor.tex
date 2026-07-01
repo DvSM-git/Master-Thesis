@@ -1,0 +1,263 @@
+\section{The Median-of-Ratios MoM-MR Estimator}
+
+
+\label{sec:mor}
+
+\begin{algorithm}[H]
+\label{alg:mor}
+\caption{Median-of-Ratios Estimator}
+\KwIn{Sample $(Y_i,X_i,Z_i)_{i=1}^{n}$, number of blocks $k$}
+\KwOut{Estimate $\hat{\beta}_{\mathrm{MR}}$}
+
+Partition $(Y_i,X_i,Z_i)_{i=1}^{n}$ into $k$ blocks $B_1, \dots, B_k$ of size $m = \lfloor n/k \rfloor$\;
+
+\For{$j = 1, \dots, k$}{
+    Compute the block means $\hat{\mu}_{ZY}^{(j)} = \frac{1}{m}\sum_{i \in B_j} Z_iY_i$ and $\hat{\mu}_{ZX}^{(j)} = \frac{1}{m}\sum_{i \in B_j} Z_iX_i$\;
+    Compute block level IV estimates $\hat{\beta}^{(j)}=\frac{\hat{\mu}_{ZY}^{(j)}}{\hat{\mu}_{ZX}^{(j)}}$\;
+}
+
+\Return{$\hat{\beta}_{\mathrm{MR}} = \mathrm{median}(\hat{\beta}^{(1)},\dots,\hat{\beta}^{(k)})$}\;
+\end{algorithm}
+
+\begin{lemma}[Block-level error decomposition]
+\label{lem:mor_decomp}
+Under \eqref{eq:structural} and \ref{ass:exog}, for each block $j$,
+\begin{equation}
+\label{eq:block_error}
+    \hat{\beta}^{(j)} - \beta = \frac{\bar{\varepsilon}_j^Z}{\hat{\mu}_{ZX}^{(j)}},
+\end{equation}
+where $\bar{\varepsilon}_j^Z = \frac{1}{m}\sum_{i \in B_j}Z_i\varepsilon_i$ satisfies $\E[\bar{\varepsilon}_j^Z] = 0$.
+\end{lemma}
+
+\begin{proof}
+Multiply $Y_i = \beta X_i + \varepsilon_i$ by $Z_i$ and average over block $B_j$:
+\[
+    \hat{\mu}_{ZY}^{(j)} = \frac{1}{m}\sum_{i \in B_j}Z_i(\beta X_i + \varepsilon_i) = \beta\hat{\mu}_{ZX}^{(j)} + \bar{\varepsilon}_j^Z.
+\]
+Dividing by $\hat{\mu}_{ZX}^{(j)}$ gives $\hat{\beta}^{(j)} = \beta + \bar{\varepsilon}_j^Z/\hat{\mu}_{ZX}^{(j)}$. By \ref{ass:exog} and linearity of expectation, $\E[\bar{\varepsilon}_j^Z] = \frac{1}{m}\sum_{i \in B_j}\E[Z_i\varepsilon_i] = 0$.
+\end{proof}
+
+\begin{theorem}[MoR concentration]
+\label{thm:mor}
+Assume \ref{ass:exog}--\ref{ass:moments}. Let $\delta \in (0,1)$, $k = \lceil 8\ln(1/\delta) \rceil$, and $m = \lfloor n/k \rfloor$. If the instrument strength condition
+\begin{equation}
+\label{eq:mor_strength}
+    m \geq \frac{32\sigma_{ZX}^2}{\mu_{ZX}^2}
+\end{equation}
+holds, then
+\begin{equation}
+\label{eq:mor_bound}
+    \Prob\!\left[\abs{\hat{\beta}_{\mathrm{MR}} - \beta} > \frac{4\sqrt{2}\,\sigma_{Z\varepsilon}}{\abs{\mu_{ZX}}\sqrt{m}}\right] \leq \delta.
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+The proof applies the MoM counting argument directly to the block-level IV estimates $\hat{\beta}^{(j)}$.
+
+\medskip\noindent\textbf{Step 1 (Two-event decomposition).} By Lemma~\ref{lem:mor_decomp}, $\abs{\hat{\beta}^{(j)} - \beta} = \abs{\bar{\varepsilon}_j^Z}/\abs{\hat{\mu}_{ZX}^{(j)}}$. To bound this ratio, we control the numerator above and the denominator below. For a threshold $t > 0$ to be determined, define
+\[
+    A_j(D) = \left\{\abs{\hat{\mu}_{ZX}^{(j)}} \leq D\right\}, \qquad B_j(D,t) = \left\{\abs{\bar{\varepsilon}_Z^{(j)}} \leq tD\right\}.
+\]
+\todo{Two different proofs exist with different definitions of A(D), I may have mixed them up}
+On $A_j(D)\cap B_j(D,t)$, the denominator satisfies $\abs{\bar{S}_{ZX}}\geq D$ by definition of $A_j(D)$, so
+\[
+    \abs{\hat{\beta}^{(j)} - \beta} = \frac{\abs{\bar{\varepsilon}_Z^{(j)}}}{\abs{\bar{S}_{ZX}}} \leq \frac{tD}{D} = t.
+\]
+Hence $\Prob\!\left[\abs{\hat\beta^{(j)}-\beta}>t\right] \leq \Prob[A_j(D)^c] + \Prob[B_j(D,t)^c]$ by the union bound. For the remainder of this proof we set $D = \abs{\mu_{ZX}}/2$, the symmetric choice that yields the cleanest constants.
+
+    \medskip\noindent\textbf{Step 2 (Chebyshev bounds).}
+    We bound each failure probability in turn.
+
+    The failure event $A_j^c = \{\abs{\bar{S}_{ZX}^{(j)}} < \abs{\mu_{ZX}}/2\}$ implies a large deviation of $\bar{S}_{ZX}^{(j)}$ from its mean. Specifically, if $\abs{\bar{S}_{ZX}^{(j)}} < \abs{\mu_{ZX}}/2$ then, by the reverse triangle inequality,
+    \[
+        \abs{\bar{S}_{ZX}^{(j)} - \mu_{ZX}} \geq \abs{\mu_{ZX}} - \abs{\bar{S}_{ZX}^{(j)}} > \abs{\mu_{ZX}} - \frac{\abs{\mu_{ZX}}}{2} = \frac{\abs{\mu_{ZX}}}{2}.
+    \]
+    Hence $A_j^c \subseteq \{\abs{\bar{S}_{ZX}^{(j)}-\mu_{ZX}} > \abs{\mu_{ZX}}/2\}$. Since $\Var(\bar{S}_{ZX}^{(j)}) = \sigma_{ZX}^2/m$, Chebyshev's inequality applied with threshold $\abs{\mu_{ZX}}/2$ gives
+    \[
+        \Prob[A_j^c] \leq \frac{\sigma_{ZX}^2/m}{\mu_{ZX}^2/4} = \frac{4\sigma_{ZX}^2}{m\mu_{ZX}^2}.
+    \]
+
+    The failure event is $B_j^c = \{\abs{\bar{\varepsilon}_Z^{(j)}} > t\abs{\mu_{ZX}}/2\}$. Since $\E[\bar{\varepsilon}_Z^{(j)}] = 0$ and $\Var(\bar{\varepsilon_Z^{(j)}}) = \sigma_{Z\varepsilon}^2/m$, Chebyshev's inequality gives
+    \[
+        \Prob[B_j^c] \leq \frac{\sigma_{Z\varepsilon}^2/m}{t^2\mu_{ZX}^2/4} = \frac{4\sigma_{Z\varepsilon}^2}{mt^2\mu_{ZX}^2}.
+    \]
+
+    The instrument strength condition \eqref{eq:mor_strength} ensures $\Prob[A_j^c] \leq 1/8$. Setting $t = 4\sqrt{2}\,\sigma_{Z\varepsilon}/(|\mu_{ZX}|\sqrt{m})$ gives $\Prob[B_j^c] \leq 1/8$.
+
+
+    \medskip\noindent\textbf{Step 3 (Allocate the error budget and solve for $t$).}
+    We require the total failure probability $\Prob[A^c]+\Prob[B^c]$ to be at most $\frac{1}{4}$, and we allocate half the budget to each event.
+
+    \emph{Budget for $A_j^c$.}
+    Setting $\Prob[A^c]\leq 1/8$ requires
+    \[
+        \frac{4\sigma_{ZX}^2}{m\mu_{ZX}^2} \leq \frac{1}{8}
+        \iff
+        m \geq \frac{32\sigma_{ZX}^2}{\mu_{ZX}^2},
+    \]
+    which is exactly condition~\eqref{eq:mor_strength}.
+
+    Setting $\Prob[B_j^c]\leq 1/8$ and solving for $t$:
+    \[
+        \frac{4\sigma_{Z\varepsilon}^2}{mt^2\mu_{ZX}^2} \leq \frac{1}{8} \implies t \geq \frac{\sqrt{32}\sigma_{Z\varepsilon}}{\abs{\mu_{ZX}}\sqrt{m}}.
+    \]
+    By the union bound,
+    \[
+        \Prob\!\left[\abs{\hat{\beta}_{\mathrm{MR}}-\beta} > t\right] \leq \Prob[A^c] + \Prob[B^c] \leq \frac{1}{8} + \frac{1}{8} = \frac{1}{4}.
+    \]
+
+\medskip\noindent\textbf{Step 4 (Counting argument).} Define $\zeta_j = \mathbf{1}\{|\hat{\beta}^{(j)} - \beta| > t\}$. By Step~2, $\E[\zeta_j] \leq 1/4$. Since the blocks are disjoint, the $(\zeta_j)_{j=1}^{k}$ are independent. If $|\hat{\beta}_{\mathrm{MR}} - \beta| > t$, the median of the block estimates lies outside $(\beta - t, \beta + t)$, which requires at least $k/2$ blocks to satisfy $|\hat{\beta}^{(j)} - \beta| > t$. Therefore,
+\[
+    \Prob\!\left[\abs{\hat{\beta}_{\mathrm{MR}} - \beta} > t\right] \leq \Prob\!\left[\sum_{j=1}^{k}\zeta_j \geq \frac{k}{2}\right].
+\]
+
+\medskip\noindent\textbf{Step 5 (Hoeffding).} By Hoeffding's inequality, with overshoot $k/2 - k/4 = k/4$,
+\[
+    \Prob\!\left[\sum_{j=1}^{k}\zeta_j \geq \frac{k}{2}\right] \leq \exp\!\left(\frac{-2(k/4)^2}{k}\right) = e^{-k/8}.
+\]
+Setting $k = \lceil 8\ln(1/\delta)\rceil$ gives $e^{-k/8} \leq \delta$, completing the proof.
+\end{proof}
+
+\begin{remark}[Logarithmic dependence on $\delta$]
+\label{rem:iv_polynomial}
+    The bound~\eqref{eq:mor_bound} contains the factor $\ln{(1/\delta)}$, which is logarithmic in $1/\delta$.
+\end{remark}
+
+\begin{remark}[The symmetric threshold is not optimal]
+\label{rem:iv_D_choice}
+    As in section~\ref{sec:rom}, the choice $D = \abs{\mu_{ZX}}/2$ was made for simplicity. Section~\ref{sec:mor_optimised} treats $D$ as a free parameter.
+\end{remark}
+
+
+\subsection{Optimised Threshold}
+\label{sec:mor_optimised}
+
+The proof of Theorem~\ref{thm:mor} introduced a general threshold $D$ but then
+fixed it symetrically. Here we keep $D$ free and choose it to minimise the
+resulting error bound symmetrically, at the cost of a more involved step~3.
+
+\begin{theorem}[Standard MoR concentration, optimised threshold]
+\label{thm:mor_opt}
+    Assume \ref{ass:exog}--\ref{ass:moments}. Define
+    \[
+        \rho = \frac{4\sigma_{ZX}^2}{m\mu_{ZX}^2}.
+    \]
+    \todo{include subscript for $\rho$}
+
+    For any $\delta\in(0,1)$, if $\rho < 1$ (i.e., $m > 4\sigma_{ZX}^2/(\mu_{ZX}^2)$),
+    then the choice $D^* = (1-\rho^{1/3})\abs{\mu_{ZX}}$ is optimal and
+    \begin{equation}
+    \label{eq:mor_bound_opt}
+        \Prob\!\left[\abs{\hat{\beta}_{\mathrm{MR}} - \beta} > \frac{2\sigma_{Z\varepsilon}}{\abs{\mu_{ZX}}\sqrt{m}(1-\rho^{1/3})^{3/2}} \right] \leq \delta.
+    \end{equation}
+\end{theorem}
+
+\begin{proof}
+    Steps~1 and~2 are identical to those of Theorem~\ref{thm:mor} but with $D$ left as a free parameter; we arrive at the Chebyshev bounds
+    \[
+        \Prob[A_j(D)^c] \leq \frac{\sigma_{ZX}^2/m}{(\abs{\mu_{ZX}}-D)^2}, \qquad \Prob[B_j(D,t)^c] \leq \frac{\sigma_{Z\varepsilon}^2/m}{t^2 D^2}.
+    \]
+    Requiring their sum to be at most $\frac{1}{4}$ gives the joint constraint
+    \begin{equation}
+    \label{eq:mor_opt_constraint}
+        \frac{\sigma_{ZX}^2}{m(\abs{\mu_{ZX}}-D)^2} + \frac{\sigma_{Z\varepsilon}^2}{m t^2 D^2} \leq \frac{1}{4}.
+    \end{equation}
+
+    \medskip\noindent\textbf{Step 3 (Optimise $D$, then solve for $t$).}
+    Write $D = \eta\abs{\mu_{ZX}}$ with $\eta\in(0,1)$. 
+    Solving for $t^2$:
+    \[
+        t^2 \geq
+        \frac{4\sigma_{Z\varepsilon}^2}{m\mu_{ZX}^2}
+        \cdot \frac{1}{f(\eta)},
+        \qquad
+        f(\eta) = \eta^2\!\left(1 - \frac{\rho}{(1-\eta)^2}\right).
+    \]
+    Minimising $t$ is equivalent to maximising $f$ over $\eta\in(0,1)$. Differentiating and setting $f'(\eta)=0$:
+    \[
+        f'(\eta) = 2\eta\!\left(1 - \frac{\rho}{(1-\eta)^2}\right) - \frac{2\rho\eta^2}{(1-\eta)^3} = 0.
+    \]
+    Dividing through by $2\eta > 0$:
+    \[
+        1 - \frac{\rho}{(1-\eta)^2} - \frac{\rho\eta}{(1-\eta)^3} = 0 \iff (1-\eta)^3 - \rho(1-\eta) - \rho\eta = 0 \iff (1-\eta)^3 = \rho.
+    \]
+    Hence $\eta^* = 1 - \rho^{1/3}$, which lies in $(0,1)$ if and only if $\rho < 1$, the stated instrument strength condition. Substituting $(1-\eta^*)^2 = \rho^{2/3}$:
+    \[
+        f(\eta^*) = (1-\rho^{1/3})^2\!\left(1 - \frac{\rho}{\rho^{2/3}}\right) = (1-\rho^{1/3})^2(1 - \rho^{1/3}) = (1-\rho^{1/3})^3.
+    \]
+    The minimised threshold is therefore
+    \[
+        t^* = \frac{2\sigma_{Z\varepsilon}}{\abs{\mu_{ZX}}\sqrt{m}(1-\rho^{1/3})^{3/2}},
+    \]
+    and the union bound and Hoeffding's inequality then give $\Prob[\abs{\hat\beta_{MR}-\beta}>t^*]\leq\delta$.
+\end{proof}
+
+\subsection{Cantelli Improvement}
+\label{sec:mor_cantelli}
+
+The Chebyshev bound applied to $A_j(D)^c$ in the proofs above is two-sided. However, we only care about a one-sided failure event: only a downward deviation of $\bar{S}_{ZX}$ from $\mu_{ZX}$ causes the denominator to be too small; an upward deviation makes it larger and is harmless. Cantelli's inequality exploits this one-sidedness. Cantelli's inequality was given in lemma~\ref{lem:cantelli}
+
+
+\begin{theorem}[MoR concentration, Cantelli improvement]
+\label{thm:mor_cantelli}
+    Assume \ref{ass:exog}--\ref{ass:moments} and $\mu_{ZX}>0$. Write $\gamma_{\mathrm{MR}} = \sigma_{ZX}^2/(m\mu_{ZX}^2)$ and define
+    \begin{equation}
+    \label{eq:h_eta_mor}
+        h(\eta) = \frac{\eta^2((1-\eta)^2 - 3\gamma_\mathrm{MR})}{\gamma_\mathrm{MR}+(1-\eta)^2},
+        \quad \eta\in(0,1).
+    \end{equation}
+    If
+    \begin{equation}
+    \label{eq:mor_cantelli_strength}
+        m > \frac{3\sigma_{ZX}^2}{\mu_{ZX}^2}, \quad\text{equivalently,}\quad \gamma_{\mathrm{MR}} < \frac{1}{3},
+    \end{equation}
+    then $h(\eta)>0$ on a non-empty interval and the estimator satisfies
+    \begin{equation}
+    \label{eq:mor_cantelli_bound}
+        \Prob\!\left[\abs{\hat{\beta}_{\mathrm{MR}} - \beta}
+            > \frac{2\sigma_{Z\varepsilon}}{\abs{\mu_{ZX}}\sqrt{mh(\eta^*_{\mathrm{MR}})}}
+            \right] \leq \delta,
+    \end{equation}
+    where $\eta^*_{\mathrm{MR}}$ is the maximiser of $h$ over its feasible domain.
+\end{theorem}
+
+\begin{proof}
+    We use the same two-event framework with $D = \eta\mu_{ZX}$ kept general.
+
+    \medskip\noindent\textbf{Step 1 (Two-event decomposition).}
+    As in Theorem~\ref{thm:mor}, define $A_j(D) = \{\bar{S}_{ZX} > D\}$ and $B_j(D,t) = \{\abs{\bar{S}_{Z\varepsilon}}\leq tD\}$.
+    On $A(D)\cap B(D,t)$, $\abs{\hat\beta_{MR}-\beta}\leq t$.
+
+    \medskip\noindent\textbf{Step 2 (Cantelli on $A_j^c$, Chebyshev on $B_j^c$).}
+
+
+    $A_j(D)^c$ is a one-sided downward deviation, so Lemma~\ref{lem:cantelli} applies with $W=\bar{S}_{ZX}$, $\sigma^2=\sigma_{ZX}^2/m$, and $\tau=\mu_{ZX}-D$:
+    \[
+        \Prob[A(D)^c]
+        \leq
+        \frac{\sigma_{ZX}^2/m}{\sigma_{ZX}^2/m +(\mu_{ZX} - D)^2}.
+    \]
+
+    The event $B_j(D,t)^c = \{\abs{\bar{S}_{Z\varepsilon}}>tD\}$ is two-sided (a large residual of either sign causes failure), so Chebyshev is appropriate:
+    \[
+        \Prob[B_j(D,t)^c] \leq \frac{\sigma_{Z\varepsilon}^2/m}{t^2 D^2}.
+    \]
+
+    \medskip\noindent\textbf{Step 3 (Constraint and optimization).}
+    Setting the total failure probability to at most $\delta$ and substituting $D=\eta\mu_{ZX}$, $\gamma_{\mathrm{MR}}=\sigma_{ZX}^2/(m\mu_{ZX}^2)$:
+    \[
+        \frac{\gamma_{\mathrm{MR}}}{\gamma_{\mathrm{MR}}+(1-\eta)^2}
+        + \frac{\sigma_{Z\varepsilon}^2}{m t^2\eta^2\mu_{ZX}^2}
+        \leq \frac{1}{4}.
+    \]
+    Isolating the second term and solving for $t^2$:
+    \[
+        t^2 \geq \frac{4\sigma_{Z\varepsilon}^2}{m\mu_{ZX}^2h(\eta)},
+    \]
+    where $h(\eta)$ is defined in~\eqref{eq:h_eta_mor}. The function $h(\eta)$ is positive only when $\frac{1}{4}(\gamma_{\mathrm{MR}}+(1-\eta)^2)>\gamma_{\mathrm{MR}}$, i.e., $(1-\eta)^2 > 3\gamma_{\mathrm{MR}}$. The feasible region is non-empty if and only if $\gamma_{\mathrm{MR}} < \frac{1}{3}$, which is condition~\eqref{eq:mor_cantelli_strength}. Minimising $t$ over the feasible region by maximising $h$ and applying Hoeffding and the union bound gives~\eqref{eq:mor_cantelli_bound}.
+\end{proof}
+
+\begin{remark}[No closed form for $\eta^*_{\mathrm{MR}}$]
+    \label{rem:cantelli_noform}
+    The first-order condition $h'(\eta)=0$ reduces to a quartic in $\eta$ with no general closed-form solution. The optimised Chebyshev version (Theorem~\ref{thm:mor_opt}) yielded the clean form $\eta^*=1-\rho^{1/3}$ because the Chebyshev bound $\sigma^2/\tau^2$ produces a simpler algebraic structure than the Cantelli bound $\sigma^2/(\sigma^2+\tau^2)$. The bound~\eqref{eq:mor_cantelli_bound} must therefore be evaluated numerically for specific parameter values.
+\end{remark}

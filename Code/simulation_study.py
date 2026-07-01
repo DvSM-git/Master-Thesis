@@ -99,7 +99,7 @@ def min_sample_sizes(mu_ZX: float, sigma2_ZX: float, delta: float) -> dict[str, 
 
     # MoR: non-strict m >= 32*ratio  -> smallest integer m is ceil.
     k_mor = int(np.ceil(8 * np.log(1 / delta)))
-    m_min_mor = int(np.ceil(3 * ratio))
+    m_min_mor = int(np.ceil(32 * ratio))
     n_min_mor = k_mor * m_min_mor
 
     return {
