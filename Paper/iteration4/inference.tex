@@ -38,7 +38,7 @@ means,
 \end{equation}
 
 
-\begin{algorithm}[H]
+\begin{algorithm}[htbp]
 \label{alg:mom_ar}
 \caption{Median-of-Means Anderson--Rubin Test}
 \KwIn{Sample $(Y_i,X_i,Z_i)_{i=1}^{n}$, number of blocks $k$, null value
@@ -240,72 +240,116 @@ The confidence set can be computed exactly and in closed form. The idea is to en
 
 
 
-\begin{algorithm}[H]
-
+\begin{algorithm}[!htbp]
+\caption{MoM-AR Confidence Set}
 \label{alg:mom_ar_cs}
 
-\caption{MoM-AR Confidence Set}
-
 \KwIn{Sample $(Y_i,X_i,Z_i)_{i=1}^{n}$, number of blocks $k$, threshold $\tau_n(\delta)$}
-
 \KwOut{Confidence set $CS_{1-\delta}$}
-
-Partition $(Y_i,X_i,Z_i)_{i=1}^{n}$ into $k$ blocks $B_1,\dots,B_k$ of size
-
-$m=\lfloor n/k\rfloor$\;
-
+Partition $(Y_i,X_i,Z_i)_{i=1}^{n}$ into $k$ blocks $B_1,\dots,B_k$ of size $m=\lfloor n/k\rfloor$\;
 \For{$j=1,\dots,k$}{
-
-  Compute $\hat{\mu}_{ZY}^{(j)} = \frac{1}{m}\sum_{i\in B_j} Z_iY_i$ and
-
-          $\hat{\mu}_{ZX}^{(j)} = \frac{1}{m}\sum_{i\in B_j} Z_iX_i$\;
-
+  Compute $\hat{\mu}_{ZY}^{(j)} = \frac{1}{m}\sum_{i\in B_j} Z_iY_i$ and $\hat{\mu}_{ZX}^{(j)} = \frac{1}{m}\sum_{i\in B_j} Z_iX_i$\;
 }
 
 $\mathcal{C}\leftarrow\varnothing$\;
 
 \ForEach{pair $1\le i<j\le k$ with $\hat{\mu}_{ZX}^{(i)}\neq\hat{\mu}_{ZX}^{(j)}$}{
-
   $\mathcal{C}\leftarrow\mathcal{C}\cup\bigl\{(\hat{\mu}_{ZY}^{(j)}-\hat{\mu}_{ZY}^{(i)})/(\hat{\mu}_{ZX}^{(j)}-\hat{\mu}_{ZX}^{(i)})\bigr\}$\;
-
 }
 
-Sort $\mathcal{C}$ as $\beta^{(1)}<\dots<\beta^{(M)}$ and set $\beta^{(0)}=-\infty$,
+Sort $\mathcal{C}$ as $\beta^{(1)}<\dots<\beta^{(M)}$ and set $\beta^{(0)}=-\infty$, $\beta^{(M+1)}=+\infty$\; $CS_{1-\delta}\leftarrow\varnothing$\;
 
-$\beta^{(M+1)}=+\infty$\;
-
-$CS_{1-\delta}\leftarrow\varnothing$\;
-
-\For{$\ell=0,\dots,M$}{
-
-  Choose any $\beta_\star\in(\beta^{(\ell)},\beta^{(\ell+1)})$\;
-
-  Find the active median index $a$ with
-
-  $\bar{W}_a(\beta_\star)=\med\bigl(\bar{W}_1(\beta_\star),\dots,\bar{W}_k(\beta_\star)\bigr)$\;
-
+\For{$\ell=0,\dots,M$}{Choose any $\beta_\star\in(\beta^{(\ell)},\beta^{(\ell+1)})$\;
+  Find the active median index $a$ with $\bar{W}_a(\beta_\star)=\med\bigl(\bar{W}_1(\beta_\star),\dots,\bar{W}_k(\beta_\star)\bigr)$\;
   \eIf{$\hat{\mu}_{ZX}^{(a)}\neq 0$}{
-
-    $J\leftarrow$ closed interval with endpoints
-
-    $(\hat{\mu}_{ZY}^{(a)}\pm\tau_n(\delta))/\hat{\mu}_{ZX}^{(a)}$\;
-
-  }{
-
-    $J\leftarrow\R$ if $\abs{\hat{\mu}_{ZY}^{(a)}}\le\tau_n(\delta)$, else
-
-    $J\leftarrow\varnothing$\;
+    $J\leftarrow$ closed interval with endpoints $(\hat{\mu}_{ZY}^{(a)}\pm\tau_n(\delta))/\hat{\mu}_{ZX}^{(a)}$\;
+    }{
+    $J\leftarrow\R$ if $\abs{\hat{\mu}_{ZY}^{(a)}}\le\tau_n(\delta)$, else $J\leftarrow\varnothing$\;
 
   }
-
   $CS_{1-\delta}\leftarrow CS_{1-\delta}\cup\bigl([\beta^{(\ell)},\beta^{(\ell+1)}]\cap J\bigr)$\;
-
 }
-
 \Return{$CS_{1-\delta}$, merging intervals that share an endpoint}\;
-
 \end{algorithm}
 
 
 
 On each interval $(\beta^{(\ell)},\beta^{(\ell+1)})$ the statistic $\widetilde{W}$ coincides with a single affine piece $\bar{W}_a$, so intersecting the band constraint $\abs{\bar{W}_a(\beta_0)}\le\tau_n(\delta)$ with that interval is exact. By Corollary~\ref{cor:union} the returned set consists of at most $k+1$ closed intervals, whose endpoints lie among the $2k$ candidates of Corollary~\ref{cor:endpoints}.
+
+\begin{remark}[Feasibility and choice of variance estimator]
+  In practice, $\sigma_{Z\varepsilon}$ is unknown and has to be estimated with a consistent estimator. A feasible test would replace this by a consistent estimator $\hat{\sigma}_{Z\varepsilon}$. This estimator must be computed independently of the null value $\beta_0$; test inversion compares the varying statistic $\widetilde{W}(\beta_0)$ against a single band across a grid of $\beta_0$ values. Forming residuals at the tested value is inconsistent whenever $\beta_0\neq\beta$ since $Y_i - \beta_0 X_i = \varepsilon_i +
+    (\beta-\beta_0)X_i$,
+    \[
+        \frac{1}{n}\sum_{i=1}^n \bigl(Z_i(Y_i-\beta_0 X_i)\bigr)^2
+        \;\xrightarrow{\;p\;}\;
+        \sigma_{Z\varepsilon}^2 + 2(\beta-\beta_0)\,\E[Z^2 X\varepsilon]
+        + (\beta-\beta_0)^2\,\E[(ZX)^2],
+    \]
+    which grows as $\beta_0$ departs from $\beta$. This would lead to the band widening with the signal it is trying to detect, leading to a loss of power and a collapse of the constant-threshold geometry of Section~\ref{sec:geometry}.
+    
+    A $\beta_0$-free estimate could be obtained instead from residuals at a preliminary consistent estimator. However, under the heavy tails permitted by~\ref{ass:moments}, $Z\varepsilon$ may have no finite fourth moment, in which case the estimator $\frac1n\sum_i(Z_i\hat{\varepsilon}_i)^2$ has infinite variance; the central limit theorem then no longer applies, so it converges slowly and behaves erratically. A robust scale estimator is therefore preferable.
+
+    The self-normalised variant discussed in Section~\ref{sec:normalisedAR} avoids the matter altogether, cancelling $\sigma_{Z\varepsilon}$ rather than estimating it.
+\end{remark}
+
+
+\subsection{Self-Normalised Anderson-Rubin Test}
+\label{sec:normalisedAR}
+
+\begin{definition}[Self-normalised statistic]
+\label{def:sn_stat}
+  For a vector $v=(v_1,\dots,v_k)\in\R^k$, let $\MAD(v)=\med_{j}\abs{v_j-\med_{l}v_l}$ denote its median absolute deviation. With $\bar{W}_j$ and $\widetilde{W}$ as in \eqref{eq:Wbar}--\eqref{eq:Wtilde}, the self-normalised statistic at $\beta_0$ is
+ 
+    \[
+        T(\beta_0)=\frac{\abs{\widetilde{W}(\beta_0)}}{\hat{s}(\beta_0)},
+        \qquad
+        \hat{s}(\beta_0)=\MAD\bigl(\bar{W}_1(\beta_0),\dots,\bar{W}_k(\beta_0)\bigr).
+    \]
+Given a critical value $c_{k,\delta}$, the test rejects $H_0\colon\beta=\beta_0$ when $T(\beta_0)>c_{k,\delta}$.
+\end{definition}
+
+\begin{proposition}[Scale invariance]
+
+\label{prop:scale_invariance}
+Under $H_0$, the distribution of $T(\beta_0)$ does not depend on $\sigma_{Z\varepsilon}$. The same holds for any scale functional $\hat{s}$ that is homogeneous of degree one.
+\end{proposition}
+
+\begin{proof}
+
+    Under $H_0$, $\bar{W}_j(\beta_0)=\tfrac1m\sum_{i\in B_j}Z_i\varepsilon_i =\sigma_{Z\varepsilon}\,G_j$, where $G_j=\tfrac1m\sum_{i\in B_j}Z_i\varepsilon_i/\sigma_{Z\varepsilon}$. The summands $Z_i\varepsilon_i/\sigma_{Z\varepsilon}$ have mean $0$ and variance $1$ by \ref{ass:exog} and~\ref{ass:moments}, so the joint distribution $(G_1,\dots,G_k)$ are free of $\sigma_{Z\varepsilon}$. Since $\med$ and $\MAD$ are homogeneous of degree one,
+
+    \[
+        T(\beta_0) =\frac{\abs{\med_j \sigma_{Z\varepsilon}G_j}}{\MAD_j(\sigma_{Z\varepsilon}G_j)} =\frac{\sigma_{Z\varepsilon}\abs{\med_j G_j}}{\sigma_{Z\varepsilon}\MAD_j(G_j)} =\frac{\abs{\med_j G_j}}{\MAD_j(G_j)},
+    \]
+    and a function of $(G_1,\dots,G_k)$ alone; its distribution therefore does not involve $\sigma_{Z\varepsilon}$. The argument uses only $\med(\sigma v)=\sigma\med(v)$ and $\hat{s}(\sigma v)=\sigma\hat{s}(v)$, so it holds for any degree-one homogeneous $\hat{s}$.
+\end{proof}
+
+\begin{proposition}[Asymptotic null distribution]
+
+\label{prop:sn_pivotal}
+    Assume \ref{ass:exog}--\ref{ass:moments}, with $k$ fixed and $m\to\infty$. Under $H_0$,
+    \[
+        T(\beta_0)\ \Longrightarrow\ R_k:=\frac{\abs{\med(\xi_1,\dots,\xi_k)}}{\MAD(\xi_1,\dots,\xi_k)}, \qquad \xi_1,\dots,\xi_k\overset{\text{iid}}{\sim}N(0,1),
+    \]
+    and the distribution of $R_k$ depends only on $k$.
+
+\end{proposition}
+
+\begin{proof}
+    Fix a block. By \ref{ass:exog} and~\ref{ass:moments} the standardised summands $Z_i\varepsilon_i/\sigma_{Z\varepsilon}$ are i.i.d.\ with mean $0$ and variance $1$, so the central limit theorem gives $\sqrt{m}\,G_j=\tfrac{1}{\sqrt{m}}\sum_{i\in B_j}Z_i\varepsilon_i/\sigma_{Z\varepsilon} \Rightarrow\xi_j\sim N(0,1)$. The blocks use disjoint observations, so $(\sqrt{m}\,G_1,\dots,\sqrt{m}\,G_k)\Rightarrow(\xi_1,\dots,\xi_k)$ with independent coordinates. Writing $T(\beta_0)=\abs{\med_j\sqrt{m}\,G_j}/\MAD_j(\sqrt{m}\,G_j)$, the factor $\sqrt{m}$ cancels between numerator and denominator; as $\med$ and $\MAD$ are continuous, the continuous mapping theorem yields $T(\beta_0)\Rightarrow R_k$. The limit is a fixed functional of $k$ standard normals, so its distribution depends only on $k$.
+\end{proof}
+
+The critical value $c_{k,\delta}$ is the $(1-\delta)$ quantile of $R_k$; since $R_k$ depends only on $k$, it is computed once by simulation and tabulated in Section~\ref{sec:artable}
+
+
+\begin{corollary}[Confidence set] \label{cor:sn_cs} 
+  Inverting the self-normalised test gives \[ CS_{1-\delta}=\bigl\{\beta_0\in\R:\ \abs{\widetilde{W}(\beta_0)} \le c_{k,\delta}\,\hat{s}(\beta_0)\bigr\}, \] a finite union of closed intervals.
+\end{corollary}
+
+\begin{proof}
+  By Theorem~\ref{thm:piecewise}, $\widetilde{W}$ is continuous and piecewise affine; $\hat{s}(\beta_0)=\MAD_j(\bar{W}_j(\beta_0))$ is a median of absolute values of affine functions, hence also continuous and piecewise affine. On any interval where both coincide with single affine pieces $a(\beta_0)$ and $b(\beta_0)\ge0$, the defining condition $-c_{k,\delta}\,b(\beta_0)\le a(\beta_0)\le c_{k,\delta}\, b(\beta_0)$ is a pair of linear inequalities, hence an interval. As there are finitely many pieces, $CS_{1-\delta}$ is a finite union of closed intervals.
+\end{proof}
+
+\begin{remark}[An exactly distribution-free variant] \label{rem:sn_sign} If $Z\varepsilon$ is symmetric about $0$ under $H_0$, the signs of the block means are independent fair coin flips, so $N_+(\beta_0)=\#\{j: \bar{W}_j(\beta_0)>0\}\sim\mathrm{Binomial}(k,\tfrac12)$ exactly, free of both $\sigma_{Z\varepsilon}$ and the tail shape. Rejecting when $N_+(\beta_0)$ is far from $k/2$ gives a finite-sample-exact, distribution-free test, at the cost of the symmetry assumption and of lower power, since it uses only the signs of the block means. \end{remark}
+
+\todo{size and power}
