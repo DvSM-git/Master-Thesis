@@ -1,0 +1,393 @@
+dist,beta0_minus_beta,test,rejection_rate
+Gaussian,-0.6,MoM-AR (oracle),1.0
+Gaussian,-0.575,MoM-AR (oracle),1.0
+Gaussian,-0.5499999999999999,MoM-AR (oracle),1.0
+Gaussian,-0.525,MoM-AR (oracle),1.0
+Gaussian,-0.5,MoM-AR (oracle),1.0
+Gaussian,-0.475,MoM-AR (oracle),1.0
+Gaussian,-0.44999999999999996,MoM-AR (oracle),1.0
+Gaussian,-0.42500000000000004,MoM-AR (oracle),1.0
+Gaussian,-0.4,MoM-AR (oracle),1.0
+Gaussian,-0.375,MoM-AR (oracle),1.0
+Gaussian,-0.35,MoM-AR (oracle),0.9998
+Gaussian,-0.32499999999999996,MoM-AR (oracle),0.9982
+Gaussian,-0.30000000000000004,MoM-AR (oracle),0.9822
+Gaussian,-0.275,MoM-AR (oracle),0.9176
+Gaussian,-0.25,MoM-AR (oracle),0.7438
+Gaussian,-0.2250000000000001,MoM-AR (oracle),0.4548
+Gaussian,-0.19999999999999996,MoM-AR (oracle),0.1812
+Gaussian,-0.17500000000000004,MoM-AR (oracle),0.0476
+Gaussian,-0.15000000000000002,MoM-AR (oracle),0.0036
+Gaussian,-0.125,MoM-AR (oracle),0.0
+Gaussian,-0.10000000000000009,MoM-AR (oracle),0.0
+Gaussian,-0.07500000000000007,MoM-AR (oracle),0.0
+Gaussian,-0.050000000000000044,MoM-AR (oracle),0.0
+Gaussian,-0.025000000000000022,MoM-AR (oracle),0.0
+Gaussian,0.0,MoM-AR (oracle),0.0
+Gaussian,0.02499999999999991,MoM-AR (oracle),0.0
+Gaussian,0.04999999999999982,MoM-AR (oracle),0.0
+Gaussian,0.07499999999999996,MoM-AR (oracle),0.0
+Gaussian,0.10000000000000009,MoM-AR (oracle),0.0
+Gaussian,0.125,MoM-AR (oracle),0.0002
+Gaussian,0.1499999999999999,MoM-AR (oracle),0.0084
+Gaussian,0.17499999999999982,MoM-AR (oracle),0.076
+Gaussian,0.19999999999999996,MoM-AR (oracle),0.2998
+Gaussian,0.2250000000000001,MoM-AR (oracle),0.6368
+Gaussian,0.25,MoM-AR (oracle),0.8912
+Gaussian,0.2749999999999999,MoM-AR (oracle),0.9852
+Gaussian,0.2999999999999998,MoM-AR (oracle),0.9992
+Gaussian,0.32499999999999996,MoM-AR (oracle),1.0
+Gaussian,0.3500000000000001,MoM-AR (oracle),1.0
+Gaussian,0.375,MoM-AR (oracle),1.0
+Gaussian,0.3999999999999999,MoM-AR (oracle),1.0
+Gaussian,0.4249999999999998,MoM-AR (oracle),1.0
+Gaussian,0.44999999999999973,MoM-AR (oracle),1.0
+Gaussian,0.4750000000000001,MoM-AR (oracle),1.0
+Gaussian,0.5,MoM-AR (oracle),1.0
+Gaussian,0.5249999999999999,MoM-AR (oracle),1.0
+Gaussian,0.5499999999999998,MoM-AR (oracle),1.0
+Gaussian,0.5749999999999997,MoM-AR (oracle),1.0
+Gaussian,0.6000000000000001,MoM-AR (oracle),1.0
+Gaussian,-0.6,MoM-AR (feasible),1.0
+Gaussian,-0.575,MoM-AR (feasible),1.0
+Gaussian,-0.5499999999999999,MoM-AR (feasible),1.0
+Gaussian,-0.525,MoM-AR (feasible),1.0
+Gaussian,-0.5,MoM-AR (feasible),1.0
+Gaussian,-0.475,MoM-AR (feasible),1.0
+Gaussian,-0.44999999999999996,MoM-AR (feasible),0.9998
+Gaussian,-0.42500000000000004,MoM-AR (feasible),0.9994
+Gaussian,-0.4,MoM-AR (feasible),0.998
+Gaussian,-0.375,MoM-AR (feasible),0.994
+Gaussian,-0.35,MoM-AR (feasible),0.9854
+Gaussian,-0.32499999999999996,MoM-AR (feasible),0.9624
+Gaussian,-0.30000000000000004,MoM-AR (feasible),0.9244
+Gaussian,-0.275,MoM-AR (feasible),0.8622
+Gaussian,-0.25,MoM-AR (feasible),0.7542
+Gaussian,-0.2250000000000001,MoM-AR (feasible),0.6184
+Gaussian,-0.19999999999999996,MoM-AR (feasible),0.4532
+Gaussian,-0.17500000000000004,MoM-AR (feasible),0.2954
+Gaussian,-0.15000000000000002,MoM-AR (feasible),0.166
+Gaussian,-0.125,MoM-AR (feasible),0.0774
+Gaussian,-0.10000000000000009,MoM-AR (feasible),0.027
+Gaussian,-0.07500000000000007,MoM-AR (feasible),0.0076
+Gaussian,-0.050000000000000044,MoM-AR (feasible),0.002
+Gaussian,-0.025000000000000022,MoM-AR (feasible),0.0
+Gaussian,0.0,MoM-AR (feasible),0.0
+Gaussian,0.02499999999999991,MoM-AR (feasible),0.0
+Gaussian,0.04999999999999982,MoM-AR (feasible),0.0038
+Gaussian,0.07499999999999996,MoM-AR (feasible),0.01
+Gaussian,0.10000000000000009,MoM-AR (feasible),0.0392
+Gaussian,0.125,MoM-AR (feasible),0.0994
+Gaussian,0.1499999999999999,MoM-AR (feasible),0.2244
+Gaussian,0.17499999999999982,MoM-AR (feasible),0.3742
+Gaussian,0.19999999999999996,MoM-AR (feasible),0.5452
+Gaussian,0.2250000000000001,MoM-AR (feasible),0.7024
+Gaussian,0.25,MoM-AR (feasible),0.8262
+Gaussian,0.2749999999999999,MoM-AR (feasible),0.913
+Gaussian,0.2999999999999998,MoM-AR (feasible),0.9644
+Gaussian,0.32499999999999996,MoM-AR (feasible),0.9862
+Gaussian,0.3500000000000001,MoM-AR (feasible),0.9948
+Gaussian,0.375,MoM-AR (feasible),0.9984
+Gaussian,0.3999999999999999,MoM-AR (feasible),0.9994
+Gaussian,0.4249999999999998,MoM-AR (feasible),0.9998
+Gaussian,0.44999999999999973,MoM-AR (feasible),1.0
+Gaussian,0.4750000000000001,MoM-AR (feasible),1.0
+Gaussian,0.5,MoM-AR (feasible),1.0
+Gaussian,0.5249999999999999,MoM-AR (feasible),1.0
+Gaussian,0.5499999999999998,MoM-AR (feasible),1.0
+Gaussian,0.5749999999999997,MoM-AR (feasible),1.0
+Gaussian,0.6000000000000001,MoM-AR (feasible),1.0
+Gaussian,-0.6,SN-AR,1.0
+Gaussian,-0.575,SN-AR,1.0
+Gaussian,-0.5499999999999999,SN-AR,1.0
+Gaussian,-0.525,SN-AR,1.0
+Gaussian,-0.5,SN-AR,1.0
+Gaussian,-0.475,SN-AR,1.0
+Gaussian,-0.44999999999999996,SN-AR,1.0
+Gaussian,-0.42500000000000004,SN-AR,1.0
+Gaussian,-0.4,SN-AR,1.0
+Gaussian,-0.375,SN-AR,1.0
+Gaussian,-0.35,SN-AR,1.0
+Gaussian,-0.32499999999999996,SN-AR,1.0
+Gaussian,-0.30000000000000004,SN-AR,1.0
+Gaussian,-0.275,SN-AR,1.0
+Gaussian,-0.25,SN-AR,0.9998
+Gaussian,-0.2250000000000001,SN-AR,0.9996
+Gaussian,-0.19999999999999996,SN-AR,0.9994
+Gaussian,-0.17500000000000004,SN-AR,0.9968
+Gaussian,-0.15000000000000002,SN-AR,0.983
+Gaussian,-0.125,SN-AR,0.933
+Gaussian,-0.10000000000000009,SN-AR,0.7978
+Gaussian,-0.07500000000000007,SN-AR,0.5466
+Gaussian,-0.050000000000000044,SN-AR,0.2732
+Gaussian,-0.025000000000000022,SN-AR,0.0892
+Gaussian,0.0,SN-AR,0.0562
+Gaussian,0.02499999999999991,SN-AR,0.1624
+Gaussian,0.04999999999999982,SN-AR,0.4372
+Gaussian,0.07499999999999996,SN-AR,0.74
+Gaussian,0.10000000000000009,SN-AR,0.93
+Gaussian,0.125,SN-AR,0.9904
+Gaussian,0.1499999999999999,SN-AR,0.9988
+Gaussian,0.17499999999999982,SN-AR,1.0
+Gaussian,0.19999999999999996,SN-AR,1.0
+Gaussian,0.2250000000000001,SN-AR,1.0
+Gaussian,0.25,SN-AR,1.0
+Gaussian,0.2749999999999999,SN-AR,1.0
+Gaussian,0.2999999999999998,SN-AR,1.0
+Gaussian,0.32499999999999996,SN-AR,1.0
+Gaussian,0.3500000000000001,SN-AR,1.0
+Gaussian,0.375,SN-AR,1.0
+Gaussian,0.3999999999999999,SN-AR,1.0
+Gaussian,0.4249999999999998,SN-AR,1.0
+Gaussian,0.44999999999999973,SN-AR,1.0
+Gaussian,0.4750000000000001,SN-AR,1.0
+Gaussian,0.5,SN-AR,1.0
+Gaussian,0.5249999999999999,SN-AR,1.0
+Gaussian,0.5499999999999998,SN-AR,1.0
+Gaussian,0.5749999999999997,SN-AR,1.0
+Gaussian,0.6000000000000001,SN-AR,1.0
+Gaussian,-0.6,AR (standard),1.0
+Gaussian,-0.575,AR (standard),1.0
+Gaussian,-0.5499999999999999,AR (standard),1.0
+Gaussian,-0.525,AR (standard),1.0
+Gaussian,-0.5,AR (standard),1.0
+Gaussian,-0.475,AR (standard),1.0
+Gaussian,-0.44999999999999996,AR (standard),1.0
+Gaussian,-0.42500000000000004,AR (standard),1.0
+Gaussian,-0.4,AR (standard),1.0
+Gaussian,-0.375,AR (standard),1.0
+Gaussian,-0.35,AR (standard),1.0
+Gaussian,-0.32499999999999996,AR (standard),1.0
+Gaussian,-0.30000000000000004,AR (standard),1.0
+Gaussian,-0.275,AR (standard),1.0
+Gaussian,-0.25,AR (standard),1.0
+Gaussian,-0.2250000000000001,AR (standard),1.0
+Gaussian,-0.19999999999999996,AR (standard),1.0
+Gaussian,-0.17500000000000004,AR (standard),1.0
+Gaussian,-0.15000000000000002,AR (standard),1.0
+Gaussian,-0.125,AR (standard),1.0
+Gaussian,-0.10000000000000009,AR (standard),0.9894
+Gaussian,-0.07500000000000007,AR (standard),0.8926
+Gaussian,-0.050000000000000044,AR (standard),0.574
+Gaussian,-0.025000000000000022,AR (standard),0.1934
+Gaussian,0.0,AR (standard),0.0578
+Gaussian,0.02499999999999991,AR (standard),0.2152
+Gaussian,0.04999999999999982,AR (standard),0.634
+Gaussian,0.07499999999999996,AR (standard),0.927
+Gaussian,0.10000000000000009,AR (standard),0.9954
+Gaussian,0.125,AR (standard),1.0
+Gaussian,0.1499999999999999,AR (standard),1.0
+Gaussian,0.17499999999999982,AR (standard),1.0
+Gaussian,0.19999999999999996,AR (standard),1.0
+Gaussian,0.2250000000000001,AR (standard),1.0
+Gaussian,0.25,AR (standard),1.0
+Gaussian,0.2749999999999999,AR (standard),1.0
+Gaussian,0.2999999999999998,AR (standard),1.0
+Gaussian,0.32499999999999996,AR (standard),1.0
+Gaussian,0.3500000000000001,AR (standard),1.0
+Gaussian,0.375,AR (standard),1.0
+Gaussian,0.3999999999999999,AR (standard),1.0
+Gaussian,0.4249999999999998,AR (standard),1.0
+Gaussian,0.44999999999999973,AR (standard),1.0
+Gaussian,0.4750000000000001,AR (standard),1.0
+Gaussian,0.5,AR (standard),1.0
+Gaussian,0.5249999999999999,AR (standard),1.0
+Gaussian,0.5499999999999998,AR (standard),1.0
+Gaussian,0.5749999999999997,AR (standard),1.0
+Gaussian,0.6000000000000001,AR (standard),1.0
+t(2.1),-0.6,MoM-AR (oracle),1.0
+t(2.1),-0.575,MoM-AR (oracle),1.0
+t(2.1),-0.5499999999999999,MoM-AR (oracle),1.0
+t(2.1),-0.525,MoM-AR (oracle),1.0
+t(2.1),-0.5,MoM-AR (oracle),1.0
+t(2.1),-0.475,MoM-AR (oracle),1.0
+t(2.1),-0.44999999999999996,MoM-AR (oracle),1.0
+t(2.1),-0.42500000000000004,MoM-AR (oracle),1.0
+t(2.1),-0.4,MoM-AR (oracle),1.0
+t(2.1),-0.375,MoM-AR (oracle),1.0
+t(2.1),-0.35,MoM-AR (oracle),1.0
+t(2.1),-0.32499999999999996,MoM-AR (oracle),1.0
+t(2.1),-0.30000000000000004,MoM-AR (oracle),0.9998
+t(2.1),-0.275,MoM-AR (oracle),0.9956
+t(2.1),-0.25,MoM-AR (oracle),0.9064
+t(2.1),-0.2250000000000001,MoM-AR (oracle),0.4876
+t(2.1),-0.19999999999999996,MoM-AR (oracle),0.0748
+t(2.1),-0.17500000000000004,MoM-AR (oracle),0.0016
+t(2.1),-0.15000000000000002,MoM-AR (oracle),0.0
+t(2.1),-0.125,MoM-AR (oracle),0.0
+t(2.1),-0.10000000000000009,MoM-AR (oracle),0.0
+t(2.1),-0.07500000000000007,MoM-AR (oracle),0.0
+t(2.1),-0.050000000000000044,MoM-AR (oracle),0.0
+t(2.1),-0.025000000000000022,MoM-AR (oracle),0.0
+t(2.1),0.0,MoM-AR (oracle),0.0
+t(2.1),0.02499999999999991,MoM-AR (oracle),0.0
+t(2.1),0.04999999999999982,MoM-AR (oracle),0.0
+t(2.1),0.07499999999999996,MoM-AR (oracle),0.0
+t(2.1),0.10000000000000009,MoM-AR (oracle),0.0
+t(2.1),0.125,MoM-AR (oracle),0.0
+t(2.1),0.1499999999999999,MoM-AR (oracle),0.0
+t(2.1),0.17499999999999982,MoM-AR (oracle),0.003
+t(2.1),0.19999999999999996,MoM-AR (oracle),0.1216
+t(2.1),0.2250000000000001,MoM-AR (oracle),0.6582
+t(2.1),0.25,MoM-AR (oracle),0.9758
+t(2.1),0.2749999999999999,MoM-AR (oracle),0.9992
+t(2.1),0.2999999999999998,MoM-AR (oracle),1.0
+t(2.1),0.32499999999999996,MoM-AR (oracle),1.0
+t(2.1),0.3500000000000001,MoM-AR (oracle),1.0
+t(2.1),0.375,MoM-AR (oracle),1.0
+t(2.1),0.3999999999999999,MoM-AR (oracle),1.0
+t(2.1),0.4249999999999998,MoM-AR (oracle),1.0
+t(2.1),0.44999999999999973,MoM-AR (oracle),1.0
+t(2.1),0.4750000000000001,MoM-AR (oracle),1.0
+t(2.1),0.5,MoM-AR (oracle),1.0
+t(2.1),0.5249999999999999,MoM-AR (oracle),1.0
+t(2.1),0.5499999999999998,MoM-AR (oracle),1.0
+t(2.1),0.5749999999999997,MoM-AR (oracle),1.0
+t(2.1),0.6000000000000001,MoM-AR (oracle),1.0
+t(2.1),-0.6,MoM-AR (feasible),1.0
+t(2.1),-0.575,MoM-AR (feasible),1.0
+t(2.1),-0.5499999999999999,MoM-AR (feasible),1.0
+t(2.1),-0.525,MoM-AR (feasible),1.0
+t(2.1),-0.5,MoM-AR (feasible),1.0
+t(2.1),-0.475,MoM-AR (feasible),1.0
+t(2.1),-0.44999999999999996,MoM-AR (feasible),1.0
+t(2.1),-0.42500000000000004,MoM-AR (feasible),1.0
+t(2.1),-0.4,MoM-AR (feasible),1.0
+t(2.1),-0.375,MoM-AR (feasible),1.0
+t(2.1),-0.35,MoM-AR (feasible),1.0
+t(2.1),-0.32499999999999996,MoM-AR (feasible),1.0
+t(2.1),-0.30000000000000004,MoM-AR (feasible),1.0
+t(2.1),-0.275,MoM-AR (feasible),1.0
+t(2.1),-0.25,MoM-AR (feasible),0.9998
+t(2.1),-0.2250000000000001,MoM-AR (feasible),0.9996
+t(2.1),-0.19999999999999996,MoM-AR (feasible),0.998
+t(2.1),-0.17500000000000004,MoM-AR (feasible),0.9898
+t(2.1),-0.15000000000000002,MoM-AR (feasible),0.9426
+t(2.1),-0.125,MoM-AR (feasible),0.8032
+t(2.1),-0.10000000000000009,MoM-AR (feasible),0.5208
+t(2.1),-0.07500000000000007,MoM-AR (feasible),0.1944
+t(2.1),-0.050000000000000044,MoM-AR (feasible),0.0298
+t(2.1),-0.025000000000000022,MoM-AR (feasible),0.0006
+t(2.1),0.0,MoM-AR (feasible),0.0
+t(2.1),0.02499999999999991,MoM-AR (feasible),0.0024
+t(2.1),0.04999999999999982,MoM-AR (feasible),0.051
+t(2.1),0.07499999999999996,MoM-AR (feasible),0.259
+t(2.1),0.10000000000000009,MoM-AR (feasible),0.5964
+t(2.1),0.125,MoM-AR (feasible),0.8564
+t(2.1),0.1499999999999999,MoM-AR (feasible),0.967
+t(2.1),0.17499999999999982,MoM-AR (feasible),0.9942
+t(2.1),0.19999999999999996,MoM-AR (feasible),0.9992
+t(2.1),0.2250000000000001,MoM-AR (feasible),0.9998
+t(2.1),0.25,MoM-AR (feasible),1.0
+t(2.1),0.2749999999999999,MoM-AR (feasible),1.0
+t(2.1),0.2999999999999998,MoM-AR (feasible),1.0
+t(2.1),0.32499999999999996,MoM-AR (feasible),1.0
+t(2.1),0.3500000000000001,MoM-AR (feasible),1.0
+t(2.1),0.375,MoM-AR (feasible),1.0
+t(2.1),0.3999999999999999,MoM-AR (feasible),1.0
+t(2.1),0.4249999999999998,MoM-AR (feasible),1.0
+t(2.1),0.44999999999999973,MoM-AR (feasible),1.0
+t(2.1),0.4750000000000001,MoM-AR (feasible),1.0
+t(2.1),0.5,MoM-AR (feasible),1.0
+t(2.1),0.5249999999999999,MoM-AR (feasible),1.0
+t(2.1),0.5499999999999998,MoM-AR (feasible),1.0
+t(2.1),0.5749999999999997,MoM-AR (feasible),1.0
+t(2.1),0.6000000000000001,MoM-AR (feasible),1.0
+t(2.1),-0.6,SN-AR,1.0
+t(2.1),-0.575,SN-AR,1.0
+t(2.1),-0.5499999999999999,SN-AR,1.0
+t(2.1),-0.525,SN-AR,1.0
+t(2.1),-0.5,SN-AR,1.0
+t(2.1),-0.475,SN-AR,1.0
+t(2.1),-0.44999999999999996,SN-AR,1.0
+t(2.1),-0.42500000000000004,SN-AR,1.0
+t(2.1),-0.4,SN-AR,1.0
+t(2.1),-0.375,SN-AR,1.0
+t(2.1),-0.35,SN-AR,1.0
+t(2.1),-0.32499999999999996,SN-AR,1.0
+t(2.1),-0.30000000000000004,SN-AR,1.0
+t(2.1),-0.275,SN-AR,1.0
+t(2.1),-0.25,SN-AR,1.0
+t(2.1),-0.2250000000000001,SN-AR,1.0
+t(2.1),-0.19999999999999996,SN-AR,1.0
+t(2.1),-0.17500000000000004,SN-AR,1.0
+t(2.1),-0.15000000000000002,SN-AR,1.0
+t(2.1),-0.125,SN-AR,1.0
+t(2.1),-0.10000000000000009,SN-AR,0.9996
+t(2.1),-0.07500000000000007,SN-AR,0.9894
+t(2.1),-0.050000000000000044,SN-AR,0.8336
+t(2.1),-0.025000000000000022,SN-AR,0.3034
+t(2.1),0.0,SN-AR,0.0468
+t(2.1),0.02499999999999991,SN-AR,0.4496
+t(2.1),0.04999999999999982,SN-AR,0.9278
+t(2.1),0.07499999999999996,SN-AR,0.9986
+t(2.1),0.10000000000000009,SN-AR,1.0
+t(2.1),0.125,SN-AR,1.0
+t(2.1),0.1499999999999999,SN-AR,1.0
+t(2.1),0.17499999999999982,SN-AR,1.0
+t(2.1),0.19999999999999996,SN-AR,1.0
+t(2.1),0.2250000000000001,SN-AR,1.0
+t(2.1),0.25,SN-AR,1.0
+t(2.1),0.2749999999999999,SN-AR,1.0
+t(2.1),0.2999999999999998,SN-AR,1.0
+t(2.1),0.32499999999999996,SN-AR,1.0
+t(2.1),0.3500000000000001,SN-AR,1.0
+t(2.1),0.375,SN-AR,1.0
+t(2.1),0.3999999999999999,SN-AR,1.0
+t(2.1),0.4249999999999998,SN-AR,1.0
+t(2.1),0.44999999999999973,SN-AR,1.0
+t(2.1),0.4750000000000001,SN-AR,1.0
+t(2.1),0.5,SN-AR,1.0
+t(2.1),0.5249999999999999,SN-AR,1.0
+t(2.1),0.5499999999999998,SN-AR,1.0
+t(2.1),0.5749999999999997,SN-AR,1.0
+t(2.1),0.6000000000000001,SN-AR,1.0
+t(2.1),-0.6,AR (standard),0.9998
+t(2.1),-0.575,AR (standard),0.9998
+t(2.1),-0.5499999999999999,AR (standard),0.9996
+t(2.1),-0.525,AR (standard),0.9996
+t(2.1),-0.5,AR (standard),0.9996
+t(2.1),-0.475,AR (standard),0.9996
+t(2.1),-0.44999999999999996,AR (standard),0.9996
+t(2.1),-0.42500000000000004,AR (standard),0.9996
+t(2.1),-0.4,AR (standard),0.9996
+t(2.1),-0.375,AR (standard),0.9994
+t(2.1),-0.35,AR (standard),0.9994
+t(2.1),-0.32499999999999996,AR (standard),0.9994
+t(2.1),-0.30000000000000004,AR (standard),0.9994
+t(2.1),-0.275,AR (standard),0.999
+t(2.1),-0.25,AR (standard),0.9988
+t(2.1),-0.2250000000000001,AR (standard),0.9982
+t(2.1),-0.19999999999999996,AR (standard),0.9976
+t(2.1),-0.17500000000000004,AR (standard),0.9966
+t(2.1),-0.15000000000000002,AR (standard),0.9952
+t(2.1),-0.125,AR (standard),0.9922
+t(2.1),-0.10000000000000009,AR (standard),0.9876
+t(2.1),-0.07500000000000007,AR (standard),0.9786
+t(2.1),-0.050000000000000044,AR (standard),0.9176
+t(2.1),-0.025000000000000022,AR (standard),0.5016
+t(2.1),0.0,AR (standard),0.0454
+t(2.1),0.02499999999999991,AR (standard),0.5146
+t(2.1),0.04999999999999982,AR (standard),0.9318
+t(2.1),0.07499999999999996,AR (standard),0.983
+t(2.1),0.10000000000000009,AR (standard),0.9922
+t(2.1),0.125,AR (standard),0.9948
+t(2.1),0.1499999999999999,AR (standard),0.9974
+t(2.1),0.17499999999999982,AR (standard),0.9984
+t(2.1),0.19999999999999996,AR (standard),0.9988
+t(2.1),0.2250000000000001,AR (standard),0.9994
+t(2.1),0.25,AR (standard),0.9994
+t(2.1),0.2749999999999999,AR (standard),0.9996
+t(2.1),0.2999999999999998,AR (standard),0.9998
+t(2.1),0.32499999999999996,AR (standard),1.0
+t(2.1),0.3500000000000001,AR (standard),1.0
+t(2.1),0.375,AR (standard),1.0
+t(2.1),0.3999999999999999,AR (standard),1.0
+t(2.1),0.4249999999999998,AR (standard),1.0
+t(2.1),0.44999999999999973,AR (standard),1.0
+t(2.1),0.4750000000000001,AR (standard),1.0
+t(2.1),0.5,AR (standard),1.0
+t(2.1),0.5249999999999999,AR (standard),1.0
+t(2.1),0.5499999999999998,AR (standard),1.0
+t(2.1),0.5749999999999997,AR (standard),1.0
+t(2.1),0.6000000000000001,AR (standard),1.0

@@ -41,12 +41,14 @@ ESTIMATOR_COLORS = {
     "Mean IV": "#4C72B0",            # blue
     "Ratio-of-Medians": "#DD8452",   # orange
     "Median-of-Ratios": "#55A868",   # green
+    "Catoni": "#C44E52",             # red
 }
 
+from inference import mom_ar_test
 from simulation import (
-    ar_test_mom,
     generate_data,
     iv_estimate,
+    iv_estimate_catoni,
     iv_estimate_mr,
     iv_estimate_rm,
 )
@@ -109,11 +111,64 @@ def min_sample_sizes(mu_ZX: float, sigma2_ZX: float, delta: float) -> dict[str, 
     }
 
 
-def _one_replication(data_seed, n, beta, mu_ZX, sigma2_ZX, sigma2_Ze,
-                     rho, eps_Y_df, eps_X_df, delta) -> tuple[float, float, float, bool]:
+def styled_boxplot(ax, estimates: dict[str, np.ndarray], true_beta: float,
+                   show_legend: bool = True) -> None:
     """
-    Run a single Monte Carlo replication and return the three beta estimates
-    plus the MoM AR test rejection decision at the true beta (size check).
+    Journal-style box-and-whisker plot of estimator sampling distributions on
+    an existing axis: one box per estimator (coloured per ESTIMATOR_COLORS),
+    dashed line at the true beta, diamonds marking means. Shared by
+    run_simulation_study and the experiment drivers in experiments.py.
+    """
+    labels = list(estimates.keys())
+    data = [np.asarray(estimates[name]) for name in labels]
+    colors = [ESTIMATOR_COLORS.get(name, "0.5") for name in labels]
+    positions = np.arange(1, len(labels) + 1)
+
+    # Reference line at the true parameter, drawn first so boxes sit on top.
+    ax.axhline(true_beta, color="0.45", linestyle=(0, (5, 4)), linewidth=1.1,
+               zorder=1, label=r"True $\beta$")
+
+    bp = ax.boxplot(
+        data,
+        positions=positions,
+        tick_labels=labels,
+        showmeans=True,
+        showfliers=True,
+        widths=0.55,
+        patch_artist=True,
+        zorder=3,
+        medianprops=dict(color="black", linewidth=1.6),
+        whiskerprops=dict(color="0.3", linewidth=1.1),
+        capprops=dict(color="0.3", linewidth=1.1),
+        meanprops=dict(marker="D", markerfacecolor="white",
+                       markeredgecolor="black", markersize=6, zorder=4),
+    )
+    # Colour each box (semi-transparent fill, solid coloured edge).
+    for patch, color in zip(bp["boxes"], colors):
+        patch.set_facecolor(color)
+        patch.set_alpha(0.45)
+        patch.set_edgecolor(color)
+        patch.set_linewidth(1.6)
+    # Outliers as small open circles in the matching colour.
+    for flier, color in zip(bp["fliers"], colors):
+        flier.set(marker="o", markerfacecolor="none",
+                  markeredgecolor=color, markersize=4, alpha=0.7)
+
+    ax.set_ylabel(r"Estimate $\hat{\beta}$")
+    ax.margins(x=0.08)
+    ax.yaxis.grid(True, color="0.88", linewidth=0.7)
+    ax.set_axisbelow(True)
+    ax.tick_params(length=4, color="0.3")
+    if show_legend:
+        ax.legend(frameon=False, loc="upper right")
+
+
+def _one_replication(data_seed, n, beta, mu_ZX, sigma2_ZX, sigma2_Ze,
+                     rho, eps_Y_df, eps_X_df, delta) -> tuple[float, float, float, float, bool]:
+    """
+    Run a single Monte Carlo replication and return the four beta estimates
+    plus the MoM AR test rejection decision at the true beta (size check,
+    oracle sigma_Ze — known exactly in the calibrated DGP).
 
     Module-level (not a closure) so joblib can pickle it for worker processes.
     The per-rep rng is built from `data_seed` (a spawned SeedSequence), making
@@ -135,7 +190,9 @@ def _one_replication(data_seed, n, beta, mu_ZX, sigma2_ZX, sigma2_Ze,
         iv_estimate(df)["beta_hat"],
         iv_estimate_rm(df, delta=delta, rng=rep_rng)["beta_hat"],
         iv_estimate_mr(df, delta=delta, rng=rep_rng)["beta_hat"],
-        ar_test_mom(df, beta_0=beta, delta=delta, rng=rep_rng)["reject"],
+        iv_estimate_catoni(df, delta=delta)["beta_hat"],
+        bool(mom_ar_test(df, beta, delta=delta, sigma_Ze=np.sqrt(sigma2_Ze),
+                         rng=rep_rng)["reject"]),
     )
 
 
@@ -195,63 +252,20 @@ def run_simulation_study(
     )
     runtime = time.perf_counter() - t_start
 
-    # results is a list of (mean_iv, rm, mr, ar_reject) tuples; unpack column-wise.
-    mean_iv, rm, mr, ar_reject = (np.asarray(col) for col in zip(*results))
+    # results is a list of (mean_iv, rm, mr, catoni, ar_reject) tuples; unpack column-wise.
+    mean_iv, rm, mr, catoni, ar_reject = (np.asarray(col) for col in zip(*results))
     estimates = {
         "Mean IV": mean_iv,
         "Ratio-of-Medians": rm,
         "Median-of-Ratios": mr,
+        "Catoni": catoni,
     }
+    labels = list(estimates.keys())
 
     # --- plot (econometrics-journal style) ---
-    labels = list(estimates.keys())
-    data = [estimates[name] for name in labels]
-    colors = [ESTIMATOR_COLORS[name] for name in labels]
-    positions = np.arange(1, len(labels) + 1)
     fig, ax = plt.subplots(figsize=(7.0, 4.5))
-
-    # Reference line at the true parameter, drawn first so boxes sit on top.
-    ax.axhline(beta, color="0.45", linestyle=(0, (5, 4)), linewidth=1.1,
-               zorder=1, label=r"True $\beta$")
-
-    bp = ax.boxplot(
-        data,
-        positions=positions,
-        tick_labels=labels,
-        showmeans=True,
-        showfliers=True,
-        widths=0.55,
-        patch_artist=True,
-        zorder=3,
-        medianprops=dict(color="black", linewidth=1.6),
-        whiskerprops=dict(color="0.3", linewidth=1.1),
-        capprops=dict(color="0.3", linewidth=1.1),
-        meanprops=dict(marker="D", markerfacecolor="white",
-                       markeredgecolor="black", markersize=6, zorder=4),
-    )
-    # Colour each box (semi-transparent fill, solid coloured edge).
-    for patch, color in zip(bp["boxes"], colors):
-        patch.set_facecolor(color)
-        patch.set_alpha(0.45)
-        patch.set_edgecolor(color)
-        patch.set_linewidth(1.6)
-    # Outliers as small open circles in the matching colour.
-    for flier, color in zip(bp["fliers"], colors):
-        flier.set(marker="o", markerfacecolor="none",
-                  markeredgecolor=color, markersize=4, alpha=0.7)
-
-    # Show the full range: let matplotlib autoscale so every point is visible
-    # (no y-axis clipping, no hidden outliers).
-
-    ax.set_ylabel(r"Estimate $\hat{\beta}$")
+    styled_boxplot(ax, estimates, true_beta=beta)
     ax.set_xlabel("")
-    ax.margins(x=0.08)
-
-    # Light horizontal grid; full boxed frame from rcParams.
-    ax.yaxis.grid(True, color="0.88", linewidth=0.7)
-    ax.set_axisbelow(True)
-    ax.tick_params(length=4, color="0.3")
-    ax.legend(frameon=False, loc="upper right")
 
     # Parameter provenance as a small note in the reserved bottom margin, so the
     # saved file is self-documenting without cluttering the plot area.
@@ -293,6 +307,8 @@ def run_simulation_study(
     print(f"\nTheoretical minimum n (delta={delta:g}); current n={n}:")
     print(f"{'estimator':<20} {'n_min':>8} {'k':>6} {'m_min':>8} {'n>=n_min?':>10}")
     for name in labels:
+        if name not in n_min:  # Catoni has no finite-sample n_min in the thesis
+            continue
         info = n_min[name]
         k_str = str(info.get("k", ""))
         m_str = str(info.get("m_min", ""))

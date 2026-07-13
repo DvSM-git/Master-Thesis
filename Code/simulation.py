@@ -2,6 +2,37 @@ import numpy as np
 import pandas as pd
 
 
+def _standardised_shock(rng: np.random.Generator, dist, size: int) -> np.ndarray:
+    """
+    Draw `size` i.i.d. shocks with mean 0 and variance 1 from the family `dist`.
+
+    dist : None                -> N(0, 1)
+           ("t", df)           -> Student t with df > 2, scaled to unit variance
+           ("pareto", alpha)   -> Pareto with tail index alpha > 2 (x_m = 1),
+                                  centred and scaled to unit variance; strongly
+                                  right-skewed, moments of order >= alpha infinite
+
+    All families have exactly unit variance, so the moment calibration in
+    generate_data is exact regardless of the family.
+    """
+    if dist is None:
+        return rng.standard_normal(size)
+    family, param = dist
+    if family == "t":
+        if param <= 2:
+            raise ValueError(f"t dof must be > 2 for finite variance (got {param})")
+        return rng.standard_t(param, size=size) / np.sqrt(param / (param - 2))
+    if family == "pareto":
+        alpha = param
+        if alpha <= 2:
+            raise ValueError(f"Pareto tail index must be > 2 for finite variance (got {alpha})")
+        x = rng.pareto(alpha, size=size) + 1.0          # Pareto(alpha) with x_m = 1
+        mean = alpha / (alpha - 1.0)
+        var = alpha / ((alpha - 1.0) ** 2 * (alpha - 2.0))
+        return (x - mean) / np.sqrt(var)
+    raise ValueError(f"unknown shock family {family!r}")
+
+
 def generate_data(
     n: int,
     beta: float,
@@ -11,6 +42,8 @@ def generate_data(
     rho: float = 0.0,          # Corr(eps_Y, eps_X) — endogeneity; 0 = exogenous X
     eps_Y_df: float | None = None,  # dof for t-distributed eps_Y; None = Normal
     eps_X_df: float | None = None,  # dof for t-distributed eps_X; None = Normal
+    eps_Y_dist=None,   # shock family spec, e.g. ("t", 2.1) or ("pareto", 2.5); overrides eps_Y_df
+    eps_X_dist=None,   # shock family spec for eps_X; overrides eps_X_df
     rng: np.random.Generator | None = None,
 ) -> pd.DataFrame:
     """
@@ -42,6 +75,8 @@ def generate_data(
     rho        : Corr(eps_Y, eps_X); 0 = exogenous X, nonzero = endogenous X
     eps_Y_df   : dof for t-distributed eps_Y (must be > 2); None = Normal
     eps_X_df   : dof for t-distributed eps_X (must be > 2); None = Normal
+    eps_Y_dist : shock family spec ("t", df) / ("pareto", alpha); overrides eps_Y_df
+    eps_X_dist : shock family spec for eps_X; overrides eps_X_df
     rng        : numpy Generator; created from a fresh seed if None
 
     Returns
@@ -61,19 +96,18 @@ def generate_data(
         raise ValueError(f"rho must be in (-1, 1), got {rho}")
 
     # --- eps_Y and eps_X ---
-    # Draw two independent unit-variance base shocks (Normal or t), then mix via Cholesky:
+    # Draw two independent unit-variance base shocks, then mix via Cholesky:
     #   eps_Y = sqrt(sigma2_Ze)      * u1
     #   eps_X = sqrt(sigma2_noise_x) * (rho*u1 + sqrt(1-rho^2)*u2)
     # This gives Corr(eps_Y, eps_X) = rho exactly, with the target variances.
-    def _draw(df, size):
-        if df is None:
-            return rng.standard_normal(size)
-        if df <= 2:
-            raise ValueError(f"dof must be > 2 for finite variance (got {df})")
-        return rng.standard_t(df, size=size) / np.sqrt(df / (df - 2))
+    # Family spec: eps_*_dist takes precedence; eps_*_df kept for backward compat.
+    if eps_Y_dist is None and eps_Y_df is not None:
+        eps_Y_dist = ("t", eps_Y_df)
+    if eps_X_dist is None and eps_X_df is not None:
+        eps_X_dist = ("t", eps_X_df)
 
-    u1 = _draw(eps_Y_df, n)
-    u2 = _draw(eps_X_df, n)
+    u1 = _standardised_shock(rng, eps_Y_dist, n)
+    u2 = _standardised_shock(rng, eps_X_dist, n)
 
     eps_Y = u1 * np.sqrt(sigma2_Ze)
 
@@ -303,88 +337,100 @@ def iv_estimate_mr(
     return {"beta_hat": float(beta_hat), "delta": delta, "k": k, "m": m, "n": n}
 
 
-def ar_test_mom(
-    data: pd.DataFrame,
-    beta_0: float,
+def catoni_mean(
+    x: np.ndarray,
     delta: float = 0.05,
-    rng: np.random.Generator | None = None,
-    shuffle: bool = True,
-) -> dict:
+    v: float | None = None,
+    max_iter: int = 100,
+) -> float:
     """
-    Median-of-Means Anderson-Rubin test (Algorithm 4).
+    Catoni's M-estimator of the mean (Catoni, 2012).
 
-    Tests H_0: beta = beta_0 by checking whether the median of block-level
-    moment conditions is significantly different from zero.
+    Solves sum_i psi(alpha * (x_i - theta)) = 0 for theta, where psi is
+    Catoni's narrowest influence function
 
-    For each of k = ceil(8 ln(2/delta)) blocks of size m = floor(n/k):
+        psi(u) =  log(1 + u + u^2/2)   for u >= 0,
+               = -log(1 - u + u^2/2)   for u <  0.
 
-        W_bar_j(beta_0) = S_hat_ZY^(j) - beta_0 * S_hat_ZX^(j)
-                        = (1/m) sum_{i in B_j} Z_i (Y_i - beta_0 X_i)
+    The tuning parameter is chosen from the target confidence level delta and
+    a variance (bound) v, following Catoni's optimal choice:
 
-    Under H_0, E[Z(Y - beta_0 X)] = 0, so the block means should cluster near
-    zero. The test statistic is their median:
+        alpha = sqrt( 2 ln(2/delta) / ( n * v * (1 + 2 ln(2/delta) / (n - 2 ln(2/delta))) ) ),
 
-        W_tilde(beta_0) = med(W_bar_1, ..., W_bar_k)
+    which yields P(|theta_hat - mu| > t_delta) <= delta with a sub-Gaussian
+    deviation t_delta, provided Var(x) <= v and n > 2 ln(2/delta).
 
-    The threshold tau_n(delta) comes from the MoM concentration inequality:
+    If v is None, it is estimated robustly: a scalar MoM estimate of the mean
+    (k = ceil(8 ln(2/delta)) blocks), then a MoM estimate of the mean of the
+    squared deviations. Using MoM rather than the sample variance keeps the
+    tuning itself heavy-tail robust.
 
-        tau_n(delta) = sqrt(8 ln(2/delta) * sigma2_Ze_hat / (k*m))
+    The left-hand side is strictly decreasing in theta, so the root is found
+    by bisection on [min(x), max(x)].
+    """
+    x = np.asarray(x, dtype=float)
+    n = x.size
+    ln_term = np.log(2.0 / delta)
+    if n <= 2 * ln_term:
+        raise ValueError(f"Catoni requires n > 2 ln(2/delta) = {2 * ln_term:.1f}, got n={n}")
 
-    where sigma2_Ze_hat = mean((Z*(Y - beta_0*X))^2) is a plug-in variance
-    estimate. Reject H_0 if |W_tilde(beta_0)| > tau_n(delta).
+    if v is None:
+        # Robust preliminary variance: MoM of the squared deviations from a MoM mean.
+        k = int(np.ceil(8 * np.log(2.0 / delta)))
+        m = n // k
+        if m == 0:
+            raise ValueError(f"n={n} too small for MoM variance pre-estimate with k={k}")
+        mu0 = np.median(x[: k * m].reshape(k, m).mean(axis=1))
+        v = float(np.median(((x - mu0) ** 2)[: k * m].reshape(k, m).mean(axis=1)))
+        v = max(v, 1e-12)
 
-    Parameters
-    ----------
-    data    : DataFrame with columns 'Y', 'X', 'Z' (e.g. from generate_data)
-    beta_0  : null value for beta
-    delta   : significance level; number of blocks k = ceil(8 ln(1/delta))
-    rng     : numpy Generator used for shuffling; fresh seed if None
-    shuffle : if True, randomly permute rows before blocking
+    alpha = np.sqrt(2.0 * ln_term / (n * v * (1.0 + 2.0 * ln_term / (n - 2.0 * ln_term))))
+
+    def psi_sum(theta: float) -> float:
+        u = alpha * (x - theta)
+        return float(np.sum(np.sign(u) * np.log1p(np.abs(u) + 0.5 * u * u)))
+
+    lo, hi = float(np.min(x)) - 1.0, float(np.max(x)) + 1.0
+    # psi_sum is decreasing: positive at lo, negative at hi.
+    for _ in range(max_iter):
+        mid = 0.5 * (lo + hi)
+        if psi_sum(mid) > 0.0:
+            lo = mid
+        else:
+            hi = mid
+        if hi - lo < 1e-12 * (1.0 + abs(mid)):
+            break
+    return 0.5 * (lo + hi)
+
+
+def iv_estimate_catoni(data: pd.DataFrame, delta: float = 0.05) -> dict[str, float]:
+    """
+    Ratio-of-Catoni-means IV estimator: the natural robust competitor to the
+    Ratio-of-Medians estimator, replacing each coordinate-wise MoM median by
+    Catoni's M-estimator of the mean:
+
+        beta_Cat = Catoni(Z*Y; delta/2) / Catoni(Z*X; delta/2)
+
+    The confidence budget delta is split evenly across the two coordinates
+    (mirroring RoM's k = ceil(8 ln(2/delta))), so each Catoni estimate is
+    tuned for confidence level delta/2. Each estimate uses its own robust
+    (MoM-based) scale pre-estimate; see catoni_mean.
 
     Returns
     -------
-    dict with keys 'reject', 'W_tilde', 'threshold', 'k', 'm', 'n'
+    dict with keys 'beta_hat', 'delta', 'n'
     """
     Y = data["Y"].to_numpy()
     X = data["X"].to_numpy()
     Z = data["Z"].to_numpy()
     n = len(Y)
 
-    if not 0.0 < delta < 1.0:
-        raise ValueError(f"delta must be in (0, 1), got {delta}")
+    mu_ZY = catoni_mean(Z * Y, delta=delta / 2.0)
+    mu_ZX = catoni_mean(Z * X, delta=delta / 2.0)
+    if mu_ZX == 0:
+        raise ValueError("Catoni estimate of E[Z X] is zero; instrument not relevant")
 
-    k = int(np.ceil(8 * np.log(1 / delta)))
-    if k > n:
-        raise ValueError(
-            f"k = ceil(8 ln(1/delta)) = {k} exceeds n={n}; "
-            "increase n or delta"
-        )
-    m = n // k
-    if m == 0:
-        raise ValueError(f"k={k} too large: block size floor(n/k) is 0")
-
-    W = Z * (Y - beta_0 * X)
-
-    if shuffle:
-        if rng is None:
-            rng = np.random.default_rng()
-        perm = rng.permutation(n)
-        W = W[perm]
-
-    block_means_W = W[: k * m].reshape(k, m).mean(axis=1)
-    W_tilde = float(np.median(block_means_W))
-
-    sigma2_Ze_hat = float(np.mean(W ** 2))
-    threshold = 2.0 * np.sqrt(sigma2_Ze_hat / m)
-
-    return {
-        "reject": bool(abs(W_tilde) > threshold),
-        "W_tilde": W_tilde,
-        "threshold": threshold,
-        "k": k,
-        "m": m,
-        "n": n,
-    }
+    return {"beta_hat": float(mu_ZY / mu_ZX), "delta": delta, "n": n}
 
 
 if __name__ == "__main__":

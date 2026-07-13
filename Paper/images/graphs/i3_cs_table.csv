@@ -1,0 +1,17 @@
+config,test,coverage,median_length_bounded,pct_unbounded,pct_empty,mean_components,pct_single_interval
+"Gaussian, strong",MoM-AR (oracle),1.0,0.4433790115022365,0.0,0.0,1.0,1.0
+"Gaussian, strong",MoM-AR (feasible),1.0,0.3981267436985508,0.0,0.0,1.0,1.0
+"Gaussian, strong",SN-AR,0.9466,0.12317447004066673,0.0,0.0,1.0,1.0
+"Gaussian, strong",AR (standard),0.9492,0.08778595276229806,0.0,0.0,1.0,1.0
+"t(2.1), strong",MoM-AR (oracle),1.0,0.44236115146020155,0.0,0.0,1.0,1.0
+"t(2.1), strong",MoM-AR (feasible),1.0,0.18991953458089905,0.0,0.0,1.0,1.0
+"t(2.1), strong",SN-AR,0.9524,0.05928781047601861,0.0,0.0,1.0004,0.9996
+"t(2.1), strong",AR (standard),0.9514,0.04790294582979171,0.0,0.0,1.0,1.0
+"Gaussian, weak",MoM-AR (oracle),1.0,9.453541740083375,0.0,0.0,1.0016,0.9984
+"Gaussian, weak",MoM-AR (feasible),0.9996,8.007915005738234,0.0,0.0,1.0298,0.9726
+"Gaussian, weak",SN-AR,0.9476,3.3656470402800513,0.8816,0.0,2.3716,0.387
+"Gaussian, weak",AR (standard),0.9514,1.7181539995198833,0.7042,0.0,1.1958,0.8042
+"t(2.1), weak",MoM-AR (oracle),1.0,9.453042270812944,0.0,0.0,1.0014,0.9986
+"t(2.1), weak",MoM-AR (feasible),1.0,4.27482663505725,0.0,0.0,1.0468,0.9568
+"t(2.1), weak",SN-AR,0.9514,1.917639532124411,0.847,0.0,2.272,0.4106
+"t(2.1), weak",AR (standard),0.9516,1.1230584602310218,0.6652,0.0,1.1566,0.8434
