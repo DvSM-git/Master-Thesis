@@ -11,11 +11,22 @@ Fix a null hypothesis $H_0\colon \beta = \beta_0$ and define
 \end{equation}
 Under $H_0$ we have $W_i(\beta_0) = Z_i\varepsilon_i$, so by \ref{ass:exog} $\E[W_i(\beta_0)] = \E[Z_i\varepsilon_i] = 0$ and by \ref{ass:moments} $\Var(W_i(\beta_0)) = \sigma_{Z\varepsilon}^2 < \infty$.
 
-\citet{dufour1997some} explains why test inversion is necessary under weak instruments: in any model whose identification region
+\citet{dufour1997some} explains why test inversion is necessary under weak
+instruments. Let $\mathcal{P}$ denote the family of joint distributions of
+$(Y_i, X_i, Z_i)$ compatible with \ref{ass:exog} and \ref{ass:moments},
+note that \ref{ass:relev} is deliberately not imposed, and write
+$\mu_{ZX}(P) := \E_P[Z_iX_i]$ for $P \in \mathcal{P}$. On the identification
+failure set
 \[
-  \Theta_0 := \{\theta\in\Theta : \mu_{ZX}(\theta) = 0\}
+  \mathcal{P}_0 := \bigl\{P \in \mathcal{P} : \mu_{ZX}(P) = 0\bigr\}
 \]
-is non-empty, no confidence set procedure can be simultaneously valid and bounded with probability one. A Wald-type interval built around a point estimate is therefore not generally valid, whereas inverting a test of $H_0\colon\beta=\beta_0$ over a grid of null values remains so.
+the parameter $\beta$ is unidentified; exogeneity then forces
+$\mu_{ZY}(P) = 0$ as well, so $\E_P[Z_i(Y_i - bX_i)] = 0$ for every
+$b \in \R$. Since $\mathcal{P}_0$ is non-empty, no confidence set procedure
+that is valid over all of $\mathcal{P}$ can be bounded with probability one.
+A Wald-type interval built around a point estimate is therefore not
+generally valid, whereas inverting a test of $H_0\colon\beta=\beta_0$ over
+a grid of null values remains so.
 
 \subsection{The Median-of-Means Anderson--Rubin Test}
 \label{sec:mom_ar_test}

@@ -1,0 +1,10 @@
+name = "dfdfd"
+version = "0.1.0"
+defaultTargets = ["dfdfd"]
+
+[[lean_lib]]
+name = "Dfdfd"
+
+[[lean_exe]]
+name = "dfdfd"
+root = "Main"

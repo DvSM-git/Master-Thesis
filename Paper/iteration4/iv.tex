@@ -194,7 +194,7 @@ The Chebyshev bound applied to $A(D)^c$ in the proofs above is two-sided. Howeve
     \[
         \Prob[W - \mu \leq -\tau] \leq \frac{\sigma^2}{\sigma^2 + \tau^2}.
     \]
-    This is strictly smaller than the Chebyshev bound $\sigma^2/\tau^2$ for all $\tau>0$, with the greatest relative gain when $\tau\approx\sigma$.
+    This is strictly smaller than the Chebyshev bound $\sigma^2/\tau^2$ for all $\tau>0$.
 \end{lemma}
 
 \begin{theorem}[Standard IV concentration, Cantelli improvement]
@@ -268,7 +268,7 @@ The Chebyshev bound applied to $A(D)^c$ in the proofs above is two-sided. Howeve
     Compared with the optimised Chebyshev condition ($n>\sigma_{ZX}^2/(\delta\mu_{ZX}^2)$), the Cantelli condition~\eqref{eq:iv_cantelli_strength} is weaker by a factor of $1/(1-\delta)$. At $\delta=0.05$ this ratio is $1/0.95\approx 1.05$, so the gain is negligible for typical significance levels. The improvement is more meaningful at moderate confidence levels: at $\delta=0.5$ the factor reaches $2$. For the standard IV estimator the Cantelli improvement is therefore primarily of theoretical interest. By contrast, for the MoR estimator (Section~\ref{sec:mor_cantelli}), Cantelli extends the valid range of the instrument strength parameter from $\gamma<1/4$ to $\gamma<1/3$, a qualitatively more substantial gain.
 \end{remark}
 
-\begin{remark}[No closed form for $\eta^*_{\mathrm{IV}}$]
+\begin{remark}[No tractable closed form for $\eta^*_{\mathrm{IV}}$]
     \label{rem:cantelli_noform}
-    The first-order condition $h'(\eta)=0$ reduces to a quartic in $\eta$ with no general closed-form solution. The optimised Chebyshev version (Theorem~\ref{thm:iv_opt}) yielded the clean form $\eta^*=1-\rho_\mathrm{IV}^{1/3}$ because the Chebyshev bound $\sigma^2/\tau^2$ produces a simpler algebraic structure than the Cantelli bound $\sigma^2/(\sigma^2+\tau^2)$. The bound~\eqref{eq:iv_cantelli_bound} must therefore be evaluated numerically for specific parameter values.
+    The first-order condition $h'(\eta)=0$ reduces to a quartic in $\eta$ with no tractable closed-form solution. The optimised Chebyshev version (Theorem~\ref{thm:iv_opt}) yielded the clean form $\eta^*=1-\rho_\mathrm{IV}^{1/3}$ because the Chebyshev bound $\sigma^2/\tau^2$ produces a simpler algebraic structure than the Cantelli bound $\sigma^2/(\sigma^2+\tau^2)$. The bound~\eqref{eq:iv_cantelli_bound} must therefore be evaluated numerically for specific parameter values.
 \end{remark}

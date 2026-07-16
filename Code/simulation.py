@@ -343,7 +343,7 @@ def catoni_mean(
     v: float | None = None,
     max_iter: int = 100,
 ) -> float:
-    """
+    """ 
     Catoni's M-estimator of the mean (Catoni, 2012).
 
     Solves sum_i psi(alpha * (x_i - theta)) = 0 for theta, where psi is

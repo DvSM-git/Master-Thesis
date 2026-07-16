@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.6.9)  10 JUL 2026 14:25
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.6.9)  15 JUL 2026 16:55
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -735,7 +735,11 @@ pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has b
 <to be read again> 
                    \relax 
 l.50 \end{equation}
-                    [1] [2]) (iteration4/iv.tex [3] [4] [5] [6] [7]) (iteration4/rom.tex
+                    [1]
+
+LaTeX Warning: Marginpar on page 2 moved.
+
+[2]) (iteration4/iv.tex [3] [4] [5] [6] [7]) (iteration4/rom.tex
 Overfull \hbox (4.80714pt too wide) in paragraph at lines 20--20
 [][][]\OT1/cmr/m/n/10.95 geometric 
  []
@@ -764,17 +768,17 @@ Package rerunfilecheck Info: File `00_main.out' has not changed.
 (rerunfilecheck)             Checksum: D12A471A33A2E80CB1F8CAD7DE791E37;4059.
  ) 
 Here is how much of TeX's memory you used:
- 25685 strings out of 467871
- 473405 string characters out of 5417893
- 906302 words of memory out of 5000000
- 53985 multiletter control sequences out of 15000+600000
+ 25694 strings out of 467871
+ 473600 string characters out of 5417893
+ 907456 words of memory out of 5000000
+ 53993 multiletter control sequences out of 15000+600000
  636463 words of font info for 71 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 99i,16n,108p,938b,931s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 99i,16n,108p,938b,1077s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmbx10.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmbx12.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmcsc10.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmex10.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cmextra/cmex8.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi10.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi6.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi8.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr12.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr17.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr6.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr8.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy8.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmti10.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmti8.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on 00_main.pdf (23 pages, 442271 bytes).
+Output written on 00_main.pdf (23 pages, 443985 bytes).
 PDF statistics:
- 543 PDF objects out of 1000 (max. 8388607)
- 137 named destinations out of 1000 (max. 500000)
+ 547 PDF objects out of 1000 (max. 8388607)
+ 138 named destinations out of 1000 (max. 500000)
  186 words of extra memory for PDF output out of 10000 (max. 10000000)
 

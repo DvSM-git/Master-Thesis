@@ -161,7 +161,7 @@ As in the standard IV estimator (Section~\ref{sec:iv_cantelli}), the denominator
 
 \begin{theorem}[MoR concentration, Cantelli improvement]
 \label{thm:mor_cantelli}
-    Assume \ref{ass:exog}--\ref{ass:moments} and $\mu_{ZX}>0$. Write $\gamma_{\mathrm{MR}} = \sigma_{ZX}^2/(m\mu_{ZX}^2)$ and define
+    Assume \ref{ass:exog}--\ref{ass:moments}, $\mu_{ZX}>0$, and let $\delta \in (0,1), k = \lceil 8\ln{(1/\delta)} \rceil, m=\lfloor n/k\rfloor$. Write $\gamma_{\mathrm{MR}} = \sigma_{ZX}^2/(m\mu_{ZX}^2)$ and define
     \begin{equation}
     \label{eq:h_eta_mor}
         h(\eta) = \frac{\eta^2((1-\eta)^2 - 3\gamma_\mathrm{MR})}{\gamma_\mathrm{MR}+(1-\eta)^2},
@@ -209,7 +209,7 @@ As in the standard IV estimator (Section~\ref{sec:iv_cantelli}), the denominator
     where $h(\eta)$ is defined in~\eqref{eq:h_eta_mor}. The function $h(\eta)$ is positive only when $\frac{1}{4}(\gamma_{\mathrm{MR}}+(1-\eta)^2)>\gamma_{\mathrm{MR}}$, i.e., $(1-\eta)^2 > 3\gamma_{\mathrm{MR}}$. The feasible region is non-empty if and only if $\gamma_{\mathrm{MR}} < \frac{1}{3}$, which is condition~\eqref{eq:mor_cantelli_strength}. Minimising $t$ over the feasible region by maximising $h$ and applying Hoeffding and the union bound gives~\eqref{eq:mor_cantelli_bound}.
 \end{proof}
 
-\begin{remark}[No closed form for $\eta^*_{\mathrm{MR}}$]
+\begin{remark}[No tractable form for $\eta^*_{\mathrm{MR}}$]
     \label{rem:mor_cantelli_noform}
-    Exactly as for the standard IV estimator (Remark~\ref{rem:cantelli_noform}), the first-order condition $h'(\eta)=0$ reduces to a quartic in $\eta$ with no general closed-form solution, in contrast to the clean form $\eta^*=1-\rho_{\mathrm{MR}}^{1/3}$ of the optimised Chebyshev version (Theorem~\ref{thm:mor_opt}). The bound~\eqref{eq:mor_cantelli_bound} must therefore be evaluated numerically.
+    Exactly as for the standard IV estimator (Remark~\ref{rem:cantelli_noform}), the first-order condition $h'(\eta)=0$ reduces to a quartic in $\eta$ with no tractable closed-form solution, in contrast to the clean form $\eta^*=1-\rho_{\mathrm{MR}}^{1/3}$ of the optimised Chebyshev version (Theorem~\ref{thm:mor_opt}). The bound~\eqref{eq:mor_cantelli_bound} must therefore be evaluated numerically.
 \end{remark}

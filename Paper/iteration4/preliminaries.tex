@@ -43,7 +43,7 @@ which gives $\sigma_{Z\varepsilon} \leq \sigma_{ZY} + \abs{\beta}\sigma_{ZX}$.
 \subsection{Sub-Gaussian Estimators}
 \begin{definition}[Sub-Gaussian Estimators]
 \label{def:subgaussian}
-Let $(X_i)_{i=1}^{n}$ be a random sample with mean $\mu_X$ and variance $\sigma_X^2$, and let $\hat{\mu}_X$ denote an estimator for $\mu_X$. For some constant $L > 0$, $\hat{\mu}_X$ is said to be a sub-Gaussian estimator for $\mu_X$ if 
+Let $(X_i)_{i=1}^{n}$ be a random sample with mean $\mu_X$ and variance $\sigma_X^2$, and let $\hat{\mu}_X$ denote an estimator for $\mu_X$. For some constant $L > 0$, $\hat{\mu}_X$ is said to be a sub-Gaussian estimator for $\mu_X$ for a given confidence level $delta$ if 
 \begin{equation}
 \label{eq:subgaussian}
     \Prob\!\left[\abs{\hat{\mu}_X - \mu_X} > L\sigma_X \sqrt{\frac{\ln(1/\delta)}{n}}\right] \leq \delta \quad \text{for all } \delta \in (0,1).
@@ -74,6 +74,7 @@ Partition $(X_i)_{i=1}^{n}$ into $k$ blocks $B_1, \dots, B_k$ of size $m = \lflo
 \begin{theorem}[MoM concentration]
 \label{thm:mom_scalar}
 Let $(X_i)_{i=1}^{n}$ be i.i.d.\ with mean $\mu_X$ and variance $\sigma_X^2 < \infty$. Let $k$ be a positive integer, $m = \lfloor n/k \rfloor$, and $\hat{\mu}_{\mathrm{MoM}}$ the MoM estimator of $\mu_X$. Then
+\todo{All of the following theorems assume $n=km$}
 \begin{equation}
 \label{eq:mom_conc}
     \Prob\!\left[\abs{\hat{\mu}_{\mathrm{MoM}} - \mu_X} > \frac{2\sigma_X}{\sqrt{m}}\right] \leq e^{-k/8}.
