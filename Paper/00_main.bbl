@@ -1,6 +1,31 @@
 \begin{thebibliography}{}
 
 \bibitem [\protect \citeauthoryear {%
+Catoni%
+}{%
+Catoni%
+}{%
+{\protect \APACyear {2012}}%
+}]{%
+catoni2012challenging}
+\APACinsertmetastar {%
+catoni2012challenging}%
+\begin{APACrefauthors}%
+Catoni, O.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2012}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {Challenging the empirical mean and empirical variance: a
+  deviation study} {Challenging the empirical mean and empirical variance: a
+  deviation study}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Annales de l'IHP Probabilit{\'e}s et
+  statistiques}{48}{4}{1148--1185}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
 Devroye%
 , Lerasle%
 , Lugosi%
@@ -77,6 +102,60 @@ Hoeffding, W.%
 \newblock
 \APACjournalVolNumPages{Journal of the American statistical
   association}{58}{301}{13--30}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Huber%
+}{%
+Huber%
+}{%
+{\protect \APACyear {1992}}%
+}]{%
+huber1992robust}
+\APACinsertmetastar {%
+huber1992robust}%
+\begin{APACrefauthors}%
+Huber, P\BPBI J.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{1992}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {Robust estimation of a location parameter} {Robust
+  estimation of a location parameter}.{\BBCQ}
+\newblock
+\BIn{} \APACrefbtitle {Breakthroughs in statistics: Methodology and
+  distribution} {Breakthroughs in statistics: Methodology and distribution}\
+  (\BPGS\ 492--518).
+\newblock
+\APACaddressPublisher{}{Springer}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Lecu{\'e}%
+\ \BBA {} Lerasle%
+}{%
+Lecu{\'e}%
+\ \BBA {} Lerasle%
+}{%
+{\protect \APACyear {2020}}%
+}]{%
+lecue2020robust}
+\APACinsertmetastar {%
+lecue2020robust}%
+\begin{APACrefauthors}%
+Lecu{\'e}, G.%
+\BCBT {}\ \BBA {} Lerasle, M.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2020}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {Robust machine learning by median-of-means: theory and
+  practice} {Robust machine learning by median-of-means: theory and
+  practice}.{\BBCQ}
+\newblock
+
 \PrintBackRefs{\CurrentBib}
 
 \bibitem [\protect \citeauthoryear {%
