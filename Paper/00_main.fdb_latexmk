@@ -1,17 +1,17 @@
 # Fdb version 4
-["bibtex 00_main"] 1784312033.35161 "00_main.aux" "00_main.bbl" "00_main" 1784312036.89365 0
+["bibtex 00_main"] 1784378289.00839 "00_main.aux" "00_main.bbl" "00_main" 1784378292.21925 0
   "./MyReferencesFile.bib" 1784300409 3187 a961d0522e58f595cf080344ebed021b ""
-  "00_main.aux" 1784312036 18777 ee750999502b32ecad71f83c5d1c0763 "pdflatex"
+  "00_main.aux" 1784378291 21032 153306dda5d39b596d9ec1ae72a2cac9 "pdflatex"
   "C:/Users/Victus/AppData/Local/Programs/MiKTeX/bibtex/bst/apacite/apacite.bst" 1374952728 146156 9d7b79dbf9d91133318126032cff8c27 ""
   (generated)
   "00_main.bbl"
   "00_main.blg"
   (rewritten before read)
-["pdflatex"] 1784312033.57088 "c:/Users/Victus/Documents/University/Thesis/Master-Thesis/Paper/00_main.tex" "00_main.pdf" "00_main" 1784312036.89407 0
-  "00_main.aux" 1784312036 18777 ee750999502b32ecad71f83c5d1c0763 "pdflatex"
-  "00_main.bbl" 1784312033 4486 9a73c9136fadae6790ceccba96b5ebe6 "bibtex 00_main"
-  "00_main.out" 1784312036 6251 bb41eab5af7407da1f1647f7b54a725b "pdflatex"
-  "00_main.tex" 1784311991 2941 e5f5917bb7e70a67a2bfd8b9518a4ef2 ""
+["pdflatex"] 1784378289.21609 "c:/Users/Victus/Documents/University/Thesis/Master-Thesis/Paper/00_main.tex" "00_main.pdf" "00_main" 1784378292.21972 0
+  "00_main.aux" 1784378291 21032 153306dda5d39b596d9ec1ae72a2cac9 "pdflatex"
+  "00_main.bbl" 1784378289 4486 9a73c9136fadae6790ceccba96b5ebe6 "bibtex 00_main"
+  "00_main.out" 1784378291 6727 c72195430e00293166eaa6e54b37bf46 "pdflatex"
+  "00_main.tex" 1784378278 2980 177fef657e2bd1821760966fe521ad58 ""
   "C:/Users/Victus/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map" 1781005012 80909 eab91d9745dd2edfd62a31d53cd5fe15 ""
   "C:/Users/Victus/AppData/Local/MiKTeX/miktex/data/le/pdftex/pdflatex.fmt" 1781004954 13333970 0e4597e36ac4f3afb38c138d566ca02e ""
   "C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm" 1233951848 1004 54797486969f23fa377b128694d548df ""
@@ -199,7 +199,7 @@
   "C:/Users/Victus/AppData/Local/Programs/MiKTeX/tex/latex/url/url.sty" 1388490452 12796 8edb7d69a20b857904dd0ea757c14ec9 ""
   "C:/Users/Victus/AppData/Local/Programs/MiKTeX/tex/latex/xcolor/xcolor.sty" 1729265222 55384 b454dec21c2d9f45ec0b793f0995b992 ""
   "C:/Users/Victus/AppData/Local/Programs/MiKTeX/tex/latex/xkeyval/xkeyval.sty" 1656236919 4937 4ce600ce9bd4ec84d0250eb6892fcf4f ""
-  "c:/Users/Victus/Documents/University/Thesis/Master-Thesis/Paper/00_main.tex" 1784311991 2941 e5f5917bb7e70a67a2bfd8b9518a4ef2 ""
+  "c:/Users/Victus/Documents/University/Thesis/Master-Thesis/Paper/00_main.tex" 1784378278 2980 177fef657e2bd1821760966fe521ad58 ""
   "images/eur/eur.png" 1781004345 33179 191feb60ba47a3c3a50329a7c812cd92 ""
   "images/graphs/e1_boxplot_gaussian.png" 1783690772 125635 3727003909186789b6a1c40033fd23a2 ""
   "images/graphs/e2_boxplot_heavytails.png" 1783690784 320219 bd9be0fb169808f6612feda5c6d7283b ""
@@ -215,7 +215,8 @@
   "iteration4/mor.tex" 1784127303 13875 c16fe25491b230b79ca73c36d498e772 ""
   "iteration4/preliminaries.tex" 1784127303 6525 e052643c9ed6f686b4aa9181cdf09e2f ""
   "iteration4/rom.tex" 1783686296 4770 7ff21282fe18db652ab48880709182d0 ""
-  "iteration4/simulation.tex" 1784311943 9747 20c972043e2515c5bb29b019a91e2c32 ""
+  "iteration4/simulation.tex" 1784312519 9747 20c972043e2515c5bb29b019a91e2c32 ""
+  "iteration4/size_and_power.tex" 1784378203 25976 ed498ab70f3c2511a1271a28286ce74c ""
   (generated)
   "00_main.aux"
   "00_main.log"

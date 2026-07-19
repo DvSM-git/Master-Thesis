@@ -1,0 +1,324 @@
+% ======================================================================
+% SIZE AND POWER OF THE TWO TESTS IN SECTION \ref{s:inference}
+%
+% Insertion guide:
+%   * Part 1, \subsection{Power of the MoM-AR Test}, is a new subsection.
+%     Insert it directly after \subsection{The MoM-AR Confidence Set}
+%     (i.e. after the proof of Theorem \ref{thm:coverage}).
+%   * Part 2, \subsection{Size and Power of the Self-Normalised Test},
+%     extends Section \ref{sec:normalisedAR}. Insert it after
+%     Corollary \ref{cor:sn_cs} (Remark \ref{rem:sn_sign} can stay
+%     where it is or move behind this material).
+%
+% Additional assumptions used (each flagged where it appears):
+%   * \sigma_{Z\varepsilon} > 0 for the self-normalised results (the
+%     standardisation in Propositions \ref{prop:scale_invariance} and
+%     \ref{prop:sn_pivotal} already uses it implicitly);
+%   * k >= 3 for the self-normalised test: under the rank-\lceil k/2 \rceil
+%     median convention the MAD of two points is identically zero.
+%
+% The oracle-test results are threshold-agnostic: they hold verbatim for
+% any \tau_n(\delta) satisfying Theorem \ref{thm:mom_ar_size}, so they are
+% unaffected by whether \tau_n is kept as in \eqref{eq:tau} or replaced by
+% 2\sigma_{Z\varepsilon}/\sqrt{m}. Only Remark \ref{rem:radius_rate} uses
+% \tau_n(\delta) \le 2\sigma_{Z\varepsilon}/\sqrt{m}, which holds for both.
+% ======================================================================
+
+
+% ----------------------------------------------------------------------
+% PART 1 --- insert after \subsection{The MoM-AR Confidence Set}
+% ----------------------------------------------------------------------
+
+\subsection{Power of the MoM-AR Test}
+\label{sec:mom_ar_power}
+
+Theorem~\ref{thm:mom_ar_size} bounds the size of the test; we now bound its power. Fix the true parameter $\beta$ and a null value $\beta_0 \neq \beta$, and write $\Delta := \beta - \beta_0$. Under $\Prob_\beta$ the moment~\eqref{eq:Wdef} is no longer centred: substituting the structural equation~\eqref{eq:structural},
+\begin{equation}
+  W_i(\beta_0) = Z_i\varepsilon_i + \Delta\, Z_iX_i,
+  \label{eq:W_alt}
+\end{equation}
+so the $(W_i(\beta_0))_{i=1}^{n}$ are i.i.d.\ with mean $\E[W_i(\beta_0)] = \Delta\mu_{ZX}$, by \ref{ass:exog}, and variance
+\begin{equation}
+  \sigma_W^2(\beta_0) := \Var\bigl(W_i(\beta_0)\bigr)
+  = \sigma_{Z\varepsilon}^2 + 2\Delta\Cov(Z_i\varepsilon_i,\, Z_iX_i) + \Delta^2\sigma_{ZX}^2,
+  \label{eq:sigmaW}
+\end{equation}
+which is finite by \ref{ass:moments} and the Cauchy--Schwarz inequality. Exactly as in Remark~\ref{rem:minkowski}, Minkowski's inequality gives
+\begin{equation}
+  \sigma_W(\beta_0) \le \sigma_{Z\varepsilon} + \abs{\Delta}\,\sigma_{ZX}.
+  \label{eq:sigmaW_mink}
+\end{equation}
+The location shift $\Delta\mu_{ZX}$ is the signal the test detects: the statistic $\widetilde{W}(\beta_0)$ concentrates around it at the median-of-means rate, and the test rejects once the shift clears the band by that concentration margin.
+
+\begin{theorem}[Power of the MoM-AR test]
+\label{thm:mom_ar_power}
+Assume \ref{ass:exog}--\ref{ass:moments}. Fix $\delta\in(0,1)$, set $k=\lceil 8\ln(1/\delta)\rceil$ and $m=\lfloor n/k\rfloor$, and let $\tau_n(\delta)$ be the threshold of Theorem~\ref{thm:mom_ar_size}. If the separation condition
+\begin{equation}
+  \abs{\Delta}\,\abs{\mu_{ZX}} \;>\; \tau_n(\delta) + \frac{2\sigma_W(\beta_0)}{\sqrt{m}}
+  \label{eq:power_sep}
+\end{equation}
+holds, then
+\begin{equation}
+  \Prob_\beta\!\left[\,\abs{\widetilde{W}(\beta_0)} > \tau_n(\delta)\,\right] \;\ge\; 1 - e^{-k/8} \;\ge\; 1-\delta,
+  \label{eq:power_bound}
+\end{equation}
+i.e.\ the probability of a type II error at $\beta_0$ is at most $\delta$.
+\end{theorem}
+
+\begin{proof}
+\medskip\noindent\textbf{Step 1 (Moments under the alternative).}
+By \eqref{eq:W_alt}, under $\Prob_\beta$ the $(W_i(\beta_0))_{i=1}^{n}$ are i.i.d.\ with mean $\Delta\mu_{ZX}$ and finite variance $\sigma_W^2(\beta_0)$ given in \eqref{eq:sigmaW}.
+
+\medskip\noindent\textbf{Step 2 (MoM concentration around the shifted mean).}
+The statistic $\widetilde{W}(\beta_0)$ is the scalar median-of-means estimator of Algorithm~\ref{alg:mom} applied to this sequence, now estimating the mean $\Delta\mu_{ZX}$. Theorem~\ref{thm:mom_scalar}, in the form \eqref{eq:mom_conc} with $\sigma_X$ replaced by $\sigma_W(\beta_0)$, gives
+\[
+  \Prob_\beta\!\left[\abs{\widetilde{W}(\beta_0) - \Delta\mu_{ZX}} > \frac{2\sigma_W(\beta_0)}{\sqrt{m}}\right] \le e^{-k/8} \le \delta.
+\]
+
+\medskip\noindent\textbf{Step 3 (Triangle inequality).}
+On the complementary event, the triangle inequality and the separation condition \eqref{eq:power_sep} give
+\[
+  \abs{\widetilde{W}(\beta_0)}
+  \;\ge\; \abs{\Delta}\abs{\mu_{ZX}} - \abs{\widetilde{W}(\beta_0) - \Delta\mu_{ZX}}
+  \;\ge\; \abs{\Delta}\abs{\mu_{ZX}} - \frac{2\sigma_W(\beta_0)}{\sqrt{m}}
+  \;>\; \tau_n(\delta),
+\]
+so the test rejects. The rejection probability is therefore at least $1 - e^{-k/8} \ge 1-\delta$.
+\end{proof}
+
+\begin{corollary}[Detection radius]
+\label{cor:detection_radius}
+Assume the setting of Theorem~\ref{thm:mom_ar_power} together with the instrument strength condition $m > 4\sigma_{ZX}^2/\mu_{ZX}^2$ of~\eqref{eq:rom_strength}, and define
+\begin{equation}
+  r_n(\delta) := \frac{\tau_n(\delta) + 2\sigma_{Z\varepsilon}/\sqrt{m}}{\abs{\mu_{ZX}} - 2\sigma_{ZX}/\sqrt{m}}.
+  \label{eq:radius}
+\end{equation}
+Then every null value $\beta_0$ with $\abs{\beta - \beta_0} > r_n(\delta)$ is rejected with probability at least $1-\delta$.
+\end{corollary}
+
+\begin{proof}
+By \eqref{eq:sigmaW_mink}, the separation condition \eqref{eq:power_sep} is implied by
+\[
+  \abs{\Delta}\abs{\mu_{ZX}} > \tau_n(\delta) + \frac{2\bigl(\sigma_{Z\varepsilon} + \abs{\Delta}\sigma_{ZX}\bigr)}{\sqrt{m}}
+  \iff
+  \abs{\Delta}\left(\abs{\mu_{ZX}} - \frac{2\sigma_{ZX}}{\sqrt{m}}\right) > \tau_n(\delta) + \frac{2\sigma_{Z\varepsilon}}{\sqrt{m}}.
+\]
+The instrument strength condition makes the bracketed factor positive, so the right-hand display is exactly $\abs{\Delta} > r_n(\delta)$, and Theorem~\ref{thm:mom_ar_power} applies.
+\end{proof}
+
+\begin{remark}[Rate of the detection radius]
+\label{rem:radius_rate}
+For the stated choice of $k$ and $m$ one has $\tau_n(\delta) \le 2\sigma_{Z\varepsilon}/\sqrt{m}$, since $m \le n/k$ and $k \ge 8\ln(1/\delta)$; hence
+\[
+  r_n(\delta) \;\le\; \frac{4\sigma_{Z\varepsilon}}{\abs{\mu_{ZX}}\sqrt{m} - 2\sigma_{ZX}},
+\]
+the same functional form as the RoM error bound~\eqref{eq:rom_bound}. With $m = \lfloor n/k\rfloor$ and $k = \lceil 8\ln(1/\delta)\rceil$ the radius is of order
+\[
+  r_n(\delta) = O\!\left(\frac{\sigma_{Z\varepsilon}}{\abs{\mu_{ZX}}}\sqrt{\frac{\ln(1/\delta)}{n}}\right),
+\]
+so the test detects alternatives at the sub-Gaussian radius, logarithmic in $1/\delta$, under \ref{ass:moments} alone. By contrast, a Wald-type test built on $\hat{\beta}_{\mathrm{IV}}$ with Chebyshev critical values can, by~\eqref{eq:iv_bound}, only be guaranteed to detect at radius of order $\sigma_{Z\varepsilon}/(\abs{\mu_{ZX}}\sqrt{\delta n})$, polynomial in $1/\delta$; this is the testing counterpart of Remark~\ref{rem:iv_polynomial}.
+\end{remark}
+
+\begin{remark}[Weak instruments]
+\label{rem:power_weak}
+As $\abs{\mu_{ZX}}\sqrt{m} \downarrow 2\sigma_{ZX}$, the radius $r_n(\delta)$ diverges: the test retains its size guarantee but loses power against every fixed alternative. This is the behaviour mandated by the impossibility result of \citet{dufour1997some} discussed in Section~\ref{ss:inversion}: a procedure that remains valid under arbitrarily weak instruments must lose all power, equivalently must produce arbitrarily large confidence sets, as identification deteriorates.
+\end{remark}
+
+\begin{remark}[The size bound is conservative]
+\label{rem:oracle_conservative}
+The guarantee of Theorem~\ref{thm:mom_ar_size} rests on Chebyshev's inequality within blocks and Hoeffding's inequality across blocks, neither of which is tight for any fixed distribution, so the true rejection probability under $H_0$ is far below $\delta$. To quantify this, take for simplicity $k = 8\ln(1/\delta)$ to be an integer dividing $n$, so that $\tau_n(\delta) = 2\sigma_{Z\varepsilon}/\sqrt{m}$ exactly. By the block-level central limit theorem underlying Proposition~\ref{prop:sn_pivotal} (Section~\ref{sec:normalisedAR}), $\sqrt{m}\,\widetilde{W}(\beta_0)/\sigma_{Z\varepsilon} \Rightarrow \med(\xi_1,\dots,\xi_k)$ under $H_0$, with $\xi_1,\dots,\xi_k$ i.i.d.\ standard normal, whence
+\[
+  \Prob_{H_0}\!\left[\abs{\widetilde{W}(\beta_0)} > \tau_n(\delta)\right]
+  \;\longrightarrow\;
+  \Prob\!\left[\abs{\med(\xi_1,\dots,\xi_k)} > 2\right]
+  \;\le\; 2\exp\!\left(-2k\bigl(\tfrac{1}{2} - \Phi(-2)\bigr)^{2}\right)
+  \;\approx\; 2e^{-0.455k},
+\]
+where $\Phi$ is the standard normal distribution function. The inequality holds because $\abs{\med(\xi)} > 2$ forces at least $k/2$ of the $\xi_j$ beyond $2$ in a common direction, an event controlled by Hoeffding's inequality for a $\mathrm{Binomial}(k,\Phi(-2))$ count. At $\delta = 0.05$, so $k = 24$, the asymptotic size is below $4\times10^{-5}$ --- three orders of magnitude under the nominal level --- and the power bound of Theorem~\ref{thm:mom_ar_power} is deflated accordingly. This conservativeness is the price of a finite-sample guarantee valid under \ref{ass:moments} alone; the self-normalised test of Section~\ref{sec:normalisedAR} trades the finite-sample guarantee for an asymptotically exact size (Corollary~\ref{cor:sn_size}).
+\end{remark}
+
+The power statements above are pointwise in $\beta_0$. Inverting them does not immediately bound the confidence set, because the rejection events differ across null values. The next result provides a single event, of probability at least $1-\delta$, on which every sufficiently distant $\beta_0$ is rejected simultaneously; it is the uniform, set-valued expression of the test's power.
+
+\begin{proposition}[Localisation of the confidence set]
+\label{prop:cs_localisation}
+Assume \ref{ass:exog}--\ref{ass:moments}. Fix $\delta\in(0,1)$, set $k=\lceil 8\ln(1/\delta)\rceil$, $m=\lfloor n/k\rfloor$, and let $\tau_n(\delta)$ be as in Theorem~\ref{thm:mom_ar_size}. If
+\begin{equation}
+  m > \frac{8\sigma_{ZX}^2}{\mu_{ZX}^2},
+  \label{eq:local_strength}
+\end{equation}
+then, with $\Prob_\beta$-probability at least $1-\delta$,
+\begin{equation}
+  CS_{1-\delta} \subseteq \bigl[\beta - R_n(\delta),\ \beta + R_n(\delta)\bigr],
+  \qquad
+  R_n(\delta) := \frac{\tau_n(\delta) + 2\sqrt{2}\,\bigl(\sigma_{ZY} + \abs{\beta}\sigma_{ZX}\bigr)/\sqrt{m}}{\abs{\mu_{ZX}} - 2\sqrt{2}\,\sigma_{ZX}/\sqrt{m}}.
+  \label{eq:cs_radius}
+\end{equation}
+Combined with Theorem~\ref{thm:coverage}, with probability at least $1-2\delta$ the set $CS_{1-\delta}$ both contains $\beta$ and is contained in the stated interval.
+\end{proposition}
+
+\begin{proof}
+We construct the required event at the block level.
+
+\medskip\noindent\textbf{Step 1 (Good blocks).} Set $s_Y := 2\sqrt{2}\,\sigma_{ZY}/\sqrt{m}$ and $s_X := 2\sqrt{2}\,\sigma_{ZX}/\sqrt{m}$, and call block $j$ \emph{good} on the event
+\[
+  G_j := \bigl\{\abs{\hat{\mu}_{ZY}^{(j)} - \mu_{ZY}} \le s_Y\bigr\} \cap \bigl\{\abs{\hat{\mu}_{ZX}^{(j)} - \mu_{ZX}} \le s_X\bigr\}.
+\]
+Since $\Var(\hat{\mu}_{ZY}^{(j)}) = \sigma_{ZY}^2/m$ and $\Var(\hat{\mu}_{ZX}^{(j)}) = \sigma_{ZX}^2/m$, Chebyshev's inequality bounds each failure probability by $1/8$, so $\Prob[G_j^c] \le 1/4$ by the union bound.
+
+\medskip\noindent\textbf{Step 2 (A majority of good blocks).} The indicators $\mathbf{1}\{G_j^c\}$ are independent across the disjoint blocks with mean at most $1/4$, so Hoeffding's inequality, exactly as in Step~3 of the proof of Theorem~\ref{thm:mom_scalar}, gives
+\[
+  \Prob\!\left[\#\{j : G_j^c \text{ occurs}\} \ge \frac{k}{2}\right] \le e^{-k/8} \le \delta.
+\]
+Let $\mathcal{E}$ denote the complementary event, on which strictly more than $k/2$ blocks are good; $\Prob[\mathcal{E}] \ge 1-\delta$.
+
+\medskip\noindent\textbf{Step 3 (A sandwich for the median, uniform in $\beta_0$).} Work on $\mathcal{E}$ and write $\mu_W(\beta_0) := \mu_{ZY} - \beta_0\mu_{ZX} = (\beta - \beta_0)\mu_{ZX}$. For every good block $j$ and \emph{every} $\beta_0 \in \R$,
+\[
+  \abs{\bar{W}_j(\beta_0) - \mu_W(\beta_0)}
+  = \abs{\bigl(\hat{\mu}_{ZY}^{(j)} - \mu_{ZY}\bigr) - \beta_0\bigl(\hat{\mu}_{ZX}^{(j)} - \mu_{ZX}\bigr)}
+  \le s_Y + \abs{\beta_0}\,s_X,
+\]
+so strictly more than $k/2$ of the values $\bar{W}_1(\beta_0),\dots,\bar{W}_k(\beta_0)$ lie in the interval $\mu_W(\beta_0) \pm (s_Y + \abs{\beta_0}s_X)$. The number of bad blocks is then at most $\lceil k/2\rceil - 1 \le \lfloor k/2\rfloor$, so fewer than $\lceil k/2\rceil$ values lie below the left endpoint and at most $\lfloor k/2 \rfloor$ lie above the right endpoint; the rank-$\lceil k/2\rceil$ order statistic (the median convention fixed in the proof of Theorem~\ref{thm:piecewise}) therefore lies in the interval:
+\begin{equation}
+  \abs{\widetilde{W}(\beta_0) - (\beta - \beta_0)\mu_{ZX}} \le s_Y + \abs{\beta_0}\,s_X
+  \qquad \text{for all } \beta_0 \in \R \text{ simultaneously}.
+  \label{eq:uniform_sandwich}
+\end{equation}
+
+\medskip\noindent\textbf{Step 4 (Rearranging the band constraint).} Still on $\mathcal{E}$, let $\beta_0 \in CS_{1-\delta}$, so $\abs{\widetilde{W}(\beta_0)} \le \tau_n(\delta)$ by~\eqref{eq:cs}. Combining with \eqref{eq:uniform_sandwich} and $\abs{\beta_0} \le \abs{\beta} + \abs{\beta - \beta_0}$,
+\[
+  \abs{\beta - \beta_0}\abs{\mu_{ZX}}
+  \le \tau_n(\delta) + s_Y + \abs{\beta_0}s_X
+  \le \tau_n(\delta) + s_Y + \abs{\beta}s_X + \abs{\beta - \beta_0}s_X.
+\]
+Condition~\eqref{eq:local_strength} is exactly $\abs{\mu_{ZX}} - s_X > 0$, so collecting the $\abs{\beta-\beta_0}$ terms and dividing,
+\[
+  \abs{\beta - \beta_0} \le \frac{\tau_n(\delta) + s_Y + \abs{\beta}s_X}{\abs{\mu_{ZX}} - s_X} = R_n(\delta). \qedhere
+\]
+\end{proof}
+
+\begin{remark}[Reading the localisation radius]
+\label{rem:cs_radius}
+$R_n(\delta)$ has the same structure as the RoM error bound~\eqref{eq:rom_bound}: a numerator driven by $\sigma_{ZY} + \abs{\beta}\sigma_{ZX}$, which dominates $\sigma_{Z\varepsilon}$ by Remark~\ref{rem:minkowski}, and a denominator that degrades as the instrument weakens. The appearance of $\sigma_{ZY} + \abs{\beta}\sigma_{ZX}$ in place of the $\sigma_{Z\varepsilon}$ of Corollary~\ref{cor:detection_radius} is the price of uniformity in $\beta_0$. Overall $R_n(\delta) = O\bigl(\sqrt{\ln(1/\delta)/n}\bigr)$, so under \eqref{eq:local_strength} the confidence set is, with high probability, contained in an interval of half-length shrinking at the sub-Gaussian rate; as $\abs{\mu_{ZX}}\sqrt{m} \downarrow 2\sqrt{2}\,\sigma_{ZX}$ the guarantee degrades into the unbounded confidence sets that \citet{dufour1997some} shows are unavoidable under weak identification.
+\end{remark}
+
+
+% ----------------------------------------------------------------------
+% PART 2 --- insert into Section \ref{sec:normalisedAR}, after
+% Corollary \ref{cor:sn_cs}
+% ----------------------------------------------------------------------
+
+\subsection{Size and Power of the Self-Normalised Test}
+\label{sec:sn_size_power}
+
+Throughout this subsection $k$ is fixed with $k \ge 3$, the asymptotics are in $m \to \infty$, and we additionally assume $\sigma_{Z\varepsilon} > 0$, without which the standardisation underlying Propositions~\ref{prop:scale_invariance} and~\ref{prop:sn_pivotal} is undefined. The restriction $k \ge 3$ is needed because, under the median convention fixed in the proof of Theorem~\ref{thm:piecewise} (the rank-$\lceil k/2\rceil$ order statistic), the $\MAD$ of two points is identically zero: for $k=2$ the deviations from the median are $0$ and $\abs{v_{(2)} - v_{(1)}}$, and their rank-$1$ order statistic is $0$. For $k \ge 3$, by contrast, the $\MAD$ of $k$ almost surely distinct values is almost surely positive, since it is the rank-$\lceil k/2\rceil \ge 2$ order statistic of $k$ deviations of which exactly one vanishes.
+
+\begin{corollary}[Asymptotic size]
+\label{cor:sn_size}
+Assume \ref{ass:exog}--\ref{ass:moments} and $\sigma_{Z\varepsilon} > 0$, let $k \ge 3$ be fixed, and let $c_{k,\delta}$ be the $(1-\delta)$-quantile of $R_k$. Then, under $H_0\colon\beta=\beta_0$,
+\[
+  \lim_{m\to\infty}\Prob_{H_0}\bigl[T(\beta_0) > c_{k,\delta}\bigr] = \delta,
+\]
+i.e.\ the test has asymptotic size exactly $\delta$.
+\end{corollary}
+
+\begin{proof}
+\medskip\noindent\textbf{Step 1 ($R_k$ is almost surely positive and finite).} The $\xi_j$ are almost surely distinct, so $\MAD(\xi_1,\dots,\xi_k) > 0$ almost surely for $k \ge 3$, as noted above, and $\med(\xi_1,\dots,\xi_k) \neq 0$ almost surely; hence $R_k \in (0,\infty)$ almost surely.
+
+\medskip\noindent\textbf{Step 2 (The law of $R_k$ has no atoms).} Partition $\R^k$ into the finitely many open cones on which the ordering of the coordinates, and of their absolute deviations from the rank-$\lceil k/2\rceil$ coordinate, is fixed; the union of these cones has full Lebesgue measure. On each cone, $\med(v) = v_{i_0}$ is a single coordinate and $\MAD(v) = \pm(v_{i_1} - v_{i_0})$ is a difference of two coordinates with $i_1 \neq i_0$, since for $k \ge 3$ the $\MAD$ is a nonvanishing deviation. Hence, for any $c > 0$, the set $\{v : \abs{\med(v)} = c\,\MAD(v)\}$ intersected with a cone is the zero set of a linear form with a nonzero coefficient ($\mp c$) on $v_{i_1}$, i.e.\ part of a hyperplane. The event $\{R_k = c\}$ is therefore contained in a finite union of hyperplanes, which is null for the Gaussian law, and $\{R_k = 0\}$ is null by Step~1. The distribution function of $R_k$ is thus continuous.
+
+\medskip\noindent\textbf{Step 3 (Convergence of the rejection probability).} By Proposition~\ref{prop:sn_pivotal}, $T(\beta_0) \Rightarrow R_k$ under $H_0$. Continuity of the distribution function of $R_k$ then gives $\Prob_{H_0}[T(\beta_0) > c_{k,\delta}] \to \Prob[R_k > c_{k,\delta}]$, and continuity at the quantile gives $\Prob[R_k > c_{k,\delta}] = \delta$.
+\end{proof}
+
+\begin{remark}[Finite samples and the critical value]
+\label{rem:ck_convention}
+No finite-sample size guarantee is claimed for $T(\beta_0)$: the exactness above is asymptotic in $m$ with $k$ fixed. (For a finite-sample-exact variant under a symmetry assumption, see Remark~\ref{rem:sn_sign}.) When tabulating $c_{k,\delta}$ by simulation for Section~\ref{sec:artable}, the median and $\MAD$ must be computed under the same rank-$\lceil k/2\rceil$ convention used throughout; for even $k$ the mid-average convention yields a different law for $R_k$ and hence different critical values.
+\end{remark}
+
+\begin{proposition}[Consistency against fixed alternatives]
+\label{prop:sn_consistency}
+Assume \ref{ass:exog}--\ref{ass:moments} and $\sigma_{Z\varepsilon} > 0$, let $k \ge 3$ be fixed, and fix a null value $\beta_0$ with $\Delta := \beta - \beta_0 \neq 0$. If $\sigma_W(\beta_0) > 0$, with $\sigma_W(\beta_0)$ as in \eqref{eq:sigmaW}, then under $\Prob_\beta$, as $m\to\infty$,
+\[
+  \frac{T(\beta_0)}{\sqrt{m}} \;\Longrightarrow\; \frac{\abs{\Delta}\,\abs{\mu_{ZX}}}{\sigma_W(\beta_0)\,\MAD(\xi_1,\dots,\xi_k)},
+  \qquad \xi_1,\dots,\xi_k \overset{\text{iid}}{\sim} N(0,1).
+\]
+In particular $T(\beta_0) \to \infty$ in probability, so
+\[
+  \lim_{m\to\infty}\Prob_\beta\bigl[T(\beta_0) > c_{k,\delta}\bigr] = 1:
+\]
+the test is consistent against every fixed alternative.
+\end{proposition}
+
+\begin{proof}
+If $\sigma_W(\beta_0) = 0$, then $\bar{W}_j(\beta_0) = \Delta\mu_{ZX} \neq 0$ deterministically and $\hat{s}(\beta_0) = 0$, so the test rejects for every $m$ under the convention $x/0 = \infty$ for $x > 0$; the display above excludes this degenerate case by assumption.
+
+\medskip\noindent\textbf{Step 1 (Numerator).} By \eqref{eq:W_alt} and the law of large numbers applied within each of the $k$ blocks, $\bar{W}_j(\beta_0) \to_p \Delta\mu_{ZX}$ jointly in $j$ (there are finitely many blocks). The median is continuous, so $\widetilde{W}(\beta_0) \to_p \Delta\mu_{ZX}$, and $\abs{\Delta\mu_{ZX}} > 0$ by \ref{ass:relev}.
+
+\medskip\noindent\textbf{Step 2 (Denominator).} The $\MAD$ is invariant to a common location shift, so
+\[
+  \sqrt{m}\,\hat{s}(\beta_0)
+  = \MAD\bigl(\sqrt{m}\,(\bar{W}_1(\beta_0) - \Delta\mu_{ZX}),\dots,\sqrt{m}\,(\bar{W}_k(\beta_0) - \Delta\mu_{ZX})\bigr).
+\]
+The $(W_i(\beta_0))_{i=1}^{n}$ are i.i.d.\ with mean $\Delta\mu_{ZX}$ and variance $\sigma_W^2(\beta_0) \in (0,\infty)$, so the central limit theorem per block, joint convergence across the disjoint blocks, and the continuous mapping theorem --- exactly as in the proof of Proposition~\ref{prop:sn_pivotal} --- give
+\[
+  \sqrt{m}\,\hat{s}(\beta_0) \;\Longrightarrow\; \sigma_W(\beta_0)\,\MAD(\xi_1,\dots,\xi_k),
+\]
+a limit that is almost surely positive for $k \ge 3$.
+
+\medskip\noindent\textbf{Step 3 (Ratio).} By Steps~1--2 and Slutsky's theorem, $T(\beta_0)/\sqrt{m} = \abs{\widetilde{W}(\beta_0)}\big/\bigl(\sqrt{m}\,\hat{s}(\beta_0)\bigr)$ converges in distribution to the stated limit, which is almost surely positive. Hence for any fixed $C$,
+\[
+  \Prob_\beta\bigl[T(\beta_0) > C\bigr] = \Prob_\beta\!\left[\frac{T(\beta_0)}{\sqrt{m}} > \frac{C}{\sqrt{m}}\right] \longrightarrow 1,
+\]
+since $C/\sqrt{m} \to 0$ and the limit law puts no mass at $0$. Taking $C = c_{k,\delta}$ gives the power statement.
+\end{proof}
+
+\begin{proposition}[Local asymptotic power]
+\label{prop:sn_local}
+Assume \ref{ass:exog}--\ref{ass:moments} and $\sigma_{Z\varepsilon} > 0$, and let $k \ge 3$ be fixed. Consider a drifting sequence of null values $\beta_0^{(m)}$ with
+\[
+  a := \lim_{m\to\infty}\sqrt{m}\,\bigl(\beta - \beta_0^{(m)}\bigr)\,\frac{\mu_{ZX}}{\sigma_{Z\varepsilon}} \;\in\; \R.
+\]
+Then, under $\Prob_\beta$,
+\[
+  T\bigl(\beta_0^{(m)}\bigr) \;\Longrightarrow\; R_k(a) := \frac{\abs{\med(\xi_1,\dots,\xi_k) + a}}{\MAD(\xi_1,\dots,\xi_k)},
+  \qquad \xi_1,\dots,\xi_k \overset{\text{iid}}{\sim} N(0,1),
+\]
+and the local power function
+\[
+  \pi_k(a) := \lim_{m\to\infty}\Prob_\beta\bigl[T(\beta_0^{(m)}) > c_{k,\delta}\bigr] = \Prob\bigl[R_k(a) > c_{k,\delta}\bigr]
+\]
+satisfies $\pi_k(0) = \delta$ and $\pi_k(a) \to 1$ as $\abs{a} \to \infty$. For odd $k$, moreover, $\pi_k(-a) = \pi_k(a)$.
+\end{proposition}
+
+\begin{proof}
+Write $\Delta_m := \beta - \beta_0^{(m)}$, so that $\sqrt{m}\,\Delta_m \to a\sigma_{Z\varepsilon}/\mu_{ZX}$.
+
+\medskip\noindent\textbf{Step 1 (Block-level limit).} By \eqref{eq:W_alt},
+\[
+  \sqrt{m}\,\bar{W}_j\bigl(\beta_0^{(m)}\bigr) = \sqrt{m}\,\bar{\varepsilon}_j^Z + \bigl(\sqrt{m}\,\Delta_m\bigr)\,\hat{\mu}_{ZX}^{(j)},
+  \qquad \bar{\varepsilon}_j^Z = \frac{1}{m}\sum_{i\in B_j} Z_i\varepsilon_i.
+\]
+Per block, the central limit theorem gives $\sqrt{m}\,\bar{\varepsilon}_j^Z \Rightarrow \sigma_{Z\varepsilon}\xi_j$, while $\hat{\mu}_{ZX}^{(j)} \to_p \mu_{ZX}$ by the law of large numbers, so Slutsky's theorem gives, per block,
+\[
+  \sqrt{m}\,\bar{W}_j\bigl(\beta_0^{(m)}\bigr) \;\Longrightarrow\; \sigma_{Z\varepsilon}\xi_j + \frac{a\sigma_{Z\varepsilon}}{\mu_{ZX}}\,\mu_{ZX} = \sigma_{Z\varepsilon}\bigl(\xi_j + a\bigr).
+\]
+The blocks use disjoint observations, so the convergence holds jointly with independent coordinates.
+
+\medskip\noindent\textbf{Step 2 (Invariances of the statistic).} Since $\med$ and $\MAD$ are homogeneous of degree one, $T(\beta_0^{(m)})$ is unchanged when every $\bar{W}_j$ is multiplied by $\sqrt{m}$. By the continuous mapping theorem --- the map is continuous wherever the $\MAD$ is nonzero, which holds almost surely in the limit for $k \ge 3$ ---
+\[
+  T\bigl(\beta_0^{(m)}\bigr) \;\Longrightarrow\;
+  \frac{\abs{\med_j\bigl(\sigma_{Z\varepsilon}(\xi_j + a)\bigr)}}{\MAD_j\bigl(\sigma_{Z\varepsilon}(\xi_j + a)\bigr)}
+  = \frac{\abs{\med(\xi_1,\dots,\xi_k) + a}}{\MAD(\xi_1,\dots,\xi_k)} = R_k(a),
+\]
+using homogeneity to cancel $\sigma_{Z\varepsilon}$, translation equivariance of the median, and translation invariance of the $\MAD$.
+
+\medskip\noindent\textbf{Step 3 (Properties of $\pi_k$).} The law of $R_k(a)$ is atomless by the hyperplane argument in Step~2 of the proof of Corollary~\ref{cor:sn_size}, since the shift by $a$ preserves the absolute continuity of the Gaussian law; hence the rejection probabilities converge to $\Prob[R_k(a) > c_{k,\delta}]$, and $\pi_k(0) = \Prob[R_k > c_{k,\delta}] = \delta$. For $a \to +\infty$,
+\[
+  \pi_k(a) \;\ge\; \Prob\bigl[\med(\xi_1,\dots,\xi_k) + a > c_{k,\delta}\,\MAD(\xi_1,\dots,\xi_k)\bigr] \;\longrightarrow\; 1,
+\]
+since $c_{k,\delta}\MAD(\xi) - \med(\xi)$ is almost surely finite and the events increase to a set of full measure; the case $a \to -\infty$ is analogous. Finally, for odd $k$ the rank-$\lceil k/2\rceil$ median is antisymmetric, $\med(-v) = -\med(v)$, while $\MAD(-v) = \MAD(v)$; combining this with $(\xi_1,\dots,\xi_k) \overset{d}{=} (-\xi_1,\dots,-\xi_k)$ gives $R_k(-a) \overset{d}{=} R_k(a)$, hence $\pi_k(-a) = \pi_k(a)$.
+\end{proof}
+
+\begin{remark}[Interpreting the local parameter]
+\label{rem:sn_local_interpretation}
+The drift $a = \lim\sqrt{m}\,(\beta - \beta_0^{(m)})\,\mu_{ZX}/\sigma_{Z\varepsilon}$ is the block-level signal-to-noise ratio: to first order, the mean of $\bar{W}_j(\beta_0^{(m)})$ measured in units of its standard deviation $\sigma_{Z\varepsilon}/\sqrt{m}$. The self-normalised test therefore detects alternatives at radius of order $\sigma_{Z\varepsilon}/(\abs{\mu_{ZX}}\sqrt{m})$ --- the same $\abs{\mu_{ZX}}\sqrt{m}$ scaling as the oracle radius of Corollary~\ref{cor:detection_radius} --- and the sole price of not knowing $\sigma_{Z\varepsilon}$ is that the comparison is made against the fixed-$k$ law $R_k(a)$ rather than a deterministic threshold. To illustrate, simulation at $k = 9$ and $\delta = 0.05$ gives $\pi_9(0.5) \approx 0.15$, $\pi_9(1) \approx 0.43$, $\pi_9(2) \approx 0.91$, and $\pi_9(4) \approx 1$. As $\mu_{ZX} \to 0$ the drift vanishes for every local sequence, so the test --- like the oracle test (Remark~\ref{rem:power_weak}) --- loses power under weak identification, in accordance with \citet{dufour1997some}.
+\end{remark}

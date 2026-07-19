@@ -219,6 +219,60 @@ worth a sentence in the appendix:
   test is exact either way — but the table should not be interpolated
   across the even/odd boundary.
 
+## PS — How random is the estimator? Partition noise, decomposed
+
+The block estimators take an auxiliary random input — the partition of the
+sample into blocks — so on a fixed dataset, changing nothing but the seed
+changes the estimate. This experiment measures that randomness directly
+(spotlight figure) and decomposes each estimator's total variability into
+"which dataset you drew" (sampling) versus "how you happened to partition
+it" (partition noise), as a function of instrument strength γ (headline
+figure). Three distinct behaviours emerge:
+
+- **MoR** transitions from sampling-dominated to partition-dominated: its
+  partition share rises from ~0.34 at strong instruments, through ~0.5
+  around γ ≈ 25, to ~0.93 at the weakest level — deep in the
+  weak-instrument regime the partition matters more than the data.
+- **RoM** is partition-dominated everywhere (share ≈ 0.8 even with a strong
+  instrument): medianing each coordinate separately makes the estimator
+  intrinsically sensitive to the block assignment. Instability across seeds
+  is therefore *not* evidence of weak instruments for RoM — it is baseline
+  behaviour.
+- **Catoni** is the control: no blocks, share ≈ 0 across the whole range.
+  Partition randomness is a property of the blocking construction, not of
+  robust estimation per se.
+
+The spotlight figure shows the raw phenomenon without any decomposition:
+one fixed dataset per panel, B = 2000 partitions, so every bit of
+within-panel spread is the seed alone. At γ = 2.5 the partition moves MoR
+within roughly ±0.02 (RoM noticeably more); at γ = 1000 RoM's
+seed-distribution spans several units of β while MoR collapses to a narrow
+spike — but the partition-free Mean IV reference sits away from the truth,
+a reminder that stability across seeds is not accuracy.
+
+The corroborating panels tie the randomness to observable diagnostics. The
+certificate frequency — all k block means of ZX sharing a sign, the premise
+of prop:mono_det — collapses from 1 to 0 across the grid and crosses 50%
+in the same region (γ ≈ 25) where MoR's partition share reaches parity: the
+sign certificate is an observable early warning that the partition has
+started to matter. SN-AR confidence-set splits emerge at the same point and
+peak at ~68%; power to reject β₀ = 0 collapses for every test; and through
+all of it the size floor holds (MoM-AR never rejects the truth, SN-AR stays
+under δ).
+
+Two honest caveats. First, MoR's share does not vanish at strong
+instruments — it plateaus around a third. Even in favourable regimes a
+nontrivial slice of MoR's variability is the arbitrary partition, which is
+a concrete argument for a permutation-averaged variant as future work, and
+for reporting partition dispersion alongside any block-estimator point
+estimate. Second, at the weakest levels the SD-based shares for RoM are
+inflated by near-singular block ratios; the IQR-based shares in the CSV are
+the outlier-robust check and tell the same qualitative story.
+
+**Takeaway:** the estimator's "extra" randomness is real, observable in
+advance (γ and the sign certificate), negligible for no method, dominant
+for RoM always and for MoR exactly when instruments are weak.
+
 ## The one-paragraph story of the whole section
 
 Under light tails the classical estimator and test are the efficient choice,

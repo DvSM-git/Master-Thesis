@@ -86,8 +86,10 @@ TEST_STYLES = {
 
 def rep_counts(full: bool) -> dict[str, int]:
     if full:
-        return dict(box=10_000, tail=50_000, size=10_000, power=5_000, cs=5_000, mono=2_000)
-    return dict(box=1_000, tail=5_000, size=1_000, power=500, cs=500, mono=300)
+        return dict(box=10_000, tail=50_000, size=10_000, power=5_000, cs=5_000, mono=2_000,
+                    ps_D=100, ps_B=200, ps_Bspot=2_000)
+    return dict(box=1_000, tail=5_000, size=1_000, power=500, cs=500, mono=300,
+                ps_D=20, ps_B=40, ps_Bspot=400)
 
 
 def _note(fig, text: str) -> None:
@@ -601,6 +603,257 @@ def exp_i4_mono(reps: int, n_jobs: int, seed: int = 707) -> None:
 
 
 # ----------------------------------------------------------------------------
+# PS: partition randomness of the block estimators (nested design + spotlight)
+# ----------------------------------------------------------------------------
+
+# Strength grid: gamma = sigma2_ZX / mu_ZX^2 = 2.5 / mu^2, log-ish spaced from
+# strong (gamma = 2.5) to very weak (gamma = 1000).
+PS_MUS = [1.0, 0.6, 0.4, 0.3, 0.2, 0.1, 0.05]
+# Levels highlighted in the fixed-data spotlight figure (strong / transition / weak).
+PS_SPOTLIGHT_MUS = [1.0, 0.3, 0.05]
+
+
+def _ps_spotlight_level(seed, n, mu, delta, B) -> dict:
+    """
+    Fixed-data view: ONE dataset at strength mu, B random partitions, raw
+    estimates returned. This is the purest form of the question 'same data,
+    different seed -- different answer?'; the Mean IV estimate is the
+    partition-free reference. Conditional on a single draw by design (the
+    nested design in _ps_dataset is the draw-robust counterpart).
+    """
+    rng = np.random.default_rng(seed)
+    dgp = dict(BASE, mu_ZX=mu)
+    df = generate_data(n=n, eps_Y_dist=("t", 2.1), rng=rng, **dgp)
+    Y, X, Z = (df[c].to_numpy() for c in ("Y", "X", "Z"))
+    out = {"mu": mu, "gamma": BASE["sigma2_ZX"] / mu ** 2,
+           "iv": iv_estimate(df)["beta_hat"], "mor": [], "rom": [], "cat": []}
+    for _ in range(B):
+        perm = rng.permutation(n)
+        dfp = pd.DataFrame({"Y": Y[perm], "X": X[perm], "Z": Z[perm]})
+        out["mor"].append(iv_estimate_mr(dfp, delta=delta, shuffle=False)["beta_hat"])
+        out["rom"].append(iv_estimate_rm(dfp, delta=delta, shuffle=False)["beta_hat"])
+        out["cat"].append(iv_estimate_catoni(dfp, delta=delta)["beta_hat"])
+    for est in ("mor", "rom", "cat"):
+        out[est] = np.asarray(out[est])
+    return out
+
+
+def _ps_dataset(seed, n, mu, delta, c_sn, B) -> dict:
+    """
+    One dataset of the nested design: draw the data once, then B independent
+    random partitions. Mirroring replication_ak91_sensitivity.py, each
+    partition is ONE permutation of the rows shared by every MoM-based
+    procedure (methods differ only through their k); the standard AR test is
+    partition-free and computed once. Returns within-dataset aggregates.
+    """
+    rng = np.random.default_rng(seed)
+    dgp = dict(BASE, mu_ZX=mu)
+    df = generate_data(n=n, eps_Y_dist=("t", 2.1), rng=rng, **dgp)
+    Y, X, Z = (df[c].to_numpy() for c in ("Y", "X", "Z"))
+    beta = dgp["beta"]
+    ZX = Z * X
+    gamma_hat = float(ZX.var(ddof=1) / ZX.mean() ** 2)
+    k = inf.k_blocks(delta)
+    beta0 = np.array([0.0, beta])
+
+    ar = inf.standard_ar_test(df, beta0, delta=delta)
+    ar_rej0, ar_rejb = bool(ar["reject"][0]), bool(ar["reject"][1])
+
+    cols = {name: [] for name in
+            ("mor", "rom", "cat", "cert", "mom_split", "sn_split",
+             "mom_rej0", "mom_rejb", "sn_rej0", "sn_rejb")}
+    for _ in range(B):
+        perm = rng.permutation(n)
+        dfp = pd.DataFrame({"Y": Y[perm], "X": X[perm], "Z": Z[perm]})
+        cols["mor"].append(iv_estimate_mr(dfp, delta=delta, shuffle=False)["beta_hat"])
+        cols["rom"].append(iv_estimate_rm(dfp, delta=delta, shuffle=False)["beta_hat"])
+        cols["cat"].append(iv_estimate_catoni(dfp, delta=delta)["beta_hat"])
+
+        a, b, _ = inf.block_means(Y[perm], X[perm], Z[perm], k, shuffle=False)
+        cols["cert"].append(bool(np.all(b > 0) or np.all(b < 0)))
+        sigma_hat = inf.robust_sigma_Ze(Y[perm], X[perm], Z[perm], delta, shuffle=False)
+        tau = inf.tau_n(sigma_hat, n, delta)
+        cols["mom_split"].append(len(inf.mom_ar_cs_exact(a, b, tau)) > 1)
+        cols["sn_split"].append(len(inf.sn_ar_cs(a, b, c_sn)) > 1)
+        W = np.abs(inf.mom_ar_statistic(a, b, beta0))
+        T = inf.sn_statistic(a, b, beta0)
+        cols["mom_rej0"].append(bool(W[0] > tau))
+        cols["mom_rejb"].append(bool(W[1] > tau))
+        cols["sn_rej0"].append(bool(T[0] > c_sn))
+        cols["sn_rejb"].append(bool(T[1] > c_sn))
+
+    out = {"mu": mu, "gamma_hat": gamma_hat,
+           "ar_rej0": ar_rej0, "ar_rejb": ar_rejb}
+    for est in ("mor", "rom", "cat"):
+        v = np.asarray(cols[est])
+        out[f"{est}_mean"] = float(v.mean())
+        out[f"{est}_pvar"] = float(v.var(ddof=1))          # partition variance
+        out[f"{est}_piqr"] = float(np.subtract(*np.quantile(v, [0.75, 0.25])))
+    for key in ("cert", "mom_split", "sn_split",
+                "mom_rej0", "mom_rejb", "sn_rej0", "sn_rejb"):
+        out[key] = float(np.mean(cols[key]))
+    return out
+
+
+def exp_ps_partition(reps_D: int, B: int, n_jobs: int, seed: int = 808,
+                     B_spot: int = 2000) -> None:
+    """
+    PS: how random is each block estimator, and how does that randomness
+    decompose into partition choice vs the data themselves?
+
+    Nested design (headline figure): per strength level gamma =
+    sigma2_ZX/mu_ZX^2 (log axis, population value), D datasets x B random
+    partitions per dataset (t(2.1) errors, n = 2000). Decomposition per
+    estimator:
+        V_part = mean over datasets of the within-dataset partition variance,
+        V_samp = variance over datasets of the within-dataset mean,
+        partition share = V_part / (V_part + V_samp).
+    An IQR-based share (same construction with squared IQRs) is written to
+    the CSV as an outlier-robust check, along with the median plug-in
+    gamma_hat. Corroborating panels on the same axis: certificate frequency
+    (all block means of ZX share a sign, the prop:mono_det diagnostic), CS
+    split frequency, and rejection frequency at the false null beta0 = 0
+    (power) and at the truth (size floor, <= delta everywhere).
+
+    Spotlight figure: one FIXED dataset at three strength levels, B_spot
+    partitions each -- the raw 'same data, different seed' distributions,
+    with Mean IV as the partition-free reference.
+    """
+    n = 2000
+    m_sim = n // inf.k_blocks(DELTA)
+    c_sn = inf.rk_critical_value(inf.k_blocks(DELTA), DELTA)
+
+    t0 = time.perf_counter()
+    rows = []
+    for mu in PS_MUS:
+        seeds = np.random.SeedSequence(seed + int(1e4 * mu)).spawn(reps_D)
+        res = Parallel(n_jobs=n_jobs)(
+            delayed(_ps_dataset)(s, n, mu, DELTA, c_sn, B) for s in seeds
+        )
+        d = pd.DataFrame(res)
+        # x-position: exact population gamma; the plug-in median is kept in
+        # the CSV as the observable counterpart (right-skewed at weak strength)
+        row = {"mu": mu, "gamma": BASE["sigma2_ZX"] / mu ** 2,
+               "gamma_hat_median": float(d["gamma_hat"].median())}
+        for est in ("mor", "rom", "cat"):
+            v_part = float(d[f"{est}_pvar"].mean())
+            v_samp = float(d[f"{est}_mean"].var(ddof=1))
+            row[f"{est}_share"] = v_part / (v_part + v_samp)
+            p_iqr = float((d[f"{est}_piqr"] ** 2).mean())
+            s_iqr = float(np.subtract(*np.quantile(d[f"{est}_mean"], [0.75, 0.25])) ** 2)
+            row[f"{est}_share_iqr"] = p_iqr / (p_iqr + s_iqr) if (p_iqr + s_iqr) > 0 else np.nan
+            row[f"{est}_v_part"] = v_part
+            row[f"{est}_v_samp"] = v_samp
+        for key in ("cert", "mom_split", "sn_split",
+                    "mom_rej0", "mom_rejb", "sn_rej0", "sn_rejb",
+                    "ar_rej0", "ar_rejb"):
+            row[key] = float(d[key].mean())
+        rows.append(row)
+        print(f"  mu={mu:g}: gamma={row['gamma']:.1f}, "
+              f"MoR share={row['mor_share']:.3f}, cert={row['cert']:.3f}")
+
+    tab = pd.DataFrame(rows)
+    tab.to_csv(GRAPHS_DIR / "ps_partition_randomness.csv", index=False)
+    print(tab.to_string(index=False, float_format=lambda v: f"{v:.4f}"))
+
+    # --- headline figure: 2x2 panels sharing the log gamma axis ---
+    est_lines = [("mor_share", "Median-of-Ratios", ESTIMATOR_COLORS["Median-of-Ratios"]),
+                 ("rom_share", "Ratio-of-Medians", ESTIMATOR_COLORS["Ratio-of-Medians"]),
+                 ("cat_share", "Catoni", ESTIMATOR_COLORS["Catoni"])]
+    g = tab["gamma"]
+    fig, axes = plt.subplots(2, 2, figsize=(11.0, 8.2), sharex=True)
+    (axA, axB), (axC, axD) = axes
+
+    for col, label, color in est_lines:
+        axA.plot(g, tab[col], marker="o", markersize=4, linewidth=1.8,
+                 color=color, label=label)
+    axA.set_ylabel("Partition share of total variance")
+    axA.set_title("(a) Partition-noise share", fontsize=12)
+    axA.legend(frameon=False, fontsize=9)
+
+    axB.plot(g, tab["cert"], marker="o", markersize=4, linewidth=1.8, color="#4C72B0")
+    axB.set_ylabel("Frequency")
+    axB.set_title("(b) Certificate: all block means of $ZX$ same sign", fontsize=12)
+
+    axC.plot(g, tab["mom_split"], marker="o", markersize=4, linewidth=1.8,
+             color=TEST_COLORS["MoM-AR (feasible)"], label="MoM-AR (feasible)")
+    axC.plot(g, tab["sn_split"], marker="s", markersize=4, linewidth=1.8,
+             color=TEST_COLORS["SN-AR"], label="SN-AR")
+    axC.set_ylabel("Frequency")
+    axC.set_title("(c) Confidence set splits (> 1 component)", fontsize=12)
+    axC.legend(frameon=False, fontsize=9)
+
+    for pre, label, color in [("mom", "MoM-AR (feasible)", TEST_COLORS["MoM-AR (feasible)"]),
+                              ("sn", "SN-AR", TEST_COLORS["SN-AR"]),
+                              ("ar", "AR (standard)", TEST_COLORS["AR (standard)"])]:
+        axD.plot(g, tab[f"{pre}_rej0"], marker="o", markersize=4, linewidth=1.8,
+                 color=color, label=f"{label}: $\\beta_0=0$")
+        axD.plot(g, tab[f"{pre}_rejb"], marker="o", markersize=4, linewidth=1.2,
+                 linestyle=":", color=color)
+    axD.axhline(DELTA, color="0.4", linestyle=":", linewidth=1.0)
+    axD.set_ylabel("Rejection frequency")
+    axD.set_title(r"(d) Reject $\beta_0=0$ (solid) and $\beta_0=\beta$ (dotted)",
+                  fontsize=12)
+    axD.legend(frameon=False, fontsize=8, loc="center left")
+
+    for ax in axes.flat:
+        ax.set_xscale("log")
+        ax.yaxis.grid(True, color="0.88", linewidth=0.7)
+        ax.set_axisbelow(True)
+    for ax in (axC, axD):
+        ax.set_xlabel(r"$\gamma = \sigma^2_{ZX}/\mu_{ZX}^2$ (log scale)")
+    _note(fig, f"Note. D = {reps_D} datasets $\\times$ B = {B} partitions per level; n = {n}, "
+               f"t(2.1) errors, $\\delta$ = {DELTA:g}, k = {inf.k_blocks(DELTA)}, m = {m_sim}. "
+               f"Partition share = mean within-dataset partition variance over total variance.")
+    fig.subplots_adjust(left=0.08, right=0.99, top=0.95, bottom=0.11,
+                        hspace=0.18, wspace=0.22)
+    _save(fig, "ps_partition_randomness.png")
+
+    # --- spotlight figure: one fixed dataset per level, seed-only randomness ---
+    spot = Parallel(n_jobs=min(n_jobs if n_jobs > 0 else len(PS_SPOTLIGHT_MUS),
+                               len(PS_SPOTLIGHT_MUS)))(
+        delayed(_ps_spotlight_level)(np.random.SeedSequence(seed + 1 + i).spawn(1)[0],
+                                     n, mu, DELTA, B_spot)
+        for i, mu in enumerate(PS_SPOTLIGHT_MUS)
+    )
+    from scipy.stats import gaussian_kde
+    fig, axes = plt.subplots(1, len(spot), figsize=(13.5, 4.4))
+    for ax, s in zip(axes, spot):
+        pooled = np.concatenate([s["mor"], s["rom"]])
+        lo, hi = np.quantile(pooled, [0.005, 0.995])
+        pad = 0.1 * (hi - lo)
+        grid = np.linspace(lo - pad, hi + pad, 600)
+        for est, label in (("mor", "Median-of-Ratios"), ("rom", "Ratio-of-Medians"),
+                           ("cat", "Catoni")):
+            v = s[est]
+            color = ESTIMATOR_COLORS[label]
+            if v.std() < 1e-3 * max(hi - lo, 1e-12):
+                ax.axvline(v.mean(), color=color, linewidth=1.6,
+                           label=f"{label} (near-constant)")
+                continue
+            dens = gaussian_kde(v)(grid)
+            dens /= dens.max()
+            ax.plot(grid, dens, color=color, linewidth=1.6, label=label)
+            ax.fill_between(grid, dens, color=color, alpha=0.12)
+        ax.axvline(BASE["beta"], color="0.25", linestyle=(0, (5, 4)), linewidth=1.2,
+                   label=r"true $\beta$")
+        ax.axvline(s["iv"], color="0.25", linestyle=(0, (1, 2)), linewidth=1.2,
+                   label="Mean IV (partition-free)")
+        ax.set_title(f"$\\gamma$ = {s['gamma']:.3g}", fontsize=12)
+        ax.set_xlabel(r"$\hat\beta$")
+        ax.yaxis.grid(True, color="0.88", linewidth=0.7)
+        ax.set_axisbelow(True)
+    axes[0].set_ylabel("density (scaled to max 1)")
+    axes[0].legend(frameon=False, fontsize=8)
+    _note(fig, f"Note. One fixed dataset per panel (n = {n}, t(2.1) errors), "
+               f"B = {B_spot} random partitions: all variation within a panel is the "
+               f"partition seed alone. Axes truncated at 0.5/99.5% quantiles.")
+    fig.subplots_adjust(left=0.055, right=0.99, top=0.92, bottom=0.19, wspace=0.18)
+    _save(fig, "ps_partition_spotlight.png")
+    print(f"[PS] runtime {time.perf_counter()-t0:.1f}s")
+
+
+# ----------------------------------------------------------------------------
 # I5: R_k critical value table (appendix sec:artable)
 # ----------------------------------------------------------------------------
 
@@ -708,7 +961,7 @@ def verify(n_jobs: int) -> None:
 # CLI
 # ----------------------------------------------------------------------------
 
-ALL_EXPERIMENTS = ["e1e2", "e2b", "e3", "i1", "i2", "i3", "i4", "i5"]
+ALL_EXPERIMENTS = ["e1e2", "e2b", "e3", "i1", "i2", "i3", "i4", "i5", "ps"]
 
 
 def main() -> None:
@@ -747,6 +1000,9 @@ def main() -> None:
         exp_i4_mono(counts["mono"], args.n_jobs)
     if "i5" in todo:
         exp_i5_rk_table(n_sims=1_000_000 if full else 200_000)
+    if "ps" in todo:
+        exp_ps_partition(counts["ps_D"], counts["ps_B"], args.n_jobs,
+                         B_spot=counts["ps_Bspot"])
     print(f"\nTotal runtime: {time.perf_counter()-t0:.1f}s")
 
 

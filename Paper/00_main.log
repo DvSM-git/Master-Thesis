@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.6.9)  17 JUL 2026 20:13
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.6.9)  18 JUL 2026 14:38
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -727,7 +727,7 @@ File: english.apc 2013/07/21 v6.03 apacite language file
 LaTeX Info: Redefining \BPBI on input line 129.
 LaTeX Info: Redefining \BHBI on input line 130.
 )
-<images/eur/eur.png, id=142, 102.71375pt x 34.53903pt>
+<images/eur/eur.png, id=150, 102.71375pt x 34.53903pt>
 File: images/eur/eur.png Graphic file (type png)
 <use images/eur/eur.png>
 Package pdftex.def Info: images/eur/eur.png  used on input line 55.
@@ -773,12 +773,12 @@ Overfull \hbox (1.16154pt too wide) in paragraph at lines 11--13
  []
 
 [14] [15] [16] [17] [18] [19] [20]) (iteration4/simulation.tex [21]
-<images/graphs/e1_boxplot_gaussian.png, id=512, 505.89pt x 325.215pt>
+<images/graphs/e1_boxplot_gaussian.png, id=520, 505.89pt x 325.215pt>
 File: images/graphs/e1_boxplot_gaussian.png Graphic file (type png)
 <use images/graphs/e1_boxplot_gaussian.png>
 Package pdftex.def Info: images/graphs/e1_boxplot_gaussian.png  used on input line 46.
 (pdftex.def)             Requested size: 364.19667pt x 234.1298pt.
-<images/graphs/e2_boxplot_heavytails.png, id=515, 975.645pt x 332.442pt>
+<images/graphs/e2_boxplot_heavytails.png, id=523, 975.645pt x 332.442pt>
 File: images/graphs/e2_boxplot_heavytails.png Graphic file (type png)
 <use images/graphs/e2_boxplot_heavytails.png>
 Package pdftex.def Info: images/graphs/e2_boxplot_heavytails.png  used on input line 59.
@@ -796,7 +796,7 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 71.
 
-<images/graphs/e2b_deviation_quantiles.png, id=529, 794.97pt x 332.442pt>
+<images/graphs/e2b_deviation_quantiles.png, id=537, 794.97pt x 332.442pt>
 File: images/graphs/e2b_deviation_quantiles.png Graphic file (type png)
 <use images/graphs/e2b_deviation_quantiles.png>
 Package pdftex.def Info: images/graphs/e2b_deviation_quantiles.png  used on input line 76.
@@ -804,18 +804,18 @@ Package pdftex.def Info: images/graphs/e2b_deviation_quantiles.png  used on inpu
 
 LaTeX Warning: Reference `re,rem:iv_polynomial' on page 24 undefined on input line 81.
 
-<images/graphs/e3_boxplot_strength.png, id=532, 1156.32pt x 332.442pt>
+<images/graphs/e3_boxplot_strength.png, id=540, 1156.32pt x 332.442pt>
 File: images/graphs/e3_boxplot_strength.png Graphic file (type png)
 <use images/graphs/e3_boxplot_strength.png>
 Package pdftex.def Info: images/graphs/e3_boxplot_strength.png  used on input line 89.
 (pdftex.def)             Requested size: 364.19667pt x 104.70456pt.
 [24 <./images/graphs/e2b_deviation_quantiles.png> <./images/graphs/e3_boxplot_strength.png>]
-<images/graphs/i1_size.png, id=543, 975.645pt x 303.534pt>
+<images/graphs/i1_size.png, id=551, 975.645pt x 303.534pt>
 File: images/graphs/i1_size.png Graphic file (type png)
 <use images/graphs/i1_size.png>
 Package pdftex.def Info: images/graphs/i1_size.png  used on input line 101.
 (pdftex.def)             Requested size: 364.19667pt x 113.30623pt.
-<images/graphs/i2_power.png, id=546, 794.97pt x 332.442pt>
+<images/graphs/i2_power.png, id=554, 794.97pt x 332.442pt>
 File: images/graphs/i2_power.png Graphic file (type png)
 <use images/graphs/i2_power.png>
 Package pdftex.def Info: images/graphs/i2_power.png  used on input line 115.
@@ -825,7 +825,17 @@ File: images/graphs/i2_power.png Graphic file (type png)
 <use images/graphs/i2_power.png>
 Package pdftex.def Info: images/graphs/i2_power.png  used on input line 128.
 (pdftex.def)             Requested size: 364.19667pt x 152.30122pt.
-) (iteration4/case_studies.tex) [26] (iteration4/appendix.tex) [27] (00_main.bbl) [28] (00_main.aux)
+) (iteration4/case_studies.tex) (iteration4/size_and_power.tex
+Overfull \hbox (4.49417pt too wide) in paragraph at lines 45--47
+\OT1/cmr/m/n/10.95 which is fi-nite by [](A3)[] and the Cauchy--Schwarz in-equal-ity. Ex-actly as in Re-mark []2.2[], Minkowski's
+ []
+
+[26] [27]
+Overfull \hbox (0.51627pt too wide) detected at line 136
+[][]  []  [][]\OMS/cmsy/m/n/10.95 !  []  []  ^^T  \OT1/cmr/m/n/10.95 2 []  []  \OMS/cmsy/m/n/10.95 ^^Y  \OT1/cmr/m/n/10.95 2\OML/cmm/m/it/10.95 e[];
+ []
+
+[28] [29] [30] [31] [32]) [33] (iteration4/appendix.tex) [34] (00_main.bbl) [35] (00_main.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
@@ -838,20 +848,20 @@ LaTeX Warning: There were undefined references.
 LaTeX Warning: There were multiply-defined labels.
 
 Package rerunfilecheck Info: File `00_main.out' has not changed.
-(rerunfilecheck)             Checksum: BB41EAB5AF7407DA1F1647F7B54A725B;6251.
+(rerunfilecheck)             Checksum: C72195430E00293166EAA6E54B37BF46;6727.
  ) 
 Here is how much of TeX's memory you used:
- 25842 strings out of 467871
- 477576 string characters out of 5417893
- 908726 words of memory out of 5000000
- 54097 multiletter control sequences out of 15000+600000
+ 25903 strings out of 467871
+ 478568 string characters out of 5417893
+ 909993 words of memory out of 5000000
+ 54125 multiletter control sequences out of 15000+600000
  636463 words of font info for 71 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 99i,16n,108p,1038b,1077s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 99i,16n,108p,1201b,1077s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmbx10.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmbx12.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmcsc10.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmex10.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cmextra/cmex8.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi10.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi6.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi8.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr12.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr17.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr6.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr8.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy8.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmti10.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmti8.pfb><C:/Users/Victus/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on 00_main.pdf (29 pages, 1785358 bytes).
+Output written on 00_main.pdf (36 pages, 1839948 bytes).
 PDF statistics:
- 683 PDF objects out of 1000 (max. 8388607)
- 173 named destinations out of 1000 (max. 500000)
- 320 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 818 PDF objects out of 1000 (max. 8388607)
+ 203 named destinations out of 1000 (max. 500000)
+ 336 words of extra memory for PDF output out of 10000 (max. 10000000)
 

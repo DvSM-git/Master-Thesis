@@ -204,6 +204,46 @@ rank-ceil(k/2) median convention, even k uses the lower-middle order
 statistic, which shifts the null distribution — worth one sentence in the
 appendix caption.
 
+## PS — `ps_partition_randomness.png` + `ps_partition_spotlight.png` + `ps_partition_randomness.csv`
+
+**How random is each block estimator?** The block estimators depend on an
+auxiliary random input — the partition of the sample into blocks — so on
+fixed data, changing nothing but the seed changes the answer. This
+experiment quantifies that randomness and decomposes it.
+
+Nested design: per strength level (mu_ZX ∈ {1, ..., 0.05}, i.e. gamma =
+sigma2_ZX/mu_ZX^2 ∈ {2.5, ..., 1000}), D = 100 datasets × B = 200
+partitions, each partition one permutation shared by all procedures; t(2.1)
+errors, n = 2000, k = 24 (m = 83). X-axis: population gamma (log scale; the
+median plug-in gamma_hat is in the CSV as the observable counterpart).
+Partition share = V_part / (V_part + V_samp), with V_part the mean
+within-dataset partition variance and V_samp the across-dataset variance of
+the partition means.
+
+Results: MoR's share rises 0.34 (gamma = 2.5) → ~0.5 (gamma ≈ 25) → 0.93
+(gamma = 1000): from a modest-but-real fraction to partition-dominated. The
+certificate frequency (all block means of ZX same sign, prop:mono_det
+premise) falls 1.00 → 0.51 → 0.00 over the same range; SN-AR split
+frequency rises 0 → 0.68; power at beta0 = 0 collapses for all tests while
+the size floor holds (MoM-AR 0.0000 everywhere, SN-AR <= 0.048). Catoni's
+share is <= 0.004 throughout (partition-free except through its variance
+pre-estimate) and RoM is partition-dominated (share ~0.8) even at strong
+instruments. The spotlight figure shows the raw phenomenon: one fixed
+dataset per panel, all variation from the seed alone — at gamma = 2.5 MoR
+moves within ±0.02 across partitions, at gamma = 1000 RoM spans several
+units while Mean IV (partition-free) sits away from the truth.
+
+*Supports*: prop:mono_det as an observable diagnostic; motivates reporting
+partition dispersion alongside block-estimator point estimates.
+*Flags*: (i) at the two weakest levels RoM's (and at gamma = 1000 even
+Catoni's) SD-based share is inflated by near-singular ratio draws — the
+IQR-based share in the CSV is the robust check; (ii) MoR's share does not
+go to 0 at strong instruments: it plateaus around 0.3–0.4, i.e. even far
+from weakness roughly a third of MoR's variability is partition choice, an
+argument for averaging over partitions (permutation-averaged MoM) as a
+refinement; (iii) the spotlight panels are conditional on one draw by
+design — the nested panels are the draw-robust counterpart.
+
 ---
 
 ## Judgment calls and flags (things the tex leaves open)
