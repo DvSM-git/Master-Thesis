@@ -16,6 +16,11 @@ Data for the replication of:
 
 ## Provenance
 
+> **Not in the repository.** Both `.sas7bdat` extracts (181 MB and 190 MB) exceed
+> GitHub's 100 MB file limit and are `.gitignore`d. Re-download them from the
+> archive below into this directory before running `Code/replication_ae98.py`.
+
+
 Both SAS files are the authors' original posted extracts ("mom and dad" files),
 distributed via Josh Angrist's data archive at MIT
 (originally `http://economics.mit.edu/faculty/angrist/data1/data/angev98`,
