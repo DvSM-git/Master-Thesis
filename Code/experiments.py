@@ -31,11 +31,13 @@ from __future__ import annotations
 
 import argparse
 import time
+import zlib
 from pathlib import Path
 
 import matplotlib
 matplotlib.use("Agg")  # headless: avoid Tk in background/parallel runs
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
@@ -51,6 +53,30 @@ from simulation_study import ESTIMATOR_COLORS, GRAPHS_DIR, styled_boxplot  # noq
 import inference as inf
 
 DELTA = 0.05
+
+# Raw per-replication draws are written here so figures can be redesigned
+# without re-running the experiments. Gitignored: the contents are large and
+# fully regenerable (every driver takes a fixed seed).
+RAW_DIR = Path(__file__).resolve().parent / "output" / "raw"
+
+
+def _stable_hash(*parts) -> int:
+    """
+    Deterministic stand-in for the builtin hash().
+
+    Python salts string hashing per process (PYTHONHASHSEED), so seeds built
+    from hash(<str>) differ between runs and the affected experiments were not
+    reproducible. crc32 of the joined parts is stable across processes and
+    machines, so re-running now reproduces results exactly.
+    """
+    return zlib.crc32("|".join(map(str, parts)).encode())
+
+
+def _save_raw(name: str, **arrays) -> None:
+    """Persist raw replication-level arrays for `name` to output/raw/<name>.npz."""
+    RAW_DIR.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(RAW_DIR / f"{name}.npz",
+                        **{k: np.asarray(v) for k, v in arrays.items()})
 
 # Canonical DGP: calibrated so that at n = 2000 every finite-sample condition
 # of the point-estimator theorems holds (strong-instrument regime):
@@ -164,6 +190,7 @@ def exp_e1_e2(reps: int, n_jobs: int, seed: int = 101) -> None:
     # --- E1: Gaussian ---
     t0 = time.perf_counter()
     est = run_point_estimators(n, BASE, DISTS["Gaussian"], reps, seed, n_jobs)
+    _save_raw("e1_estimates_Gaussian", **est)
     rows += _summary_rows(est, beta, "Gaussian")
     fig, ax = plt.subplots(figsize=(7.0, 4.5))
     styled_boxplot(ax, est, true_beta=beta)
@@ -180,7 +207,8 @@ def exp_e1_e2(reps: int, n_jobs: int, seed: int = 101) -> None:
     heavy = ["t(3)", "t(2.1)", "Pareto(2.5)"]
     fig, axes = plt.subplots(1, 3, figsize=(13.5, 4.6))
     for ax, dname in zip(axes, heavy):
-        est = run_point_estimators(n, BASE, DISTS[dname], reps, seed + hash(dname) % 1000, n_jobs)
+        est = run_point_estimators(n, BASE, DISTS[dname], reps, seed + _stable_hash(dname) % 1000, n_jobs)
+        _save_raw(f"e2_estimates_{dname}", **est)
         rows += _summary_rows(est, beta, dname)
         styled_boxplot(ax, est, true_beta=beta, show_legend=(dname == heavy[0]))
         lo, hi, frac = _robust_ylim(list(est.values()))
@@ -218,7 +246,8 @@ def exp_e2b_tails(reps: int, n_jobs: int, seed: int = 202) -> None:
     fig, axes = plt.subplots(1, 2, figsize=(11.0, 4.6), sharex=True)
     qtab = []
     for ax, dname in zip(axes, panels):
-        est = run_point_estimators(n, BASE, DISTS[dname], reps, seed + hash(dname) % 1000, n_jobs)
+        est = run_point_estimators(n, BASE, DISTS[dname], reps, seed + _stable_hash(dname) % 1000, n_jobs)
+        _save_raw(f"e2b_estimates_{dname}", **est)
         for ename, arr in est.items():
             q = np.quantile(np.abs(arr - beta), 1.0 - deltas)
             ax.plot(x, q, color=ESTIMATOR_COLORS[ename], linewidth=1.8, label=ename)
@@ -254,6 +283,7 @@ def exp_e3_strength(reps: int, n_jobs: int, seed: int = 303) -> None:
     for ax, mu in zip(axes, mus):
         dgp = dict(BASE, mu_ZX=mu)
         est = run_point_estimators(n, dgp, None, reps, seed + int(mu * 1000), n_jobs)
+        _save_raw(f"e3_estimates_mu{mu:g}", **est)
         rows += _summary_rows(est, beta, f"mu_ZX={mu:g}")
         styled_boxplot(ax, est, true_beta=beta, show_legend=(mu == mus[0]))
         lo, hi, frac = _robust_ylim(list(est.values()))
@@ -308,16 +338,28 @@ def _tests_rep(seed, n, dgp, dist, beta0_grid, delta, c_sn) -> dict[str, np.ndar
         "MoM-AR (feasible)": np.abs(W_tilde) > tau_feas,
         "SN-AR": T_sn > c_sn,
         "AR (standard)": np.asarray(std["reject"]),
+        # Diagnostics, not tests: underscore-prefixed so _rejection_rates
+        # skips them when averaging. Used to report how wide the finite-sample
+        # band tau_n is relative to the null spread of the statistic.
+        "_W_tilde": np.asarray(W_tilde),
+        "_tau_oracle": np.asarray(tau_orac),
+        "_tau_feasible": np.asarray(tau_feas),
     }
 
 
-def _rejection_rates(n, dgp, dist, beta0_grid, n_reps, seed, n_jobs, delta=DELTA) -> dict[str, np.ndarray]:
+def _rejection_rates(n, dgp, dist, beta0_grid, n_reps, seed, n_jobs, delta=DELTA,
+                     raw_out: dict | None = None) -> dict[str, np.ndarray]:
     c_sn = inf.rk_critical_value(inf.k_blocks(delta), delta)  # precompute (cache is not process-safe)
     seeds = np.random.SeedSequence(seed).spawn(n_reps)
     res = Parallel(n_jobs=n_jobs)(
         delayed(_tests_rep)(s, n, dgp, dist, beta0_grid, delta, c_sn) for s in seeds
     )
-    return {name: np.mean([r[name] for r in res], axis=0) for name in res[0]}
+    if raw_out is not None:
+        # (n_reps, len(beta0_grid)) boolean rejection matrix per test
+        for name in res[0]:
+            raw_out[name] = np.stack([r[name] for r in res])
+    return {name: np.mean([r[name] for r in res], axis=0)
+            for name in res[0] if not name.startswith("_")}
 
 
 def exp_i1_size(reps: int, n_jobs: int, seed: int = 404) -> None:
@@ -326,14 +368,29 @@ def exp_i1_size(reps: int, n_jobs: int, seed: int = 404) -> None:
     dists = ["Gaussian", "t(2.1)", "Pareto(2.5)"]
     beta = np.array([BASE["beta"]])
     rows = []
+    tau_rows: list[dict] = []
 
     t0 = time.perf_counter()
     fig, axes = plt.subplots(1, len(dists), figsize=(13.5, 4.2), sharey=True)
     for ax, dname in zip(axes, dists):
         rates = {name: [] for name in TEST_COLORS}
         for n in ns:
+            raw: dict = {}
             rr = _rejection_rates(n, BASE, DISTS[dname], beta, reps,
-                                  seed + hash((dname, n)) % 10_000, n_jobs)
+                                  seed + _stable_hash(dname, n) % 10_000, n_jobs, raw_out=raw)
+            _save_raw(f"i1_reject_{dname}_n{n}", **raw)
+            # How conservative is the finite-sample threshold? Compare tau_n
+            # with the actual standard deviation of W_tilde under H0. The
+            # oracle tau is fixed by sigma_Ze and cannot adapt to the tails;
+            # the feasible one is rebuilt from a robust scale estimate.
+            sd_W = float(raw["_W_tilde"][:, 0].std(ddof=1))
+            tau_rows.append({
+                "dist": dname, "n": n, "sd_W_null": sd_W,
+                "tau_oracle": float(np.median(raw["_tau_oracle"])),
+                "tau_feasible": float(np.median(raw["_tau_feasible"])),
+                "ratio_oracle": float(np.median(raw["_tau_oracle"])) / sd_W,
+                "ratio_feasible": float(np.median(raw["_tau_feasible"])) / sd_W,
+            })
             for name in rates:
                 rates[name].append(float(rr[name][0]))
                 rows.append({"dist": dname, "n": n, "test": name, "size": float(rr[name][0])})
@@ -354,6 +411,9 @@ def exp_i1_size(reps: int, n_jobs: int, seed: int = 404) -> None:
     fig.subplots_adjust(left=0.06, right=0.99, top=0.92, bottom=0.2, wspace=0.1)
     _save(fig, "i1_size.png")
     pd.DataFrame(rows).to_csv(GRAPHS_DIR / "i1_size.csv", index=False)
+    tau_tab = pd.DataFrame(tau_rows)
+    tau_tab.to_csv(GRAPHS_DIR / "i1_tau_ratio.csv", index=False)
+    print(tau_tab.to_string(index=False, float_format=lambda v: f"{v:.4f}"))
     print(pd.DataFrame(rows).pivot_table(index=["dist", "n"], columns="test", values="size")
           .to_string(float_format=lambda v: f"{v:.4f}"))
     print(f"[I1] runtime {time.perf_counter()-t0:.1f}s")
@@ -370,8 +430,10 @@ def exp_i2_power(reps: int, n_jobs: int, seed: int = 505) -> None:
     t0 = time.perf_counter()
     fig, axes = plt.subplots(1, 2, figsize=(11.0, 4.6), sharey=True)
     for ax, dname in zip(axes, dists):
+        raw: dict = {}
         rr = _rejection_rates(n, BASE, DISTS[dname], grid, reps,
-                              seed + hash(dname) % 10_000, n_jobs)
+                              seed + _stable_hash(dname) % 10_000, n_jobs, raw_out=raw)
+        _save_raw(f"i2_reject_{dname}", beta0_grid=grid, **raw)
         for name, vals in rr.items():
             ax.plot(grid - beta, vals, linewidth=1.8, linestyle=TEST_STYLES[name],
                     color=TEST_COLORS[name], label=name)
@@ -442,10 +504,14 @@ def exp_i3_cs(reps: int, n_jobs: int, seed: int = 606) -> None:
     t0 = time.perf_counter()
     for tag, dname, mu in configs:
         dgp = dict(BASE, mu_ZX=mu)
-        seeds = np.random.SeedSequence(seed + hash(tag) % 10_000).spawn(reps)
+        seeds = np.random.SeedSequence(seed + _stable_hash(tag) % 10_000).spawn(reps)
         res = Parallel(n_jobs=n_jobs)(
             delayed(_cs_rep)(s, n, dgp, DISTS[dname], DELTA, c_sn) for s in seeds
         )
+        _save_raw("i3_cs_" + tag.replace(", ", "_").replace("(", "").replace(")", ""),
+                  **{f"{name}__{field}": [r[name][field] for r in res]
+                     for name in TEST_COLORS
+                     for field in ("covers", "n_components", "unbounded", "length")})
         for name in TEST_COLORS:
             cov = np.mean([r[name]["covers"] for r in res])
             ncomp = np.array([r[name]["n_components"] for r in res])
@@ -544,6 +610,8 @@ def exp_i4_mono(reps: int, n_jobs: int, seed: int = 707) -> None:
                 delayed(_mono_rep)(s, n, dgp, DELTA) for s in seeds
             )
             same, single, viol = (np.asarray(c) for c in zip(*res))
+            _save_raw(f"i4_mono_val{val:g}_n{n}",
+                      same_sign=same, single_interval=single, violation=viol)
             rows.append({"param": val, "n": n,
                          "frac_same_sign": float(same.mean()),
                          "frac_single_interval": float(single.mean()),
@@ -611,6 +679,10 @@ def exp_i4_mono(reps: int, n_jobs: int, seed: int = 707) -> None:
 PS_MUS = [1.0, 0.6, 0.4, 0.3, 0.2, 0.1, 0.05]
 # Levels highlighted in the fixed-data spotlight figure (strong / transition / weak).
 PS_SPOTLIGHT_MUS = [1.0, 0.3, 0.05]
+# Levels drawn as boxplots in panel (a); chosen to match the E3 strength sweep
+# so the two figures are directly comparable. All of PS_MUS is still computed
+# and stored -- this only controls what is plotted.
+PS_BOX_MUS = [1.0, 0.4, 0.2, 0.1]
 
 
 def _ps_spotlight_level(seed, n, mu, delta, B) -> dict:
@@ -689,6 +761,9 @@ def _ps_dataset(seed, n, mu, delta, c_sn, B) -> dict:
         out[f"{est}_mean"] = float(v.mean())
         out[f"{est}_pvar"] = float(v.var(ddof=1))          # partition variance
         out[f"{est}_piqr"] = float(np.subtract(*np.quantile(v, [0.75, 0.25])))
+        # Raw per-partition draws, kept so figures can be rebuilt without
+        # re-running the nested loop (persisted to ps_partition_draws.npz).
+        out[f"{est}_draws"] = v
     for key in ("cert", "mom_split", "sn_split",
                 "mom_rej0", "mom_rejb", "sn_rej0", "sn_rejb"):
         out[key] = float(np.mean(cols[key]))
@@ -725,6 +800,7 @@ def exp_ps_partition(reps_D: int, B: int, n_jobs: int, seed: int = 808,
 
     t0 = time.perf_counter()
     rows = []
+    draws: dict[str, np.ndarray] = {}   # "mu<level>_<est>" -> (D, B) raw draws
     for mu in PS_MUS:
         seeds = np.random.SeedSequence(seed + int(1e4 * mu)).spawn(reps_D)
         res = Parallel(n_jobs=n_jobs)(
@@ -748,65 +824,121 @@ def exp_ps_partition(reps_D: int, B: int, n_jobs: int, seed: int = 808,
                     "mom_rej0", "mom_rejb", "sn_rej0", "sn_rejb",
                     "ar_rej0", "ar_rejb"):
             row[key] = float(d[key].mean())
+        # Decision instability: share of datasets whose reject/don't-reject
+        # verdict at beta0 = 0 is NOT unanimous across the B partitions, i.e.
+        # where the conclusion depends on the seed. The per-dataset entries
+        # are rejection *rates* over partitions, so a value strictly inside
+        # (0, 1) is a dataset on which the decision flipped.
+        for pre in ("mom", "sn"):
+            r = d[f"{pre}_rej0"].to_numpy()
+            row[f"{pre}_unstable0"] = float(np.mean((r > 0.0) & (r < 1.0)))
+        for est in ("mor", "rom", "cat"):
+            draws[f"mu{mu:g}_{est}"] = np.stack(d[f"{est}_draws"].to_list())
         rows.append(row)
         print(f"  mu={mu:g}: gamma={row['gamma']:.1f}, "
               f"MoR share={row['mor_share']:.3f}, cert={row['cert']:.3f}")
 
     tab = pd.DataFrame(rows)
     tab.to_csv(GRAPHS_DIR / "ps_partition_randomness.csv", index=False)
+    # Raw draws are persisted so the figures can be redesigned without paying
+    # for the nested loop again.
+    _save_raw("ps_partition_draws", beta=np.array(BASE["beta"]), **draws)
     print(tab.to_string(index=False, float_format=lambda v: f"{v:.4f}"))
 
-    # --- headline figure: 2x2 panels sharing the log gamma axis ---
-    est_lines = [("mor_share", "Median-of-Ratios", ESTIMATOR_COLORS["Median-of-Ratios"]),
-                 ("rom_share", "Ratio-of-Medians", ESTIMATOR_COLORS["Ratio-of-Medians"]),
-                 ("cat_share", "Catoni", ESTIMATOR_COLORS["Catoni"])]
-    g = tab["gamma"]
-    fig, axes = plt.subplots(2, 2, figsize=(11.0, 8.2), sharex=True)
-    (axA, axB), (axC, axD) = axes
+    # --- headline figure (F4): partition vs sampling noise, and decision
+    # instability. Panel (a) is one small-multiple per strength level, each
+    # pairing the within-dataset-centred partition deviations against the
+    # dataset means centred at beta (so the second box carries bias as well
+    # as sampling spread); panel (b) spans the full gamma sweep.
+    beta_true = BASE["beta"]
+    est_spec = [("mor", "Median-of-Ratios"), ("rom", "Ratio-of-Medians"),
+                ("cat", "Catoni")]
 
-    for col, label, color in est_lines:
-        axA.plot(g, tab[col], marker="o", markersize=4, linewidth=1.8,
-                 color=color, label=label)
-    axA.set_ylabel("Partition share of total variance")
-    axA.set_title("(a) Partition-noise share", fontsize=12)
-    axA.legend(frameon=False, fontsize=9)
+    fig = plt.figure(figsize=(13.0, 7.1))
+    gs = fig.add_gridspec(2, len(PS_BOX_MUS), height_ratios=[1.3, 1.0],
+                          hspace=0.30, wspace=0.28)
 
-    axB.plot(g, tab["cert"], marker="o", markersize=4, linewidth=1.8, color="#4C72B0")
-    axB.set_ylabel("Frequency")
-    axB.set_title("(b) Certificate: all block means of $ZX$ same sign", fontsize=12)
+    clipped = 0.0
+    for col, mu in enumerate(PS_BOX_MUS):
+        ax = fig.add_subplot(gs[0, col])
+        data, colors, faces, centres = [], [], [], []
+        for i_e, (est, label) in enumerate(est_spec):
+            arr = draws[f"mu{mu:g}_{est}"]                 # (D, B)
+            part = (arr - arr.mean(axis=1, keepdims=True)).ravel()
+            samp = arr.mean(axis=1) - beta_true
+            centre = 1.0 + 2.2 * i_e
+            data += [part, samp]
+            colors += [ESTIMATOR_COLORS[label]] * 2
+            faces += [True, False]
+            centres.append(centre)
+        positions = [c + off for c in centres for off in (-0.42, 0.42)]
 
-    axC.plot(g, tab["mom_split"], marker="o", markersize=4, linewidth=1.8,
-             color=TEST_COLORS["MoM-AR (feasible)"], label="MoM-AR (feasible)")
-    axC.plot(g, tab["sn_split"], marker="s", markersize=4, linewidth=1.8,
-             color=TEST_COLORS["SN-AR"], label="SN-AR")
-    axC.set_ylabel("Frequency")
-    axC.set_title("(c) Confidence set splits (> 1 component)", fontsize=12)
-    axC.legend(frameon=False, fontsize=9)
-
-    for pre, label, color in [("mom", "MoM-AR (feasible)", TEST_COLORS["MoM-AR (feasible)"]),
-                              ("sn", "SN-AR", TEST_COLORS["SN-AR"]),
-                              ("ar", "AR (standard)", TEST_COLORS["AR (standard)"])]:
-        axD.plot(g, tab[f"{pre}_rej0"], marker="o", markersize=4, linewidth=1.8,
-                 color=color, label=f"{label}: $\\beta_0=0$")
-        axD.plot(g, tab[f"{pre}_rejb"], marker="o", markersize=4, linewidth=1.2,
-                 linestyle=":", color=color)
-    axD.axhline(DELTA, color="0.4", linestyle=":", linewidth=1.0)
-    axD.set_ylabel("Rejection frequency")
-    axD.set_title(r"(d) Reject $\beta_0=0$ (solid) and $\beta_0=\beta$ (dotted)",
-                  fontsize=12)
-    axD.legend(frameon=False, fontsize=8, loc="center left")
-
-    for ax in axes.flat:
-        ax.set_xscale("log")
+        # y-limits from the whisker extents rather than raw quantiles, so the
+        # boxes and whiskers of every estimator fit inside the panel. Fliers
+        # are not drawn (20,000 deviations per box merge into a solid bar).
+        caps = []
+        for v in data:
+            q1, q3 = np.percentile(v, [25, 75])
+            iqr = q3 - q1
+            inner = v[(v >= q1 - 1.5 * iqr) & (v <= q3 + 1.5 * iqr)]
+            caps += [inner.min(), inner.max()] if inner.size else [q1, q3]
+        lo, hi = min(caps), max(caps)
+        pad = 0.10 * (hi - lo)
+        lo, hi = lo - pad, hi + pad
+        clipped = max(clipped,
+                      float(np.mean([np.mean((v < lo) | (v > hi)) for v in data])))
+        ax.axhline(0.0, color="0.45", linestyle=(0, (5, 4)), linewidth=1.1, zorder=1)
+        bp = ax.boxplot(data, positions=positions, widths=0.62,
+                        patch_artist=True, showfliers=False, zorder=3,
+                        medianprops=dict(color="black", linewidth=1.4),
+                        whiskerprops=dict(color="0.3", linewidth=1.0),
+                        capprops=dict(color="0.3", linewidth=1.0))
+        for patch, color, filled in zip(bp["boxes"], colors, faces):
+            patch.set_edgecolor(color)
+            patch.set_linewidth(1.5)
+            if filled:
+                patch.set_facecolor(color)
+                patch.set_alpha(0.45)
+            else:
+                patch.set_facecolor("white")
+        ax.set_xticks(centres)
+        ax.set_xticklabels([lab.replace("-of-", "-of-\n") for _, lab in est_spec],
+                           fontsize=9)
+        ax.set_ylim(lo, hi)
         ax.yaxis.grid(True, color="0.88", linewidth=0.7)
         ax.set_axisbelow(True)
-    for ax in (axC, axD):
-        ax.set_xlabel(r"$\gamma = \sigma^2_{ZX}/\mu_{ZX}^2$ (log scale)")
-    _note(fig, f"Note. D = {reps_D} datasets $\\times$ B = {B} partitions per level; n = {n}, "
-               f"t(2.1) errors, $\\delta$ = {DELTA:g}, k = {inf.k_blocks(DELTA)}, m = {m_sim}. "
-               f"Partition share = mean within-dataset partition variance over total variance.")
-    fig.subplots_adjust(left=0.08, right=0.99, top=0.95, bottom=0.11,
-                        hspace=0.18, wspace=0.22)
+        gamma = BASE["sigma2_ZX"] / mu ** 2
+        ax.set_title(rf"$\gamma$ = {gamma:.3g}  ($\mu_{{ZX}}$ = {mu:g})", fontsize=11)
+        if col == 0:
+            ax.set_ylabel(r"Deviation from centre")
+            handles = [Patch(facecolor="0.55", edgecolor="0.3", alpha=0.45,
+                             label="Partition noise (within dataset)"),
+                       Patch(facecolor="white", edgecolor="0.3",
+                             label=r"Sampling noise (dataset means $-\ \beta$)")]
+            ax.legend(handles=handles, frameon=False, fontsize=8, loc="upper left")
+
+    axI = fig.add_subplot(gs[1, :])
+    g = tab["gamma"]
+    for pre, label in (("mom", "MoM-AR (feasible)"), ("sn", "SN-AR")):
+        axI.plot(g, tab[f"{pre}_unstable0"], marker="o", markersize=4.5,
+                 linewidth=1.8, color=TEST_COLORS[label], label=label)
+    axI.set_xscale("log")
+    axI.set_xlabel(r"$\gamma = \sigma^2_{ZX}/\mu_{ZX}^2$ (log scale)")
+    axI.set_ylabel("Share of datasets")
+    axI.set_title(r"(b) Decision instability at $\beta_0 = 0$: verdict not unanimous "
+                  r"across partitions", fontsize=11)
+    axI.legend(frameon=False, fontsize=9)
+    axI.yaxis.grid(True, color="0.88", linewidth=0.7)
+    axI.set_axisbelow(True)
+
+    fig.text(0.5, 0.955, "(a) Partition noise against sampling noise, by instrument strength",
+             ha="center", fontsize=11)
+    _note(fig, rf"Note. D = {reps_D} datasets $\times$ B = {B} partitions per level; n = {n}, "
+               rf"t(2.1) errors, $\delta$ = {DELTA:g}, k = {inf.k_blocks(DELTA)}, m = {m_sim}. "
+               rf"Panel (a): boxes and whiskers (1.5$\times$IQR); outliers beyond the "
+               rf"whiskers are not drawn ({clipped:.1%} of points on average), and "
+               rf"y-axes are per-level.")
+    fig.subplots_adjust(left=0.07, right=0.99, top=0.91, bottom=0.11)
     _save(fig, "ps_partition_randomness.png")
 
     # --- spotlight figure: one fixed dataset per level, seed-only randomness ---
@@ -816,6 +948,10 @@ def exp_ps_partition(reps_D: int, B: int, n_jobs: int, seed: int = 808,
                                      n, mu, DELTA, B_spot)
         for i, mu in enumerate(PS_SPOTLIGHT_MUS)
     )
+    _save_raw("ps_spotlight",
+              **{f"gamma{s['gamma']:g}_{est}": s[est]
+                 for s in spot for est in ("mor", "rom", "cat")},
+              **{f"gamma{s['gamma']:g}_iv": np.array(s["iv"]) for s in spot})
     from scipy.stats import gaussian_kde
     fig, axes = plt.subplots(1, len(spot), figsize=(13.5, 4.4))
     for ax, s in zip(axes, spot):

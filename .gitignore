@@ -1,0 +1,35 @@
+# --- LaTeX build artefacts -------------------------------------------------
+# Regenerated on every compile; the built PDF is deliberately still tracked.
+*.aux
+*.log
+*.fls
+*.fdb_latexmk
+*.out
+*.bbl
+*.blg
+*.toc
+*.lof
+*.lot
+*.synctex.gz
+*.synctex(busy)
+*.nav
+*.snm
+*.vrb
+
+# --- Generated simulation data --------------------------------------------
+# Raw replication-level draws: large, and fully regenerable since every
+# experiment driver takes a fixed seed (python Code/experiments.py --full).
+Code/output/raw/
+
+# --- Cached analysis samples ----------------------------------------------
+# Rebuilt from data/AngristEvans1998/m_d_806.sas7bdat by replication_ae98.py.
+Code/output/*.pkl
+
+# --- Python ----------------------------------------------------------------
+__pycache__/
+*.pyc
+
+# --- Raw census extracts ---------------------------------------------------
+# Source microdata for the AE98 replication: far over GitHub's 100 MB file
+# limit. Obtain them as described in data/AngristEvans1998/README.md.
+data/AngristEvans1998/*.sas7bdat

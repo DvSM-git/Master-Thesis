@@ -124,7 +124,8 @@ def _scaled_kde(values: np.ndarray, grid: np.ndarray) -> np.ndarray:
     return dens / dens.max()
 
 
-def make_figure(res: pd.DataFrame, wald: float, ols: float) -> None:
+def make_figure(res: pd.DataFrame, wald: float, ols: float,
+                out_path: Path = FIG_PATH) -> None:
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.4))
 
     # (a) estimator distributions across partitions
@@ -188,9 +189,9 @@ def make_figure(res: pd.DataFrame, wald: float, ols: float) -> None:
 
     fig.subplots_adjust(left=0.065, right=0.985, top=0.92, bottom=0.13, wspace=0.22)
     GRAPHS_DIR.mkdir(parents=True, exist_ok=True)
-    fig.savefig(FIG_PATH)
+    fig.savefig(out_path)
     plt.close(fig)
-    print(f"wrote {FIG_PATH}")
+    print(f"wrote {out_path}")
 
 
 def summarise(res: pd.DataFrame, wald: float, ols: float, ar_ref: dict) -> tuple[pd.DataFrame, pd.DataFrame]:

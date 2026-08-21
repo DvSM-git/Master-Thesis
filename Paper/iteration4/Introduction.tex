@@ -1,13 +1,31 @@
-\section{Intruduction}
-\begin{enumerate}
-    \item Fat tails in practice
-    \item Issues with standard estimators
-    \item Median of Means
-    \item Median of Means OLS
-    \item No Median of Means IV
-\end{enumerate}
+\section{Introduction}
+
+The just-identified instrumental variable (IV) estimator is a ratio of two sample means. This makes it fragile in two distinct ways: the numerator is a sample mean of a possibly heavy-tailed product, and the denominator can be close to zero. The effects of large outliers on IV estimation was studied by \citet{young2022consistency}, where 1309 IV regressions in 30 papers were examined and it was shown that high leverage and non-iid errors are pervasive. This distorts IV tests and rarely rejects the OLS estimate. Additionally, F-statistics based on pre-tests become largely uninformative about size and bias. 
 
 
-In the presence of heavy tails, the sample mean is no longer an efficient measure of central tendency. As such, the quality of standard regression estimation techniques, such as OLS, can degrade significantly when this is the case. Different estimators have been studied in order to address this issue, with M-Estimators (\cite{huber1992robust}) being one of the most frequently used alternatives.
+In the presence of heavy tails, the sample mean is no longer an efficient measure of central tendency. As such, the quality of standard regression estimation techniques, such as OLS, can degrade significantly when this is the case. Under only a finite-variance assumption, the empirical mean's deviation from the true mean scales as $|\hat{\mu} - \mu| \lesssim \frac{1}{\sqrt{n\delta}}$ with confidence $1-\delta$, whereas sub-Gaussian estimators achieve the exponentially better rate $|\hat{\mu} - \mu| \lesssim \sqrt{\ln(1/\delta)/n}$. \todo[inline]{discuss about estimators that solve this and cite \cite{devroye2016sub}}
 
-Another technique that has gained traction in the machine learning literature is the Median-of-Means (MoM) estimator (\cite{lecue2020robust}), particularly due to its Subgaussian nature.
+
+A technique that has gained traction in the machine learning literature is the Median-of-Means (MoM) estimator \citep{lecue2020robust}, which attains sub-Gaussian deviation bounds under nothing more than a finite variance. The foundational studies of this method were given by \cite{nemirovskij1983problem}, \cite{jerrum1986random}, and \cite{alon1996space}. A comprehensive survey and analysis of the MoM estimator was given by \cite{lugosi2019mean}
+
+MoM has been carried into OLS estimation, but not into instrumental variable estimation; MoM is defined for a mean, whereas the IV estimand is a ratio of means. Since there is no canonical way to take a median of a ratio, novel methods have to be constructed that, not only estimate it, but also give the most preferable theoretical guarantees, and empirical results.
+
+
+We propose and analyse two MoM-based IV estimators. The Ratio-of-Medians (RoM) estimator takes the coordinate-wise median of the block cross-moments and then divides; the Median-of-Ratios (MoR) estimator divides within each block and then takes the median of the block-level IV estimates. Both of these estimators are Sub-Gaussian, but the RoM consistently shows better empirical results throughout the simulations.
+
+The robustness is not free. In standard mean estimation MoM costs constants, but in ratio estimation it costs a per-block sample size floor. That is, in order to guarantee a Sub-Gaussian estimator with a certain probability, a minimum per-block sample size is needed. MoM-type IV estimators pay for tail robustness by spending instrument strength.
+
+
+In order to be able to conduct inference under the MoM framework, we construct a median-of-means Anderson-Rubin (MoM-AR) test whose size is bounded by $\delta$ in finite samples under the same assumptions, and show that the confidence set obtained by inverting it can be computed exactly in closed form from at most $2k$ candidate endpoints. This test depends on an unknown scale parameter $\sigma$ that has to be estimated. We therefore construct a self-normalised Anderson-Rubin test which cancels the unknown $\sigma$ instead of estimating it or treating it as known. \todo[inline]{discuss size and power costs of tests}
+
+
+\todo[inline]{One or two sentences on the simulation evidence: robustness is nearly free under Gaussian errors, clearly beneficial at $t(2.1)$, and the $\delta$-sweep visibly reproduces the theoretical shapes.}
+
+\todo[inline]{Then the two applications, and make the pairing the point: \citet{angrist1991does} is the weak-instrument case and \citet{angrist1998children} the strong one, so together they show the strength condition biting and not biting. Own the partition-sensitivity caveat here (Table~\ref{tab:ak91_sensitivity}) rather than letting a reader find it.}
+
+
+
+Finally, All theoretical results are formalised and machine-checked in Lean 4 using the Mathlib library, so that the measure-theoretic and probabilistic foundations are inherited rather than assumed.
+
+
+The remainder of the paper is organised as follows. Section~\ref{sec:standard_iv} \todo[inline]{...}; Sections~\ref{sec:rom} and~\ref{sec:mor} introduce the RoM and MoR estimators; Section~\ref{s:inference} develops the inference procedures; Section~\ref{ss:simulation_results} reports the simulation evidence; and Section~\ref{sec:artable} \todo[inline]{fix -- point at the case studies section, which currently has no label}.

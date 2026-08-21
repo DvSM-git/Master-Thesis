@@ -1,1 +1,403 @@
+% ---------------------------------------------------------------------------
+% Case studies.
+%
+% The tables below are AUTO-GENERATED -- do not edit them by hand, edit the
+% generating scripts (captions included) and re-run:
+%
+%   python Code/replication_ak91.py              -> iteration4/ak91_replication.tex
+%   python Code/replication_ak91_sensitivity.py  -> iteration4/ak91_sensitivity.tex
+%                                                   images/graphs/ak91_seed_sensitivity.png
+%   python Code/replication_ae98.py              -> iteration4/ae98_replication.tex
+%   python Code/replication_ae98_sensitivity.py  -> iteration4/ae98_sensitivity.tex
+%                                                   images/graphs/ae98_seed_sensitivity_*.png
+%
+% Data provenance is documented in data/AngristKreuger1991/readme.txt and
+% data/AngristEvans1998/README.md.
+% ---------------------------------------------------------------------------
+
 \section{Case Studies}
+\label{sec:case_studies}
+
+The simulations of Section~\ref{ss:simulation_results} evaluated the estimators and tests on data generated to satisfy \ref{ass:exog}--\ref{ass:moments} by construction, with the instrument strength conditions holding or failing by design. This section applies the same procedures to two canonical instrumental variable studies, where neither the tail behaviour nor the instrument strength is under our control.
+
+The two applications are chosen to sit on opposite sides of the conditions that drive the theory. \citet{angrist1991does} instrument years of schooling with quarter of birth; the textbook example of a weak instrument. There $\mu_{ZX}$ is small relative to $\sigma_{ZX}$ and every finite-sample strength condition of Sections~\ref{sec:standard_iv}--\ref{sec:mor} fails. \citet{angrist1998children} instrument family size with the sex composition of the first two children. There instrument is stronger relative to the noise and, because both the regressor and the instrument are bounded indicators, all three strength conditions hold. Reading the two studies together therefore separates what the estimators do when the theory applies from what they do when it does not.
+
+The purpose of this exercise is not to check whether the MoM-based estimators recover the published numbers, but rather to check what these methods buy, and cost, on real data. 
+
+\todo[inline]{expand}
+
+\subsection{Empirical Strategy}
+\label{ss:case_strategy}
+
+\subsubsection{Mapping the applications into the scalar model}
+
+The theory developed concerns $Y_i = \beta X_i + \varepsilon_i$ with a single instrument $Z_i$ and $\beta = \mu_{ZY}/\mu_{ZX}$. Both applications are therefore taken in their Wald form, that is, the just-identified specification with a single binary instrument and no covariates. In each case the published paper reports this specification alongside its covariate-adjusted counterparts, which makes the replication target unambiguous: Panel~B of Table~III in \citet{angrist1991does} and columns~(1)--(2) of Table~5 in \citet{angrist1998children}.
+
+Both papers write their models with an intercept. Our methods have been developed without an intercept, so we demean the three variables at the full-sample level before applying any procedure,
+\[
+    Y_i \leftarrow Y_i - \bar{Y}, \qquad
+    X_i \leftarrow X_i - \bar{X}, \qquad
+    Z_i \leftarrow Z_i - \bar{Z}.
+\]
+With a binary instrument the sample ratio $\hat{\mu}_{ZY}/\hat{\mu}_{ZX}$ of the demeaned variables is then algebraically identical to the Wald estimator $(\bar{Y}_1 - \bar{Y}_0)/(\bar{X}_1 - \bar{X}_0)$, so the Mean IV estimator of Section~\ref{sec:standard_iv} reproduces the published point estimate. Demeaning also keeps the moment $W_i(\beta_0) = Z_i(Y_i - \beta_0 X_i)$ of Section~\ref{ss:inversion} centered at zero under $H_0$, which would not hold if the intercept were left in.
+
+The interpretation of the MoM-based estimators are the same as the Wald estimators; the estimands capture the local average treatment effect since they estimate the same ratio of population moments.
+
+\subsubsection{Blocking, and why the partition is randomised}
+\label{sss:partition}
+
+Every procedure in Sections~\ref{sec:rom}--\ref{s:inference} partitions the sample into $k$ blocks. In the simulations, the observations are exchangeable by construction, so any partition is as good as any other. The observations in \citet{angrist1991does} are not exchangeable; the data is sorted by year and quarter of birth. Thus, any blocks cut directly from the raw file would coincide with birth cohorts rather than with random subsamples, violating the i.i.i.d assumption. To solve this, we draw a uniformly random permutation of the rows and cut consecutive blocks form the permuted data, which asures our data is i.i.d.
+
+This selection procedure presents a different issue. Conditional on the data, a different draw of the permutation gives a different estimate. Let the reported estimator be $\hat\beta(\text{data}, \pi)$ for a random permutation $\pi$. The theorems developed bound the deviation for each fixed $pi$, but the reported estimator 
+
+
+One solution could be to aggregate the results over multiple random permutations, but the probability statements developed in Sections~\ref{sec:rom}--\ref{s:inference} are taken over the sample. Therefore, we treat the permutation as an object of study in its own right, drawing $B = 1{,}000$ independent partitions
+and reporting the resulting distribution of every partition-dependent
+quantity. Within a draw, all procedures share the same permutation, so
+differences across estimators are not confounded with differences in blocking.
+
+The reported estimator then becomes $\hat\beta(\text{data}, \pi)$ for a random permutation $\pi$. The theorems developed bound the deviation for a fixed $pi$
+
+
+
+\todo[inline]{This is the methodological contribution of the section and deserves more
+than a paragraph. Expand with: (i) a formal statement that the reported
+estimator is $\hat\beta(\text{data}, \pi)$ for a random permutation $\pi$, and
+that the theorems bound the deviation for \emph{each fixed} $\pi$, so they
+transfer to the randomised estimator by averaging, but the width of the
+partition distribution is not controlled by them; (ii) the practical remedy,
+namely aggregating over partitions (median or mean of $\hat\beta(\pi)$ over
+many draws), and whether the concentration guarantee survives aggregation;
+(iii) a note that the same issue affects any MoM estimator applied to ordered
+data, so it is not specific to the IV setting.}
+
+\todo[inline]{Decide and state a convention for the thesis: are the headline numbers
+one fixed seed, or aggregated over partitions? Currently the replication
+tables report a single documented seed and the sensitivity tables report the
+distribution. If aggregation is adopted, the tables must be regenerated.}
+
+\subsubsection{Reported quantities}
+
+For each application we report, at $\delta = 0.05$ throughout:
+the replication of the published table; the four point estimators (Mean~IV,
+Ratio-of-Medians, Median-of-Ratios, and the Catoni competitor of
+Section~\ref{sec:sim_catoni}); the three feasible confidence sets (MoM-AR with
+the robust scale estimate, the self-normalised AR test, and the standard AR
+test as a baseline); and a plug-in check of the finite-sample strength
+conditions. The oracle MoM-AR test of Theorem~\ref{thm:mom_ar_size} is not
+feasible on real data, since $\sigma_{Z\varepsilon}$ is unknown, so only its
+feasible counterpart appears here.
+
+\todo[inline]{Explain the plug-in strength check and its circularity: the conditions
+involve $\mu_{ZX}$ and $\sigma_{ZX}^2$, which are replaced by sample moments,
+so the diagnostic is itself an estimate. Under a weak instrument
+$\hat{\mu}_{ZX}$ is exactly the noisy quantity in question. Argue why the
+verdict is nonetheless informative (the failure margins are orders of
+magnitude, not borderline).}
+
+\subsection{The Causal Effect of Compulsory School Attendance on Earnings}
+\label{ss:ak91}
+
+\subsubsection{Data and replication}
+
+\citet{angrist1991does} exploit the interaction of compulsory schooling laws
+with school-entry rules: children born earlier in the calendar year reach the
+legal dropout age having completed less schooling, so quarter of birth shifts
+educational attainment without, the authors argue, affecting earnings through
+any other channel. We replicate Panel~B of their Table~III, the 1980 Census
+sample of men born 1930--1939, with $Y$ the log weekly wage, $X$ years of
+education and $Z$ an indicator for birth in the first quarter.
+
+Table~\ref{tab:ak91_panelB} reproduces the published group means, differences
+and Wald estimate. The posted extract contains $329{,}509$ observations
+against the $327{,}509$ reported in the paper, as it is the sample used for
+their Table~V; every reported quantity nonetheless matches to the precision
+printed in the original, with a Wald return to education of $0.1020$ against a
+published $0.1020$ and an OLS return of $0.0709$ against $0.0709$.
+
+\todo[inline]{Comment on the economics: the Wald estimate exceeds OLS, which
+\citet{angrist1991does} read as evidence against simple ability bias. This is
+the substantive claim the confidence sets below are asked to adjudicate, so it
+should be stated before the results.}
+
+\todo[inline]{Document the two-thousand-observation discrepancy properly, and say
+whether it matters: it does not shift any replicated number at printed
+precision, but a reader will ask.}
+
+\input{iteration4/ak91_replication}
+
+\subsubsection{Instrument strength}
+\label{sss:ak91_strength}
+
+The plug-in moments of the demeaned data are
+$\hat{\mu}_{ZX} = -0.0203$ and $\hat{\sigma}_{ZX}^2 = 2.031$, so
+$\hat{\sigma}_{ZX}^2/\hat{\mu}_{ZX}^2 \approx 4{,}900$. Every finite-sample
+condition of the point estimators fails, and by wide margins: the standard IV
+condition~\eqref{eq:iv_strength} requires $n \geq 789{,}667$ against the
+$329{,}509$ available; the Median-of-Ratios condition~\eqref{eq:mor_strength}
+requires a block size $m \geq 157{,}933$ against $m = 13{,}729$; and the
+Ratio-of-Medians condition~\eqref{eq:rom_strength} requires $m > 19{,}742$
+against $m = 10{,}983$. The single-interval
+condition~\eqref{eq:mono_cheby} fails by two orders of magnitude.
+
+This is the empirical counterpart of experiment~E3
+(Section~\ref{sss:e3}): the regime in which the guarantees are void and the
+estimators are used outside their warranted range. It is also the honest
+description of quarter of birth as an instrument.
+
+\todo[inline]{Connect explicitly to the weak-instrument literature: the first-stage
+$F$ statistic here, the \citet{dufour1997some} argument for test inversion,
+and the observation that this is precisely the setting in which Wald-type
+confidence intervals are invalid, which motivates reporting the AR sets rather
+than $\hat\beta \pm 1.96\,\hat{\mathrm{se}}$. Compute and report the
+first-stage $F$ for comparability with that literature.}
+
+\subsubsection{Robust estimates and confidence sets}
+
+Table~\ref{tab:ak91_robust} reports the four estimators and the three
+confidence sets for one documented partition.
+
+\todo[inline]{Write the reading of the table. Points that must appear:
+(i) Mean~IV, Catoni and Ratio-of-Medians agree closely while Median-of-Ratios
+sits well below them at this seed, and Section~\ref{sss:ak91_sensitivity}
+shows this is partition noise rather than a property of the estimator;
+(ii) the feasible MoM-AR set is far wider than the standard AR set and fails
+to exclude zero, consistent with the conservativeness of $\tau_n$ documented
+in Section~\ref{sss:i1}, where the threshold was roughly five times the actual
+standard deviation of the statistic;
+(iii) the self-normalised set is competitive with the standard AR set, and at
+this seed is a union of three intervals, an instance of the geometry of
+Corollary~\ref{cor:union} that the simulations never triggered;
+(iv) none of the tests rejects the OLS value, so the headline finding of the
+paper is not overturned, but neither is it confirmed with the finite-sample
+machinery.}
+
+\subsubsection{Partition sensitivity}
+\label{sss:ak91_sensitivity}
+
+Table~\ref{tab:ak91_sensitivity} and Figure~\ref{fig:ak91_sensitivity}
+summarise $B = 1{,}000$ independent partitions of the same data.
+
+The dispersion induced by the partition is of the same order as the sampling
+uncertainty of the Wald estimator: the Median-of-Ratios estimate has a
+standard deviation of $0.019$ across partitions and ranges over
+$[0.028, 0.150]$, against a Wald standard error of $0.024$. Catoni's estimator
+is effectively partition-free, as it depends on the blocking only through its
+variance pre-estimate. The block means $\hat{\mu}_{ZX}^{(j)}$ share a sign in
+only $30.4\%$ of partitions, so the sufficient condition of
+Proposition~\ref{prop:mono_det} usually fails, and the self-normalised
+confidence set is a union of several intervals in $14.6\%$ of draws. The
+feasible MoM-AR set excludes zero in $1.8\%$ of partitions against $91.6\%$
+for the self-normalised set and $100\%$ for the partition-free standard AR
+test.
+
+\todo[inline]{Interpret rather than merely report. The key claim to defend: in a
+regime where the strength conditions fail, the choice of partition can change
+a qualitative inferential conclusion, and this is a cost of MoM-type
+procedures that the concentration theorems do not price. Contrast with
+Section~\ref{sss:ae98_sensitivity}, where the same diagnostics are benign.}
+
+\todo[inline]{The $10.1\%$ rejection rate of the OLS value by the self-normalised
+test deserves comment, since the ability-bias conclusion of
+\citet{angrist1991does} is exactly the hypothesis at stake.}
+
+\input{iteration4/ak91_sensitivity}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{images/graphs/ak91_seed_sensitivity.png}
+  \caption{Partition sensitivity on the \citet{angrist1991does} extract over
+  $B = 1{,}000$ random partitions. Panel~(a): kernel density estimates of the
+  point estimates, each scaled to unit maximum, with the partition-free Wald
+  and OLS values marked. Panel~(b): densities of the outer endpoints of the
+  95\% confidence sets (solid: lower, dashed: upper).}
+  \label{fig:ak91_sensitivity}
+\end{figure}
+
+\subsection{The Causal Effect of Family Size on Parental Labour Supply}
+\label{ss:ae98}
+
+\subsubsection{Data and replication}
+
+\citet{angrist1998children} estimate the effect of childbearing on parents'
+labour supply, instrumenting an indicator for having more than two children
+with an indicator for the first two children having the same sex. Parents with
+two same-sex children are more likely to have a third, while the sex mix
+itself is as good as randomly assigned, which is the identifying claim. We
+replicate columns~(1)--(2) of their Table~5: the 1980 Census sample of all
+women aged 21--35 with two or more children, for the five labour-supply
+outcomes.
+
+Table~\ref{tab:ae98_table5} reports the replication. The reconstructed sample
+contains $394{,}840$ observations against the $394{,}835$ of the published
+table, a five-observation discrepancy of the posted archive also reported by
+\citet{farbmacher2018twin}, whose selection rules we follow. The first stage
+is $0.0595$ against a published $0.0600$, and all five Wald estimates match at
+printed precision.
+
+\todo[inline]{Give the sample construction in the text or an appendix: age 21--35,
+two or more children, second child older than one year, mother at least 15 at
+first birth, and no Census-allocated values on the variables used. State that
+the published data appendix is in the working-paper version and that the rules
+are taken from \citet{farbmacher2018twin}, who work from the same file.}
+
+\todo[inline]{Explain why the 1980 rather than the 1990 sample is used: the 1990
+results require PUMS person weights, which take the analysis outside the
+i.i.d.\ framework of \ref{ass:exog}--\ref{ass:moments}, and twins are
+mismeasured in 1990 without quarter of birth.}
+
+\input{iteration4/ae98_replication}
+
+\subsubsection{Instrument strength}
+
+Here $\hat{\mu}_{ZX} = 0.0149$ and $\hat{\sigma}_{ZX}^2 = 0.0598$, so
+$\hat{\sigma}_{ZX}^2/\hat{\mu}_{ZX}^2 \approx 270$, roughly eighteen times
+smaller than in Section~\ref{sss:ak91_strength}. The standard IV
+condition~\eqref{eq:iv_strength} requires $n \geq 43{,}219$ and is met with
+$394{,}840$ observations; the Median-of-Ratios
+condition~\eqref{eq:mor_strength} requires $m \geq 8{,}644$ and is met with
+$m = 16{,}451$; the Ratio-of-Medians condition~\eqref{eq:rom_strength}
+requires $m > 1{,}080$ and is met with $m = 13{,}161$. Only the
+single-interval condition~\eqref{eq:mono_cheby}, the most demanding of the
+four, fails.
+
+\todo[inline]{Explain \emph{why} the conditions hold here and not in
+Section~\ref{ss:ak91}. The mechanism is that both $X$ and $Z$ are bounded
+indicators, so $Z_iX_i \in \{0,1\}$ up to centring and $\sigma_{ZX}^2$ is
+mechanically small, whereas years of schooling has a large variance. This is a
+substantive point about when the conditions are attainable in practice and
+should not be left implicit.}
+
+\subsubsection{Robust estimates and confidence sets}
+
+\todo[inline]{Write the reading of Table~\ref{tab:ae98_robust}. Points to cover:
+(i) all four estimators agree closely for every outcome, as the theory
+predicts when the strength conditions hold and the tails are moderate;
+(ii) the feasible MoM-AR sets are again roughly four times longer than the
+standard AR sets and never exclude zero, so the conservativeness of $\tau_n$,
+not instrument strength, is the binding constraint;
+(iii) the self-normalised sets exclude zero for the four labour-supply
+outcomes and are close to the standard AR sets;
+(iv) \emph{ln(Family income)} is the interesting case: no test excludes zero,
+matching the paper's own null result, while the standard AR test excludes the
+OLS value and the self-normalised test does not.}
+
+\subsubsection{Partition sensitivity}
+\label{sss:ae98_sensitivity}
+
+\todo[inline]{Write this subsection around Table~\ref{tab:ae98_sensitivity} and
+Figures~\ref{fig:ae98_sensitivity_workedm}
+and~\ref{fig:ae98_sensitivity_incomem}.
+The findings to report: across all five outcomes and $B = 1{,}000$ partitions,
+the estimator distributions are centred on the partition-free Wald value; the
+partition standard deviation is roughly $70\%$ of the sampling standard error
+(for \emph{Worked for pay}, $0.018$ against $0.026$); and no confidence set,
+for any outcome or any partition, is split or unbounded, against $14.6\%$
+split sets in Section~\ref{sss:ak91_sensitivity}. Rejection frequencies are
+stable rather than knife-edge: the self-normalised test excludes zero in
+$99\%$ or more of partitions for the three labour-supply outcomes and $90.4\%$
+for labour income.}
+
+\todo[inline]{Draw the comparative conclusion, which is the payoff of running two case
+studies: partition randomness is a second-order nuisance when the strength
+conditions hold and a first-order threat when they do not. Note that the
+diagnostic is available to a practitioner without knowing the truth, since
+both the strength check and the partition study are computable from the data.}
+
+\input{iteration4/ae98_sensitivity}
+
+\todo[inline]{Decide how many of the five sensitivity figures to include. Suggestion:
+keep \emph{Worked for pay} and \emph{Labor income} in the body, the first as
+the headline binary outcome and the second as the heavy-tailed one, and move
+the remaining three to the appendix.}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{images/graphs/ae98_seed_sensitivity_workedm.png}
+  \caption{Partition sensitivity for \emph{Worked for pay},
+  \citet{angrist1998children} 1980 all-women sample, $B = 1{,}000$ random
+  partitions. Panels as in Figure~\ref{fig:ak91_sensitivity}.}
+  \label{fig:ae98_sensitivity_workedm}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{images/graphs/ae98_seed_sensitivity_incomem.png}
+  \caption{Partition sensitivity for \emph{Labor income},
+  \citet{angrist1998children} 1980 all-women sample, $B = 1{,}000$ random
+  partitions. Panels as in Figure~\ref{fig:ak91_sensitivity}.}
+  \label{fig:ae98_sensitivity_incomem}
+\end{figure}
+
+\todo[inline]{Add, or move to the appendix, the remaining three figures:
+ae98\_seed\_sensitivity\_weeksm.png, \_hoursm.png and \_lfaminc.png, following
+the label convention \texttt{fig:ae98\_sensitivity\_<outcome>}.}
+
+\subsection{Discussion}
+\label{ss:case_discussion}
+
+\subsubsection{Do these data have the tails the theory is built for?}
+\label{sss:case_tails}
+
+The estimators of this thesis are designed for heavy-tailed
+$Z\varepsilon$, and Section~\ref{sss:e2} shows their advantage materialising
+only once the tails are heavy. Whether the advantage is available in an
+application is therefore an empirical question about the data, and it should
+be asked before the results are interpreted.
+
+The sample kurtosis of $Z_i\hat{\varepsilon}_i$, evaluated at the Wald
+estimate, is $44$ for the \citet{angrist1991does} log wage equation, against
+$3$ for a Gaussian. In \citet{angrist1998children} it ranges from $1.1$ for
+\emph{Worked for pay} and $1.4$ for \emph{Weeks worked}, both lighter-tailed
+than a Gaussian because the outcome is bounded, to $26$ for \emph{Labor
+income} and $35$ for \emph{ln(Family income)}. The applications therefore span
+both regimes, and within the second application the tail behaviour varies by
+outcome while the instrument and regressor are held fixed.
+
+\todo[inline]{These diagnostics are currently computed ad hoc and must be folded into
+the replication scripts so that the numbers regenerate with the tables. A
+tail-index estimate would be more informative than kurtosis, but the naive
+Hill estimator is degenerate for the bounded outcomes, where the top order
+statistics tie; either restrict it to the continuous outcomes or use an
+estimator that tolerates ties.}
+
+\todo[inline]{Then make the argument this section exists to make: the case studies do
+\emph{not} show the MoM estimators beating the sample mean, and should not be
+presented as if they did. \emph{Worked for pay} is bounded, so the sample mean
+is already sub-Gaussian and blocking can only discard information; the two
+heavy-tailed outcomes are the ones where a difference could appear.
+Investigate whether the partition-averaged MoR estimate has a visibly tighter
+distribution for \emph{Labor income} than for \emph{Worked for pay}, which is
+the only place in these data where the theory predicts a gain.}
+
+\subsubsection{What the case studies establish}
+
+\todo[inline]{Summarise, honestly and without overclaiming. A defensible list:
+(i) the estimators and tests are implementable at census scale and reproduce
+the published Wald estimates exactly, so nothing is broken;
+(ii) the finite-sample strength conditions are informative in practice, since
+they separate the two applications in the way the theory predicts and are
+checkable from the data;
+(iii) the finite-sample threshold $\tau_n$ is too conservative to be useful
+for inference in either application, and the self-normalised test is the one
+that should be recommended;
+(iv) partition randomness is a real and previously unremarked cost of applying
+MoM procedures to ordered data.}
+
+\subsubsection{Limitations}
+
+\todo[inline]{Collect the limitations, several of which have been flagged above:
+no covariates, so the replications are the papers' simplest specifications and
+not their preferred ones; the scalar theory cannot accommodate the
+overidentified designs both papers ultimately use;
+full-sample demeaning induces $O(1/n)$ cross-block dependence;
+the 1990 \citet{angrist1998children} sample is excluded because it requires
+survey weights; top-coding of the income variables truncates exactly the tail
+the theory cares about, which may understate the case for robustness;
+and the plug-in strength diagnostics are estimates, not oracle statements.}
+
+\todo[inline]{Note the top-coding point carefully. Labor income is top-coded at
+\$75{,}000 in the 1980 Census, so the observed tail is censored and the
+measured kurtosis of $26$ is a lower bound on the underlying tail heaviness.
+This cuts against the case studies as a test of the heavy-tail machinery and
+should be acknowledged rather than buried.}
