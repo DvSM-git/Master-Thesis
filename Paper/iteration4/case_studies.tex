@@ -46,10 +46,9 @@ The interpretation of the MoM-based estimators are the same as the Wald estimato
 \subsubsection{Blocking, and why the partition is randomised}
 \label{sss:partition}
 
-Every procedure in Sections~\ref{sec:rom}--\ref{s:inference} partitions the sample into $k$ blocks. In the simulations, the observations are exchangeable by construction, so any partition is as good as any other. The observations in \citet{angrist1991does} are not exchangeable; the data is sorted by year and quarter of birth. Thus, any blocks cut directly from the raw file would coincide with birth cohorts rather than with random subsamples, violating the i.i.i.d assumption. To solve this, we draw a uniformly random permutation of the rows and cut consecutive blocks form the permuted data, which asures our data is i.i.d.
+As discussed in Section~\ref{sss:ps}, 
 
 This selection procedure presents a different issue. Conditional on the data, a different draw of the permutation gives a different estimate. Let the reported estimator be $\hat\beta(\text{data}, \pi)$ for a random permutation $\pi$. The theorems developed bound the deviation for each fixed $pi$, but the reported estimator 
-
 
 One solution could be to aggregate the results over multiple random permutations, but the probability statements developed in Sections~\ref{sec:rom}--\ref{s:inference} are taken over the sample. Therefore, we treat the permutation as an object of study in its own right, drawing $B = 1{,}000$ independent partitions
 and reporting the resulting distribution of every partition-dependent

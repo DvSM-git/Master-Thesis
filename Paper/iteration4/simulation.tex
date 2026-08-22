@@ -129,11 +129,11 @@ Figure~\ref{fig:i2_power} show that the MoM-AR acceptance regions are less power
   \label{fig:ps_partition_randomness}
 \end{figure}
 
-Every estimator of Sections~\ref{sec:rom}--\ref{sec:mor} splits the sample into blocks, and on real data that split has to be randomised, since the observations do not arrive in a random order. The estimate therefore depends on the partition draw as well as on the data. Figure~\ref{fig:ps_partition_randomness} separates the two. For each instrument strength, $D = 100$ datasets are drawn and each is partitioned $B = 200$ times. Panel~(a) plots the deviation of every estimate from its own dataset's average across partitions (filled boxes, which isolate the partition), against the dataset averages centred at the true $\beta$ (hollow boxes, which isolate the data).
+Every procedure in Sections~\ref{sec:rom}--\ref{s:inference} partitions the sample into $k$ blocks. These blocks are assumed to be i.i.d; if the blocks are not i.i.d then the estimator does not hold. This i.i.d assumption would be violated if the data were to be ordered; any blocks cut directly from the data would coincide with the specific ordering present, rather than with random subsamples. To solve this, we draw a uniformly random permutation of the rows and cut consecutive blocks form the permuted data, which asures our data is i.i.d. The estimate therefore depends on the partition draw as well as on the data. Figure~\ref{fig:ps_partition_randomness} separates the two. For each instrument strength, $D = 100$ datasets are drawn and each is partitioned $B = 200$ times. Panel~(a) plots the deviation of every estimate from its own dataset's average (filled boxes, which isolate the partition) across partitions against the dataset averages centred at the true $\beta$ (hollow boxes, which isolate the data).
 
-The partition is not a negligible source of noise even where the theory is comfortable. At $\gamma = 2.5$, where all strength conditions hold, the partition accounts for 34\% of the total variance of the Median-of-Ratios estimator and for 78\% of that of Ratio-of-Medians; in interquartile terms the Ratio-of-Medians partition box is roughly twice as wide as its sampling box. Catoni's estimator is effectively partition-free, as the blocking enters it only through the variance pre-estimate. As the instrument weakens both block estimators deteriorate, and the deterioration is mostly in the partition: the Median-of-Ratios share rises to 0.93 at $\gamma = 1000$, so that at that point the reported number is more a function of the seed than of the sample.
+The partition is not a negligible source of noise even where the theory is comfortable. At $\gamma = 2.5$, where all strength conditions hold, the partition accounts for 34\% of the total variance of the Median-of-Ratios estimator and for 78\% of that of Ratio-of-Medians. Catoni's estimator is effectively partition-free, as the blocking enters it only through the variance pre-estimate. As the instrument weakens both block estimators deteriorate, and the deterioration is mostly in the partition; the Median-of-Ratios share rises to 0.93 at $\gamma = 1000$, so that at that point the reported number is more a function of the seed than of the sample.
 
-Panel~(b) asks what this costs a conclusion rather than an estimate. It reports the share of datasets on which the verdict at $\beta_0 = 0$ is \emph{not} unanimous across the 200 partitions, that is, on which rejecting the null depends on the seed. Up to $\gamma \approx 16$ the verdict is unanimous on every dataset, so the partition is inferentially irrelevant. Instability then rises steeply, to 65\% of datasets for the feasible MoM-AR test and 82\% for the self-normalised test at $\gamma = 62.5$, and to essentially every dataset by $\gamma = 250$. The two tests behave alike, so this is a property of the blocking rather than of the threshold.
+Panel~(b) asks what this costs a conclusion rather than an estimate. It reports the share of datasets on which the verdict at $\beta_0 = 0$ is not unanimous across the 200 partitions, that is, on which rejecting the null depends on the seed. Up to $\gamma \approx 16$ the verdict is unanimous on every dataset, so the partition is inferentially irrelevant. Instability then rises steeply, to 65\% of datasets for the feasible MoM-AR test and 82\% for the self-normalised test at $\gamma = 62.5$, and to essentially every dataset by $\gamma = 250$. The two tests behave alike, so this is a property of the blocking rather than of the threshold.
 
 \begin{figure}[htbp]
   \centering
@@ -142,4 +142,41 @@ Panel~(b) asks what this costs a conclusion rather than an estimate. It reports 
   \label{fig:ps_partition_spotlight}
 \end{figure}
 
-Figure~\ref{fig:ps_partition_spotlight} shows the same phenomenon from the position of a researcher holding one data set. Each panel fixes a single sample and redraws the partition 2,000 times, so all of the spread displayed is the seed alone; the partition-free Mean IV estimate is marked for reference. Under a strong instrument the two block estimators concentrate near it, with Ratio-of-Medians already visibly the wider of the two. At $\gamma = 1000$ the contrast is stark: Ratio-of-Medians ranges over roughly $[-5, 10]$ on a single data set, while Median-of-Ratios remains a narrow spike, displaced from $\beta$ but stable. This is the same division of failure modes seen in Section~\ref{sss:e3}, and it appears here without any resampling of the data at all.
+Figure~\ref{fig:ps_partition_spotlight} shows the same phenomenon from the position of a researcher holding one data set. Each panel fixes a single sample and redraws the partition 2,000 times, so all of the spread displayed is the seed alone, with the partition-free Mean IV estimate marked for reference. Under a strong instrument the two block estimators concentrate near it, with Ratio-of-Medians already visibly the wider of the two. At $\gamma = 1000$ Ratio-of-Medians ranges over roughly $[-5, 10]$ on a single data set, while Median-of-Ratios remains a narrow spike, displaced from $\beta$ but stable.
+
+An estimator that depends on the seed is not ideal, and the natural remedy is to
+aggregate over permutations. The machinery developed does in fact cover both the
+randomised estimator and its aggregate.
+
+Since the sample is i.i.d., permuting it leaves its distribution unchanged, so
+Theorems~\ref{thm:mor} and~\ref{thm:rom} apply to every \emph{fixed} permutation
+$p$ separately. The permutation $\pi$ is drawn independently of the data, so
+averaging over it preserves the bound,
+\[
+    \Prob_{S,\pi}\!\left[\abs{\hat{\beta}(S,\pi) - \beta} > t\right]
+    = \E_{\pi}\!\left[\Prob_{S}\!\left[\abs{\hat{\beta}(S,p) - \beta} > t\right]
+      \Big|_{p=\pi}\right] \leq \delta .
+\]
+Randomising the blocking therefore costs nothing in theory. What the theorems do
+not describe is the spread of $\hat{\beta}(S,\pi)$ across $\pi$ for the data set
+actually in hand: the bound above concerns the joint draw, whereas
+Figure~\ref{fig:ps_partition_spotlight} holds $S$ fixed and varies only the seed.
+Writing $W(S) = \Prob_{\pi}[\,\abs{\hat{\beta}(S,\pi)-\beta} > t \mid S\,]$ for
+the fraction of permutations that fail on a given sample, the display says
+$\E_{S}[W(S)] \leq \delta$, and Markov's inequality gives only
+$\Prob_{S}[W(S) \geq \gamma] \leq \delta/\gamma$.
+
+The same inequality delivers the remedy. Let
+$\widetilde{\beta} = \med_{\pi}\hat{\beta}(S,\pi)$. Whenever fewer than half the
+permutations fail, more than half of the mass of $\hat{\beta}(S,\pi)$ lies within
+$t$ of $\beta$, so the median over permutations lies there as well; combining this
+with the Markov bound at $\gamma = 1/2$,
+\[
+    \Prob_{S}\!\left[\abs{\widetilde{\beta} - \beta} > t\right] \leq 2\delta .
+\]
+Aggregation thus preserves the concentration guarantee at the price of a factor
+two in the confidence level, recovered by running the estimator at $\delta/2$;
+for Median-of-Ratios this means $k = \lceil 8\ln(2/\delta)\rceil$ blocks, the same
+count Ratio-of-Medians already pays for its union bound in
+Theorem~\ref{thm:rom}. In exchange the reported estimate no longer depends on a
+seed.

@@ -1,0 +1,83 @@
+\section{Randomised Partitions and Aggregation}
+\label{sec:aggregation}
+
+Every estimator of Sections~\ref{sec:rom}--\ref{sec:mor} and every test of Section~\ref{s:inference} begins by cutting the sample into $k$ blocks, and the proofs require only that the blocks be disjoint, of equal size, and fixed in advance of the data. In an application the choice is not innocuous: samples are commonly ordered by date, region or cohort, so blocks cut from the file as it stands would differ for reasons unrelated to sampling noise. Permuting the rows uniformly at random before cutting removes this dependence on the file order, at the cost of making the estimate a function of the seed. We show that the guarantees survive the randomisation, that they say little about a fixed sample under a varying seed, and that aggregating over permutations removes the seed dependence for a factor two in $\delta$.
+
+\begin{definition}[Randomised and aggregated estimators]
+\label{def:randomised}
+    Let $S = (Y_i,X_i,Z_i)_{i=1}^{n}$ be the sample and $S^{\pi} = (Y_{\pi(i)},X_{\pi(i)},Z_{\pi(i)})_{i=1}^{n}$ its reordering by a permutation $\pi$ of $\{1,\dots,n\}$. Let $\hat{\beta}(S^{\pi})$ be any of the block-based estimators of Sections~\ref{sec:rom}--\ref{sec:mor} computed on $S^{\pi}$, the blocks being the consecutive runs of $m = \lfloor n/k\rfloor$ positions, and let $\pi_1,\dots,\pi_B$ be drawn independently and uniformly at random, independently of $S$. The \emph{randomised} estimator is $\hat{\beta}(S^{\pi_1})$ and the \emph{aggregated} estimator is $\widetilde{\beta}_B = \med(\hat{\beta}(S^{\pi_1}),\dots,\hat{\beta}(S^{\pi_B}))$, any median convention being admissible. Write $\widetilde{\beta}_\infty$ for the median of the conditional law of $\hat{\beta}(S^{\pi})$ given $S$, the idealised aggregate over all $n!$ permutations.
+\end{definition}
+
+\begin{proposition}[Transfer to the randomised estimator]
+\label{prop:transfer}
+    Assume \ref{ass:exog}--\ref{ass:moments} and let $\hat{\beta}$ be the Ratio-of-Medians or Median-of-Ratios estimator, with $k$, $m$ and the instrument strength condition of Theorem~\ref{thm:rom} or Theorem~\ref{thm:mor} in force, and let $t = t(n,k,\delta)$ be the deviation appearing there, so that $\Prob_S[\abs{\hat{\beta}(S)-\beta} > t] \leq \delta$. Then
+    \begin{equation}
+    \label{eq:transfer}
+        \Prob_{S,\pi}\!\left[\abs{\hat{\beta}(S^{\pi}) - \beta} > t\right] \leq \delta .
+    \end{equation}
+\end{proposition}
+
+\begin{proof}
+    Fix a permutation $p$. Since $S$ is i.i.d.\ it is exchangeable, so $S^{p}$ has the same law as $S$, and the hypothesis applied to that common law gives $\Prob_S[\abs{\hat{\beta}(S^{p})-\beta} > t] \leq \delta$. Conditioning on $\pi$ and using its independence of $S$ then gives $\Prob_{S,\pi}[\abs{\hat{\beta}(S^{\pi})-\beta} > t] = \sum_{p} \Prob[\pi = p]\, \Prob_S[\abs{\hat{\beta}(S^{p})-\beta} > t] \leq \delta$.
+\end{proof}
+
+Nothing is lost by randomising the blocking, and the same argument covers the size bound of Theorem~\ref{thm:mom_ar_size}. Independence carries it: a seed chosen after inspecting $S$, such as the one returning the most favourable estimate, need not preserve the law of the sample. But \eqref{eq:transfer} concerns the joint draw, whereas an applied researcher holds the sample fixed and varies only the seed; the next result is all the transfer argument yields there.
+
+\begin{proposition}[Conditional failure fraction]
+\label{prop:conditional}
+    In the setting of Proposition~\ref{prop:transfer}, let
+    \begin{equation}
+    \label{eq:failure_fraction}
+        W(S) = \Prob_{\pi}\!\left[\abs{\hat{\beta}(S^{\pi})-\beta} > t \;\middle|\; S\right]
+    \end{equation}
+    be the fraction of permutations that fail on the sample $S$. Then $\E_S[W(S)] \leq \delta$ and $\Prob_S[W(S) \geq \gamma] \leq \delta/\gamma$ for every $\gamma \in (0,1)$.
+\end{proposition}
+
+\begin{proof}
+    By the tower property and \eqref{eq:transfer}, $\E_S[W(S)] = \Prob_{S,\pi}[\abs{\hat{\beta}(S^{\pi})-\beta} > t] \leq \delta$. Since $W(S) \geq 0$, Markov's inequality gives $\Prob_S[W(S) \geq \gamma] \leq \E_S[W(S)]/\gamma \leq \delta/\gamma$.
+\end{proof}
+
+At $\gamma = 1/2$ this says only that, outside a $2\delta$ fraction of samples, fewer than half of the permutations fail; the dispersion of the resulting estimates it does not constrain at all, and that is instead measured empirically in Section~\ref{sss:ps}. It is nonetheless what makes aggregation work.
+
+\begin{lemma}[Majority in an interval]
+\label{lem:majority}
+    Let $\nu$ be a probability measure on $\R$ and $I \subseteq \R$ an interval with $\nu(I) > 1/2$. Then every median of $\nu$ lies in $I$.
+\end{lemma}
+
+\begin{proof}
+    Let $q$ be a median, so $\nu([q,\infty)) \geq 1/2$ and $\nu((-\infty,q]) \geq 1/2$, and suppose $q \notin I$. As $I$ is an interval, either all its points are smaller than $q$, whence $I \cap [q,\infty) = \varnothing$ and $\nu(I) \leq 1 - \nu([q,\infty)) \leq 1/2$, contradicting the hypothesis, or all are larger and the same argument applies to $(-\infty,q]$.
+\end{proof}
+
+\begin{theorem}[Concentration of the aggregated estimator]
+\label{thm:aggregation}
+    In the setting of Proposition~\ref{prop:transfer}, the aggregated estimator of Definition~\ref{def:randomised} satisfies, for every $B \geq 1$ and every $\gamma \in (0,1/2)$,
+    \begin{equation}
+    \label{eq:agg_bound}
+        \Prob_S\!\left[\abs{\widetilde{\beta}_\infty - \beta} > t\right] \leq 2\delta ,
+        \qquad
+        \Prob\!\left[\abs{\widetilde{\beta}_B - \beta} > t\right] \leq \frac{\delta}{\gamma} + e^{-2B(1/2-\gamma)^2}.
+    \end{equation}
+\end{theorem}
+
+\begin{proof}
+    \noindent\textbf{Step 1 (All permutations).} Write $I = [\beta-t,\beta+t]$, so that a permutation fails precisely when $\hat{\beta}(S^{\pi}) \notin I$. On $\{W(S) < 1/2\}$ the conditional law of $\hat{\beta}(S^{\pi})$ given $S$ assigns $I$ mass $1 - W(S) > 1/2$, so $\widetilde{\beta}_\infty \in I$ by Lemma~\ref{lem:majority}. Hence $\Prob_S[\abs{\widetilde{\beta}_\infty-\beta} > t] \leq \Prob_S[W(S) \geq 1/2] \leq 2\delta$ by Proposition~\ref{prop:conditional} at $\gamma = 1/2$.
+
+    \medskip\noindent\textbf{Step 2 (Finitely many permutations).} Condition on $S$ and set $\zeta_b = \mathbf{1}\{\hat{\beta}(S^{\pi_b}) \notin I\}$; these are i.i.d.\ Bernoulli with mean $W(S)$, the $\pi_b$ being i.i.d.\ and independent of $S$. If fewer than $B/2$ of them equal one, more than half of the $\hat{\beta}(S^{\pi_b})$ lie in $I$ and Lemma~\ref{lem:majority}, applied to their empirical measure, gives $\widetilde{\beta}_B \in I$. On $\{W(S) \leq \gamma\}$ the sum $\sum_b \zeta_b$ must therefore exceed its conditional mean by at least $B(1/2-\gamma)$ for the aggregate to fail, so Hoeffding's inequality gives $\Prob[\abs{\widetilde{\beta}_B-\beta} > t \mid S] \leq \Prob[\sum_b \zeta_b \geq B/2 \mid S] \leq e^{-2B(1/2-\gamma)^2}$. Splitting on $\{W(S) \leq \gamma\}$ and bounding the complement by Proposition~\ref{prop:conditional} gives the second bound.
+\end{proof}
+
+\begin{remark}[The price, in blocks]
+\label{rem:agg_price}
+    Running the underlying estimator at $\delta/2$ makes $\widetilde{\beta}_\infty$ satisfy the original bound at level $\delta$. For the Median-of-Ratios estimator this replaces $k = \lceil 8\ln(1/\delta)\rceil$ by $k = \lceil 8\ln(2/\delta)\rceil$, the block count the Ratio-of-Medians estimator already pays for its union bound in Theorem~\ref{thm:rom}. The finite-$B$ term is far smaller: at $\gamma = 1/3$ and $B = 200$ it contributes $e^{-B/18} \leq 2\cdot 10^{-5}$. In exchange, the estimate no longer depends on a seed.
+\end{remark}
+
+\begin{remark}[Why the median and not the mean]
+\label{rem:agg_mean}
+    Theorem~\ref{thm:aggregation} uses only that a majority of permutations succeed; the failing minority may be arbitrarily bad without moving the median outside $I$. Averaging admits no analogue, since one extreme value moves the mean by an arbitrary amount. This matters here rather than only in principle: the estimators are ratios, and a partition placing an unusually small value in a denominator produces an arbitrarily large estimate, which a mean would pass on.
+\end{remark}
+
+\begin{remark}[The permutation distribution is not a sampling distribution]
+\label{rem:agg_not_sampling}
+    Conditional on $S$ the draws $\hat{\beta}(S^{\pi_b})$ are i.i.d., so their spread shrinks as $B$ grows: it measures the computational randomness of the blocking, not uncertainty about $\beta$. An interval formed from their quantiles covers $\E_\pi[\hat{\beta}(S^{\pi}) \mid S]$ and must not be reported as one for $\beta$.
+\end{remark}
+
+\todo[inline]{Fix the reporting convention hereafter: one seed, or aggregation at $\delta/2$. These results are new, so formalise them in Lean or qualify the abstract.}
