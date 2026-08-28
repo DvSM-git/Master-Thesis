@@ -309,13 +309,13 @@ def _fmt_cs(intervals: list[tuple[float, float]]) -> str:
     return " u ".join(parts)
 
 
-def _fmt_cs_tex(intervals: list[tuple[float, float]]) -> str:
+def _fmt_cs_tex(intervals: list[tuple[float, float]], dp: int = 4) -> str:
     if not intervals:
         return r"$\varnothing$"
     parts = []
     for lo, hi in intervals:
-        lo_s = r"-\infty" if np.isinf(lo) else f"{lo:.4f}"
-        hi_s = r"+\infty" if np.isinf(hi) else f"{hi:.4f}"
+        lo_s = r"-\infty" if np.isinf(lo) else f"{lo:.{dp}f}"
+        hi_s = r"+\infty" if np.isinf(hi) else f"{hi:.{dp}f}"
         parts.append(f"[{lo_s},\\, {hi_s}]")
     return "$" + r" \cup ".join(parts) + "$"
 

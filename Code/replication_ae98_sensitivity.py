@@ -53,6 +53,7 @@ def write_tex(tables: dict, B: int) -> None:
         "",
         r"\begin{table}[htbp]",
         r"\centering",
+        r"\setlength{\tabcolsep}{4pt}",
         r"\caption{Partition sensitivity on the AE98 1980 all-women sample: "
         f"$B = {B:,}$".replace(",", r"{,}") +
         r" random partitions shared by all MoM-based procedures and reused"
@@ -62,10 +63,10 @@ def write_tex(tables: dict, B: int) -> None:
         r" give rejection and shape frequencies of the 95\% confidence sets."
         r" The standard AR test is partition-free and shown for reference.}",
         r"\label{tab:ae98_sensitivity}",
-        r"\small",
+        r"\footnotesize",
         r"\begin{tabular}{llccccc}",
         r"\toprule",
-        r"Outcome & Estimator & Mean & SD & Q$_{0.05}$ & Q$_{0.95}$ & \\",
+        r"Outcome & Estimator & Median & SD & Q$_{0.05}$ & Q$_{0.95}$ & \\",
         r"\midrule",
     ]
     for key, (label, wald, est_tab, _) in tables.items():
@@ -73,12 +74,12 @@ def write_tex(tables: dict, B: int) -> None:
         for i, (_, r) in enumerate(est_tab.iterrows()):
             head = f"{label} (Wald {wald:.{dp}f})" if i == 0 else ""
             lines.append(
-                f"{head} & {r['estimator']} & {r['mean']:.{dp}f} & {r['sd']:.{dp}f} & "
+                f"{head} & {r['estimator']} & {r['median']:.{dp}f} & {r['sd']:.{dp}f} & "
                 f"{r['q05']:.{dp}f} & {r['q95']:.{dp}f} & \\\\"
             )
     lines += [
         r"\midrule",
-        r"Outcome & Test & \% rej.\ $\beta_0{=}0$ & \% rej.\ $\beta_0{=}\beta_{\mathrm{OLS}}$ & "
+        r"Outcome & Test & \% rej.\ $0$ & \% rej.\ $\beta_{\mathrm{OLS}}$ & "
         r"\% split & \% unb. & Med.\ len. \\",
         r"\midrule",
     ]

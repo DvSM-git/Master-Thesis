@@ -35,3 +35,15 @@ Pareto(2.5),8000,MoM-AR (oracle),0.0
 Pareto(2.5),8000,MoM-AR (feasible),0.0
 Pareto(2.5),8000,SN-AR,0.0448
 Pareto(2.5),8000,AR (standard),0.0462
+"Mix(0.1,3)",500,MoM-AR (oracle),0.0
+"Mix(0.1,3)",500,MoM-AR (feasible),0.0001
+"Mix(0.1,3)",500,SN-AR,0.0469
+"Mix(0.1,3)",500,AR (standard),0.0536
+"Mix(0.1,3)",2000,MoM-AR (oracle),0.0
+"Mix(0.1,3)",2000,MoM-AR (feasible),0.0
+"Mix(0.1,3)",2000,SN-AR,0.0443
+"Mix(0.1,3)",2000,AR (standard),0.0492
+"Mix(0.1,3)",8000,MoM-AR (oracle),0.0
+"Mix(0.1,3)",8000,MoM-AR (feasible),0.0001
+"Mix(0.1,3)",8000,SN-AR,0.0488
+"Mix(0.1,3)",8000,AR (standard),0.0484

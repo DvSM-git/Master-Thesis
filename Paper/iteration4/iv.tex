@@ -102,7 +102,7 @@
 
 \begin{remark}[Polynomial dependence on $\delta$]
 \label{rem:iv_polynomial}
-    The bound~\eqref{eq:iv_bound} contains the factor $1/\sqrt{\delta}$, which is polynomial in $1/\delta$. \citet{devroye2016sub} show that this is unavoidable: for any estimator formed from the empirical mean of i.i.d.\ observations with only finite variance, the $1/\sqrt{\delta}$ rate cannot be improved without additional distributional assumptions. The MoM-based estimators in Sections~\ref{sec:rom}--\ref{sec:mor} circumvent this by operating on block means.
+    The bound~\eqref{eq:iv_bound} contains the factor $1/\sqrt{\delta}$, which is polynomial in $1/\delta$. \citet{catoni2012challenging} show that this is unavoidable, since for any estimator formed from the empirical mean of i.i.d.\ observations with only finite variance, the $1/\sqrt{\delta}$ rate cannot be improved without additional distributional assumptions. The MoM-based estimators in Sections~\ref{sec:rom}--\ref{sec:mor} circumvent this by operating on block means.
 \end{remark}
 
 \begin{remark}[The symmetric threshold is not optimal]
@@ -249,7 +249,7 @@ The Chebyshev bound applied to $A(D)^c$ in the proofs above is two-sided. Howeve
         \Prob[B(D,t)^c] \leq \frac{\sigma_{Z\varepsilon}^2/n}{t^2 D^2}.
     \]
 
-    \medskip\noindent\textbf{Step 3 (Constraint and optimization).}
+    \medskip\noindent\textbf{Step 3 (Constraint and optimisation).}
     Setting the total failure probability to at most $\delta$ and substituting $D=\eta\mu_{ZX}$, $\gamma_{\mathrm{IV}}=\sigma_{ZX}^2/(n\mu_{ZX}^2)$:
     \[
         \frac{\gamma_{\mathrm{IV}}}{\gamma_{\mathrm{IV}}+(1-\eta)^2}
@@ -260,7 +260,7 @@ The Chebyshev bound applied to $A(D)^c$ in the proofs above is two-sided. Howeve
     \[
         t^2 \geq \frac{\sigma_{Z\varepsilon}^2}{n\mu_{ZX}^2h(\eta)},
     \]
-    where $h(\eta)$ is defined in~\eqref{eq:h_eta_iv}. The function $h(\eta)$ is positive only when $\delta(\gamma_{\mathrm{IV}}+(1-\eta)^2)>\gamma_{\mathrm{IV}}$, i.e., $(1-\eta)^2>\gamma_{\mathrm{IV}}(1-\delta)/\delta$. The feasible region is non-empty if and only if $\gamma_{\mathrm{IV}}<\delta/(1-\delta)$, which is condition~\eqref{eq:iv_cantelli_strength}. Minimizing $t$ over the feasible region by maximizing $h$ and applying the union bound gives~\eqref{eq:iv_cantelli_bound}.
+    where $h(\eta)$ is defined in~\eqref{eq:h_eta_iv}. The function $h(\eta)$ is positive only when $\delta(\gamma_{\mathrm{IV}}+(1-\eta)^2)>\gamma_{\mathrm{IV}}$, i.e., $(1-\eta)^2>\gamma_{\mathrm{IV}}(1-\delta)/\delta$. The feasible region is non-empty if and only if $\gamma_{\mathrm{IV}}<\delta/(1-\delta)$, which is condition~\eqref{eq:iv_cantelli_strength}. Minimising $t$ over the feasible region by maximising $h$ and applying the union bound gives~\eqref{eq:iv_cantelli_bound}.
 \end{proof}
 
 \begin{remark}[When Cantelli helps]

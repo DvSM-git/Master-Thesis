@@ -2,46 +2,47 @@
 
 \begin{table}[htbp]
 \centering
+\setlength{\tabcolsep}{4pt}
 \caption{Partition sensitivity on the AE98 1980 all-women sample: $B = 1{,}000$ random partitions shared by all MoM-based procedures and reused across outcomes ($\delta = 0.05$). For each outcome, the top rows give the dispersion of the partition-dependent point estimates (the partition-free Wald estimate in the label); the bottom rows give rejection and shape frequencies of the 95\% confidence sets. The standard AR test is partition-free and shown for reference.}
 \label{tab:ae98_sensitivity}
-\small
+\footnotesize
 \begin{tabular}{llccccc}
 \toprule
-Outcome & Estimator & Mean & SD & Q$_{0.05}$ & Q$_{0.95}$ & \\
+Outcome & Estimator & Median & SD & Q$_{0.05}$ & Q$_{0.95}$ & \\
 \midrule
-Worked for pay (Wald -0.1318) & Median-of-Ratios & -0.1331 & 0.0184 & -0.1641 & -0.1028 & \\
- & Ratio-of-Medians & -0.1325 & 0.0189 & -0.1638 & -0.1016 & \\
+Worked for pay (Wald -0.1318) & Median-of-Ratios & -0.1335 & 0.0184 & -0.1641 & -0.1028 & \\
+ & Ratio-of-Medians & -0.1321 & 0.0189 & -0.1638 & -0.1016 & \\
  & Catoni ratio & -0.1318 & 0.0000 & -0.1318 & -0.1318 & \\
-Weeks worked (Wald -6.3596) & Median-of-Ratios & -6.4039 & 0.8206 & -7.7276 & -5.0832 & \\
- & Ratio-of-Medians & -6.3876 & 0.8753 & -7.8407 & -4.9402 & \\
+Weeks worked (Wald -6.3596) & Median-of-Ratios & -6.3872 & 0.8206 & -7.7276 & -5.0832 & \\
+ & Ratio-of-Medians & -6.4020 & 0.8753 & -7.8407 & -4.9402 & \\
  & Catoni ratio & -6.3595 & 0.0000 & -6.3595 & -6.3595 & \\
-Hours/week (Wald -5.1872) & Median-of-Ratios & -5.1964 & 0.6893 & -6.3345 & -4.0640 & \\
- & Ratio-of-Medians & -5.2486 & 0.7021 & -6.4069 & -4.0759 & \\
+Hours/week (Wald -5.1872) & Median-of-Ratios & -5.1843 & 0.6893 & -6.3345 & -4.0640 & \\
+ & Ratio-of-Medians & -5.2561 & 0.7021 & -6.4069 & -4.0759 & \\
  & Catoni ratio & -5.1871 & 0.0000 & -5.1871 & -5.1871 & \\
-Labor income (Wald -2188.3) & Median-of-Ratios & -2195.0 & 395.1 & -2833.3 & -1546.7 & \\
- & Ratio-of-Medians & -2170.3 & 398.9 & -2823.9 & -1526.5 & \\
+Labor income (Wald -2188.3) & Median-of-Ratios & -2192.4 & 395.1 & -2833.3 & -1546.7 & \\
+ & Ratio-of-Medians & -2171.4 & 398.9 & -2823.9 & -1526.5 & \\
  & Catoni ratio & -2188.4 & 0.0 & -2188.4 & -2188.4 & \\
-ln(Family income) (Wald -0.0262) & Median-of-Ratios & -0.0257 & 0.0469 & -0.1032 & 0.0497 & \\
- & Ratio-of-Medians & -0.0249 & 0.0487 & -0.1032 & 0.0559 & \\
+ln(Family income) (Wald -0.0262) & Median-of-Ratios & -0.0259 & 0.0469 & -0.1032 & 0.0497 & \\
+ & Ratio-of-Medians & -0.0248 & 0.0487 & -0.1032 & 0.0559 & \\
  & Catoni ratio & -0.0262 & 0.0000 & -0.0262 & -0.0262 & \\
 \midrule
-Outcome & Test & \% rej.\ $\beta_0{=}0$ & \% rej.\ $\beta_0{=}\beta_{\mathrm{OLS}}$ & \% split & \% unb. & Med.\ len. \\
+Outcome & Test & \% rej.\ $0$ & \% rej.\ $\beta_{\mathrm{OLS}}$ & \% split & \% unb. & Med.\ len. \\
 \midrule
 Worked for pay & MoM-AR (feasible) & 3.5 & 0.0 & 0.0 & 0.0 & 0.469 \\
  & SN-AR & 99.3 & 1.2 & 0.0 & 0.0 & 0.144 \\
- & AR (standard, partition-free) & 100.0 & 0.0 & 0.0 & 0.0 & 0.103 \\
+ & AR (standard) & 100.0 & 0.0 & 0.0 & 0.0 & 0.103 \\
 Weeks worked & MoM-AR (feasible) & 7.5 & 0.0 & 0.0 & 0.0 & 20.976 \\
  & SN-AR & 99.6 & 1.4 & 0.0 & 0.0 & 6.366 \\
- & AR (standard, partition-free) & 100.0 & 0.0 & 0.0 & 0.0 & 4.636 \\
+ & AR (standard) & 100.0 & 0.0 & 0.0 & 0.0 & 4.636 \\
 Hours/week & MoM-AR (feasible) & 6.0 & 0.0 & 0.0 & 0.0 & 17.710 \\
  & SN-AR & 99.0 & 5.9 & 0.0 & 0.0 & 5.530 \\
- & AR (standard, partition-free) & 100.0 & 0.0 & 0.0 & 0.0 & 3.948 \\
+ & AR (standard) & 100.0 & 0.0 & 0.0 & 0.0 & 3.948 \\
 Labor income & MoM-AR (feasible) & 1.1 & 0.0 & 0.0 & 0.0 & 10077 \\
  & SN-AR & 90.4 & 1.2 & 0.0 & 0.0 & 3115 \\
- & AR (standard, partition-free) & 100.0 & 0.0 & 0.0 & 0.0 & 2251 \\
+ & AR (standard) & 100.0 & 0.0 & 0.0 & 0.0 & 2251 \\
 ln(Family income) & MoM-AR (feasible) & 0.0 & 0.0 & 0.0 & 0.0 & 1.233 \\
  & SN-AR & 1.2 & 18.2 & 0.0 & 0.0 & 0.383 \\
- & AR (standard, partition-free) & 0.0 & 100.0 & 0.0 & 0.0 & 0.270 \\
+ & AR (standard) & 0.0 & 100.0 & 0.0 & 0.0 & 0.270 \\
 \bottomrule
 \end{tabular}
 \end{table}

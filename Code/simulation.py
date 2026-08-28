@@ -11,13 +11,28 @@ def _standardised_shock(rng: np.random.Generator, dist, size: int) -> np.ndarray
            ("pareto", alpha)   -> Pareto with tail index alpha > 2 (x_m = 1),
                                   centred and scaled to unit variance; strongly
                                   right-skewed, moments of order >= alpha infinite
+           ("mixture", eps, s) -> Tukey (1960) contaminated normal: with prob
+                                  1-eps draw N(0,1), with prob eps draw
+                                  N(0, s^2), scaled to unit variance. All
+                                  moments finite, but kurtosis grows with s
+                                  (eps=0.1, s=3 gives kurtosis 8.33 vs 3
+                                  for the Gaussian)
 
     All families have exactly unit variance, so the moment calibration in
     generate_data is exact regardless of the family.
     """
     if dist is None:
         return rng.standard_normal(size)
-    family, param = dist
+    family, *params = dist
+    if family == "mixture":
+        eps, scale = params
+        if not 0.0 < eps < 1.0:
+            raise ValueError(f"mixture contamination eps must be in (0, 1), got {eps}")
+        x = rng.standard_normal(size)
+        x[rng.random(size) < eps] *= scale
+        var = (1.0 - eps) + eps * scale**2
+        return x / np.sqrt(var)
+    (param,) = params
     if family == "t":
         if param <= 2:
             raise ValueError(f"t dof must be > 2 for finite variance (got {param})")
@@ -42,7 +57,7 @@ def generate_data(
     rho: float = 0.0,          # Corr(eps_Y, eps_X) — endogeneity; 0 = exogenous X
     eps_Y_df: float | None = None,  # dof for t-distributed eps_Y; None = Normal
     eps_X_df: float | None = None,  # dof for t-distributed eps_X; None = Normal
-    eps_Y_dist=None,   # shock family spec, e.g. ("t", 2.1) or ("pareto", 2.5); overrides eps_Y_df
+    eps_Y_dist=None,   # shock family spec, e.g. ("t", 2.1), ("pareto", 2.5) or ("mixture", 0.1, 3.0); overrides eps_Y_df
     eps_X_dist=None,   # shock family spec for eps_X; overrides eps_X_df
     rng: np.random.Generator | None = None,
 ) -> pd.DataFrame:
@@ -75,7 +90,8 @@ def generate_data(
     rho        : Corr(eps_Y, eps_X); 0 = exogenous X, nonzero = endogenous X
     eps_Y_df   : dof for t-distributed eps_Y (must be > 2); None = Normal
     eps_X_df   : dof for t-distributed eps_X (must be > 2); None = Normal
-    eps_Y_dist : shock family spec ("t", df) / ("pareto", alpha); overrides eps_Y_df
+    eps_Y_dist : shock family spec ("t", df) / ("pareto", alpha) /
+                 ("mixture", eps, scale); overrides eps_Y_df
     eps_X_dist : shock family spec for eps_X; overrides eps_X_df
     rng        : numpy Generator; created from a fresh seed if None
 
@@ -429,6 +445,117 @@ def iv_estimate_catoni(data: pd.DataFrame, delta: float = 0.05) -> dict[str, flo
     mu_ZX = catoni_mean(Z * X, delta=delta / 2.0)
     if mu_ZX == 0:
         raise ValueError("Catoni estimate of E[Z X] is zero; instrument not relevant")
+
+    return {"beta_hat": float(mu_ZY / mu_ZX), "delta": delta, "n": n}
+
+
+def trimmed_mean(
+    x: np.ndarray,
+    delta: float = 0.05,
+    rng: np.random.Generator | None = None,
+    shuffle: bool = True,
+) -> float:
+    """
+    Trimmed-mean estimator of the mean (Oliveira and Orenstein, 2019;
+    Lugosi and Mendelson, 2021).
+
+    The sample is split into two halves. The first half supplies the empirical
+    quantiles at levels eps and 1 - eps,
+
+        eps = 8 ln(4/delta) / (3n),
+
+    and the second half is truncated to the resulting interval [a, b] before
+    being averaged:
+
+        mu_hat       = (1/m) sum_{i in second half} phi_{a,b}(x_i),
+        phi_{a,b}(u) = min(max(u, a), b).
+
+    Splitting the sample is what makes the guarantee work: the truncation
+    levels are independent of the points they are applied to, which yields a
+    sub-Gaussian deviation bound |mu_hat - mu| <= C sigma sqrt(ln(4/delta)/n)
+    under nothing more than a finite variance.
+
+    Note the contrast with catoni_mean: no variance proxy enters anywhere. The
+    truncation levels are empirical quantiles of the data itself, so the
+    estimator is scale-equivariant by construction and needs no preliminary
+    scale estimate to be feasible.
+
+    Parameters
+    ----------
+    x       : sample
+    delta   : confidence parameter; sets the trimming level eps
+    rng     : numpy Generator used for shuffling; fresh seed if None
+    shuffle : if True, randomly permute before splitting so the two halves do
+              not depend on the (arbitrary) row order
+
+    Returns
+    -------
+    float, the trimmed mean
+    """
+    x = np.asarray(x, dtype=float)
+    n = x.size
+
+    if not 0.0 < delta < 1.0:
+        raise ValueError(f"delta must be in (0, 1), got {delta}")
+
+    eps = 8.0 * np.log(4.0 / delta) / (3.0 * n)
+    if eps >= 0.5:
+        raise ValueError(
+            f"n={n} too small for delta={delta}: trimming level "
+            f"eps = 8 ln(4/delta)/(3n) = {eps:.3g} must be < 1/2"
+        )
+
+    if shuffle:
+        if rng is None:
+            rng = np.random.default_rng()
+        x = x[rng.permutation(n)]
+
+    # First half sets the truncation window, second half is averaged.
+    h = n // 2
+    a, b = np.quantile(x[:h], [eps, 1.0 - eps])
+    return float(np.mean(np.clip(x[h:], a, b)))
+
+
+def iv_estimate_trimmed(
+    data: pd.DataFrame,
+    delta: float = 0.05,
+    rng: np.random.Generator | None = None,
+    shuffle: bool = True,
+) -> dict[str, float]:
+    """
+    Ratio-of-trimmed-means IV estimator: the same ratio construction as
+    iv_estimate_catoni, with each coordinate mean replaced by the trimmed mean
+    of Oliveira and Orenstein (2019) and Lugosi and Mendelson (2021):
+
+        beta_Trim = TrimmedMean(Z*Y; delta/2) / TrimmedMean(Z*X; delta/2)
+
+    The confidence budget delta is split evenly across the two coordinates,
+    mirroring the allocation used by iv_estimate_catoni and RoM. A single
+    permutation is shared by both coordinates, so the numerator and the
+    denominator are trimmed on the same split of the sample.
+
+    Returns
+    -------
+    dict with keys 'beta_hat', 'delta', 'n'
+    """
+    Y = data["Y"].to_numpy()
+    X = data["X"].to_numpy()
+    Z = data["Z"].to_numpy()
+    n = len(Y)
+
+    ZY = Z * Y
+    ZX = Z * X
+    if shuffle:
+        if rng is None:
+            rng = np.random.default_rng()
+        perm = rng.permutation(n)
+        ZY = ZY[perm]
+        ZX = ZX[perm]
+
+    mu_ZY = trimmed_mean(ZY, delta=delta / 2.0, shuffle=False)
+    mu_ZX = trimmed_mean(ZX, delta=delta / 2.0, shuffle=False)
+    if mu_ZX == 0:
+        raise ValueError("trimmed estimate of E[Z X] is zero; instrument not relevant")
 
     return {"beta_hat": float(mu_ZY / mu_ZX), "delta": delta, "n": n}
 

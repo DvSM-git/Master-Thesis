@@ -42,6 +42,7 @@ ESTIMATOR_COLORS = {
     "Ratio-of-Medians": "#DD8452",   # orange
     "Median-of-Ratios": "#55A868",   # green
     "Catoni": "#C44E52",             # red
+    "Trimmed Mean": "#8172B3",       # purple
 }
 
 from inference import mom_ar_test

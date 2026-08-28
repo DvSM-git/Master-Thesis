@@ -203,7 +203,7 @@ def summarise(res: pd.DataFrame, wald: float, ols: float, ar_ref: dict) -> tuple
     ):
         v = res[col].to_numpy()
         est_rows.append(
-            dict(estimator=label, mean=v.mean(), sd=v.std(ddof=1),
+            dict(estimator=label, median=float(np.median(v)), sd=v.std(ddof=1),
                  q05=np.quantile(v, 0.05), q95=np.quantile(v, 0.95),
                  min=v.min(), max=v.max())
         )
@@ -223,7 +223,7 @@ def summarise(res: pd.DataFrame, wald: float, ols: float, ar_ref: dict) -> tuple
             )
         )
     freq_rows.append(
-        dict(test="AR (standard, partition-free)",
+        dict(test="AR (standard)",
              pct_reject_zero=100.0 * ar_ref["rej0"],
              pct_reject_ols=100.0 * ar_ref["rejOLS"],
              pct_split=100.0 * ar_ref["split"],
@@ -240,6 +240,8 @@ def write_tex(est_tab: pd.DataFrame, freq_tab: pd.DataFrame, B: int, wald: float
         "",
         r"\begin{table}[htbp]",
         r"\centering",
+        r"\small",
+        r"\setlength{\tabcolsep}{4pt}",
         r"\caption{Partition sensitivity on the AK91 extract: " f"$B = {B:,}$".replace(",", r"{,}") +
         r" independent random partitions, each shared by all MoM-based "
         r"procedures ($\delta = 0.05$). The partition-free Wald estimate is "
@@ -251,21 +253,21 @@ def write_tex(est_tab: pd.DataFrame, freq_tab: pd.DataFrame, B: int, wald: float
         r"\label{tab:ak91_sensitivity}",
         r"\begin{tabular}{lccccc}",
         r"\toprule",
-        r"Estimator & Mean & SD & Q$_{0.05}$ & Q$_{0.95}$ & Range \\",
+        r"Estimator & Median & SD & Q$_{0.05}$ & Q$_{0.95}$ & Range \\",
         r"\midrule",
     ]
     for _, r in est_tab.iterrows():
         lines.append(
-            f"{r['estimator']} & {r['mean']:.4f} & {r['sd']:.4f} & "
+            f"{r['estimator']} & {r['median']:.4f} & {r['sd']:.4f} & "
             f"{r['q05']:.4f} & {r['q95']:.4f} & "
             f"[{r['min']:.4f}, {r['max']:.4f}] \\\\"
         )
     lines += [
         r"\midrule",
-        r"Test & \multicolumn{1}{c}{\% rej.\ $\beta_0{=}0$} & "
-        r"\multicolumn{1}{c}{\% rej.\ $\beta_0{=}\beta_{\mathrm{OLS}}$} & "
-        r"\multicolumn{1}{c}{\% split} & \multicolumn{1}{c}{\% unbounded} & "
-        r"\multicolumn{1}{c}{Med.\ length} \\",
+        r"Test & \multicolumn{1}{c}{\% rej.\ $0$} & "
+        r"\multicolumn{1}{c}{\% rej.\ $\beta_{\mathrm{OLS}}$} & "
+        r"\multicolumn{1}{c}{\% split} & \multicolumn{1}{c}{\% unb.} & "
+        r"\multicolumn{1}{c}{Med.\ len.} \\",
         r"\midrule",
     ]
     for _, r in freq_tab.iterrows():

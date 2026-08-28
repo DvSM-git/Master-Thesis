@@ -9,7 +9,6 @@ Let $(Y_i, X_i, Z_i)_{i=1}^{n}$ be an i.i.d. random sample from a joint distribu
 where $Y_i$ is the variable of interest, $X_i$ is an endogenous regressor, and $Z_i$ is the instrumental variable (IV). Additionally, $\beta \in \R$ is the structural parameter of interest and $\varepsilon_i$ is an unobserved error term. 
 
 For any random quantity $f$, we write $\mu_f := \E[f]$ and $\sigma_f^2 := \Var(f)$ for its mean and variance. All population quantities below are instances of this scheme; for example, $\mu_X = \E[X_i]$, $\mu_{ZX} = \E[Z_i X_i]$, and $\sigma_{ZX}^2 = \Var(Z_i X_i)$.
-\todo{MoM can also be in subscript}
 
 We impose the following conditions.
 \begin{enumerate}[label=(A\arabic*)]
@@ -42,7 +41,7 @@ which gives $\sigma_{Z\varepsilon} \leq \sigma_{ZY} + \abs{\beta}\sigma_{ZX}$.
 \subsection{Sub-Gaussian Estimators}
 \begin{definition}[Sub-Gaussian Estimators]
 \label{def:subgaussian}
-Let $(X_i)_{i=1}^{n}$ be a random sample with mean $\mu_X$ and variance $\sigma_X^2$, and let $\hat{\mu}_X$ denote an estimator for $\mu_X$. For some constant $L > 0$, $\hat{\mu}_X$ is said to be a sub-Gaussian estimator for $\mu_X$ for a given confidence level $delta$ if 
+Let $(X_i)_{i=1}^{n}$ be a random sample with mean $\mu_X$ and variance $\sigma_X^2$, and let $\hat{\mu}_X$ denote an estimator for $\mu_X$. For some constant $L > 0$, $\hat{\mu}_X$ is said to be a sub-Gaussian estimator for $\mu_X$ for the given confidence level $\delta$ if 
 \begin{equation}
 \label{eq:subgaussian}
     \Prob\!\left[\abs{\hat{\mu}_X - \mu_X} > L\sigma_X \sqrt{\frac{\ln(1/\delta)}{n}}\right] \leq \delta \quad \text{for all } \delta \in (0,1).
@@ -68,7 +67,6 @@ Partition $(X_i)_{i=1}^{n}$ into $k$ blocks $B_1, \dots, B_k$ of size $m = \lflo
 
 \Return{$\hat{\mu}_\mathrm{MoM} = \med(\hat{\mu}_X^{(1)}, \dots, \hat{\mu}_X^{(k)})$}\;
 \end{algorithm}
-\todo{Think about $\mu$ notation}
 
 \begin{theorem}[MoM concentration]
 \label{thm:mom_scalar}
@@ -85,6 +83,8 @@ Setting $k = \lceil 8\ln(1/\delta) \rceil$ for $\delta \in (0,1)$, this becomes
 \end{equation}
 which is sub-Gaussian in the sense of definition~\ref{def:subgaussian} with $L=\sqrt{32}$.
 \end{theorem}
+
+\todo[inline]{Wrong.with $k=\lceil 8\ln(1/\delta)\rceil$ the radius $2\sigma_X/\sqrt{m}$ exceeds $\sigma_X\sqrt{32\ln(1/\delta)/n}$.}
 
 \begin{proof}
 The proof proceeds in three steps.

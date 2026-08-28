@@ -5,12 +5,15 @@ Each experiment maps to specific theoretical results in Paper/iteration4:
 
   E1   Gaussian, strong instrument: standard IV most efficient
        -> Thm thm:iv (the "price of robustness" of MoR/RoM/Catoni)
-  E2   Heavy tails (t3, t2.1, Pareto 2.5): MoM estimators beat standard IV
+  E2   Heavy tails (t3, t2.1, Pareto 2.5, Tukey mixture): MoM estimators beat standard IV
        -> Thm thm:rom, thm:mor; Remarks rem:iv_polynomial, rem:mor_logarithmic
   E2b  Empirical deviation quantiles vs ln(1/delta): polynomial vs
        logarithmic delta-dependence -> rem:iv_polynomial vs rem:mor_logarithmic
   E3   Instrument-strength sweep: degradation when eq:rom_strength /
        eq:mor_strength fail
+  E4   Moment existence vs kurtosis: Gaussian mixtures (huge kurtosis, all
+       moments finite, sub-Gaussian tails) against t(2.01) at the edge of (A3)
+       -> isolates what the MoM advantage actually requires
   I1   Size of MoM-AR (oracle & feasible), SN-AR, standard AR
        -> Thm thm:mom_ar_size, Prop prop:sn_pivotal
   I2   Power curves (rejection frequency vs beta0 - beta)
@@ -48,6 +51,7 @@ from simulation import (
     iv_estimate_catoni,
     iv_estimate_mr,
     iv_estimate_rm,
+    iv_estimate_trimmed,
 )
 from simulation_study import ESTIMATOR_COLORS, GRAPHS_DIR, styled_boxplot  # noqa: F401 (rcParams side effect)
 import inference as inf
@@ -87,12 +91,19 @@ BASE = dict(beta=1.0, mu_ZX=1.0, sigma2_ZX=2.5, sigma2_Ze=1.0, rho=0.5)
 
 # Error families for eps_Y (eps_X stays Gaussian so heavy tails enter only
 # through Z*eps, the channel the theory is about). All standardised to unit
-# variance, so sigma2_Ze is exact for every family.
+# variance, so sigma2_Ze is exact for every family. Mix(0.1,3) is Tukey's
+# (1960) contaminated normal, 0.9 N(0,1) + 0.1 N(0,9): finite variance in
+# every moment but kurtosis 8.33 vs the Gaussian's 3.
 DISTS = {
     "Gaussian": None,
     "t(3)": ("t", 3.0),
     "t(2.1)": ("t", 2.1),
     "Pareto(2.5)": ("pareto", 2.5),
+    "Mix(0.1,3)": ("mixture", 0.1, 3.0),
+    # E4 only: a far more violent contamination (0.99 N(0,1) + 0.01 N(0,900)),
+    # and a t at the very edge of (A3). See exp_e4_moments.
+    "Mix(0.01,30)": ("mixture", 0.01, 30.0),
+    "t(2.01)": ("t", 2.01),
 }
 
 TEST_COLORS = {
@@ -113,9 +124,9 @@ TEST_STYLES = {
 def rep_counts(full: bool) -> dict[str, int]:
     if full:
         return dict(box=10_000, tail=50_000, size=10_000, power=5_000, cs=5_000, mono=2_000,
-                    ps_D=100, ps_B=200, ps_Bspot=2_000)
+                    ps_D=100, ps_B=200, ps_Bspot=2_000, moments=50_000)
     return dict(box=1_000, tail=5_000, size=1_000, power=500, cs=500, mono=300,
-                ps_D=20, ps_B=40, ps_Bspot=400)
+                ps_D=20, ps_B=40, ps_Bspot=400, moments=5_000)
 
 
 def _note(fig, text: str) -> None:
@@ -146,14 +157,17 @@ def _save(fig, name: str) -> Path:
 # ----------------------------------------------------------------------------
 
 
-def _point_rep(seed, n, dgp, dist, delta) -> tuple[float, float, float, float]:
+def _point_rep(seed, n, dgp, dist, delta) -> tuple[float, float, float, float, float]:
     rng = np.random.default_rng(seed)
     df = generate_data(n=n, eps_Y_dist=dist, rng=rng, **dgp)
+    # The trimmed mean is appended last and draws from `rng` after every other
+    # estimator, so adding it leaves the other four bit-identical to earlier runs.
     return (
         iv_estimate(df)["beta_hat"],
         iv_estimate_rm(df, delta=delta, rng=rng)["beta_hat"],
         iv_estimate_mr(df, delta=delta, rng=rng)["beta_hat"],
         iv_estimate_catoni(df, delta=delta)["beta_hat"],
+        iv_estimate_trimmed(df, delta=delta, rng=rng)["beta_hat"],
     )
 
 
@@ -162,8 +176,9 @@ def run_point_estimators(n, dgp, dist, n_reps, seed, n_jobs=-1, delta=DELTA) -> 
     res = Parallel(n_jobs=n_jobs)(
         delayed(_point_rep)(s, n, dgp, dist, delta) for s in seeds
     )
-    iv, rm, mr, cat = (np.asarray(c) for c in zip(*res))
-    return {"Mean IV": iv, "Ratio-of-Medians": rm, "Median-of-Ratios": mr, "Catoni": cat}
+    iv, rm, mr, cat, trim = (np.asarray(c) for c in zip(*res))
+    return {"Mean IV": iv, "Ratio-of-Medians": rm, "Median-of-Ratios": mr,
+            "Catoni": cat, "Trimmed Mean": trim}
 
 
 def _summary_rows(estimates: dict[str, np.ndarray], beta: float, tag: str) -> list[dict]:
@@ -192,7 +207,7 @@ def exp_e1_e2(reps: int, n_jobs: int, seed: int = 101) -> None:
     est = run_point_estimators(n, BASE, DISTS["Gaussian"], reps, seed, n_jobs)
     _save_raw("e1_estimates_Gaussian", **est)
     rows += _summary_rows(est, beta, "Gaussian")
-    fig, ax = plt.subplots(figsize=(7.0, 4.5))
+    fig, ax = plt.subplots(figsize=(9.0, 4.5))
     styled_boxplot(ax, est, true_beta=beta)
     lo, hi, frac = _robust_ylim(list(est.values()))
     ax.set_ylim(lo, hi)
@@ -200,12 +215,12 @@ def exp_e1_e2(reps: int, n_jobs: int, seed: int = 101) -> None:
                f"$\\mu_{{ZX}}$ = {BASE['mu_ZX']:g}, $\\rho$ = {BASE['rho']:g}, "
                f"$\\delta$ = {DELTA:g}. Axis truncated at 0.5/99.5% quantiles "
                f"({100*frac:.2f}% of points outside).")
-    fig.subplots_adjust(left=0.12, right=0.98, top=0.95, bottom=0.18)
+    fig.subplots_adjust(left=0.10, right=0.985, top=0.95, bottom=0.18)
     _save(fig, "e1_boxplot_gaussian.png")
 
-    # --- E2: heavy tails, three panels ---
-    heavy = ["t(3)", "t(2.1)", "Pareto(2.5)"]
-    fig, axes = plt.subplots(1, 3, figsize=(13.5, 4.6))
+    # --- E2: heavy tails, four panels ---
+    heavy = ["t(3)", "t(2.1)", "Pareto(2.5)", "Mix(0.1,3)"]
+    fig, axes = plt.subplots(1, len(heavy), figsize=(17.5, 4.6))
     for ax, dname in zip(axes, heavy):
         est = run_point_estimators(n, BASE, DISTS[dname], reps, seed + _stable_hash(dname) % 1000, n_jobs)
         _save_raw(f"e2_estimates_{dname}", **est)
@@ -220,7 +235,7 @@ def exp_e1_e2(reps: int, n_jobs: int, seed: int = 101) -> None:
     _note(fig, f"Note. {reps} replications; n = {n}, "
                f"$\\mu_{{ZX}}$ = {BASE['mu_ZX']:g}, $\\rho$ = {BASE['rho']:g}, "
                f"$\\delta$ = {DELTA:g}. Axes truncated at 0.5/99.5% quantiles.")
-    fig.subplots_adjust(left=0.06, right=0.99, top=0.92, bottom=0.22, wspace=0.22)
+    fig.subplots_adjust(left=0.05, right=0.985, top=0.92, bottom=0.24, wspace=0.26)
     _save(fig, "e2_boxplot_heavytails.png")
 
     df = pd.DataFrame(rows)
@@ -279,7 +294,7 @@ def exp_e3_strength(reps: int, n_jobs: int, seed: int = 303) -> None:
     rows = []
 
     t0 = time.perf_counter()
-    fig, axes = plt.subplots(1, len(mus), figsize=(16.0, 4.6))
+    fig, axes = plt.subplots(1, len(mus), figsize=(17.5, 4.6))
     for ax, mu in zip(axes, mus):
         dgp = dict(BASE, mu_ZX=mu)
         est = run_point_estimators(n, dgp, None, reps, seed + int(mu * 1000), n_jobs)
@@ -302,10 +317,121 @@ def exp_e3_strength(reps: int, n_jobs: int, seed: int = 303) -> None:
     _note(fig, f"Note. {reps} replications; n = {n}, Gaussian errors. In brackets: whether each "
                f"estimator's instrument-strength condition holds (+/-): IV eq:iv_strength, "
                f"RoM eq:rom_strength, MoR eq:mor_strength. Axes truncated at 0.5/99.5% quantiles.")
-    fig.subplots_adjust(left=0.05, right=0.995, top=0.9, bottom=0.24, wspace=0.24)
+    fig.subplots_adjust(left=0.05, right=0.985, top=0.9, bottom=0.26, wspace=0.26)
     _save(fig, "e3_boxplot_strength.png")
     pd.DataFrame(rows).to_csv(GRAPHS_DIR / "e3_summary.csv", index=False)
     print(f"[E3] runtime {time.perf_counter()-t0:.1f}s")
+
+
+# ----------------------------------------------------------------------------
+# E4: moment existence vs kurtosis (candidate experiment)
+# ----------------------------------------------------------------------------
+
+# Panels span a kurtosis gradient in which the FIRST THREE have every moment
+# finite (they are Gaussian mixtures, hence sub-Gaussian: the tail of a finite
+# normal mixture is dominated by its widest component, exp(-t^2/2s^2)) and only
+# the LAST violates (A3) beyond the variance. If the MoM advantage tracked
+# kurtosis, "GMM high" would already show it; if it tracks moment existence,
+# only t(2.01) does.
+E4_DISTS = ["Gaussian", "Mix(0.1,3)", "Mix(0.01,30)", "t(2.01)"]
+E4_TITLES = {
+    "Gaussian": "Gaussian",
+    "Mix(0.1,3)": "GMM low: $0.9\\,N(0,1)+0.1\\,N(0,9)$",
+    "Mix(0.01,30)": "GMM high: $0.99\\,N(0,1)+0.01\\,N(0,900)$",
+    "t(2.01)": "$t(2.01)$",
+}
+
+
+def _kurt_Zeps(dist) -> float:
+    """
+    Population kurtosis of Z*eps for Z ~ N(0,1) independent of eps.
+
+    E[(Z eps)^4] = E[Z^4] E[eps^4] = 3 E[eps^4] and Var(Z eps) = Var(eps),
+    so kurt(Z eps) = 3 * kurt(eps). Returns inf when the fourth moment of eps
+    does not exist (t with df <= 4).
+    """
+    if dist is None:
+        return 9.0
+    family, *params = dist
+    if family == "mixture":
+        e, s = params
+        return 3.0 * 3.0 * ((1 - e) + e * s**4) / ((1 - e) + e * s**2) ** 2
+    if family == "t":
+        return np.inf if params[0] <= 4 else 3.0 * 3.0 * (params[0] - 2) / (params[0] - 4)
+    return np.inf
+
+
+def exp_e4_moments(reps: int, n_jobs: int, seed: int = 909) -> None:
+    """
+    E4: does the MoM advantage track kurtosis, or moment existence?
+
+    Four error families at n = 2000 spanning kurt(Z*eps) from 9 to infinity.
+    The two Gaussian-mixture panels ("GMM low"/"GMM high") have enormous
+    kurtosis but every moment finite and sub-Gaussian tails; t(2.01) sits at
+    the edge of (A3) with an infinite third moment.
+
+    Row (a): sampling distributions (as E1/E2).
+    Row (b): empirical (1-delta)-quantile of |beta_hat - beta| against
+    ln(1/delta) (as E2b) -- the delta-dependence is where the distinction
+    between the two kinds of tail actually lives.
+    """
+    n = 2000
+    beta = BASE["beta"]
+    deltas = np.geomspace(0.002, 0.5, 40)
+    x = np.log(1.0 / deltas)
+    rows, qtab = [], []
+
+    t0 = time.perf_counter()
+    fig, axes = plt.subplots(2, len(E4_DISTS), figsize=(17.5, 8.2))
+    for col, dname in enumerate(E4_DISTS):
+        est = run_point_estimators(n, BASE, DISTS[dname], reps,
+                                   seed + _stable_hash(dname) % 1000, n_jobs)
+        _save_raw(f"e4_estimates_{dname}", **est)
+        rows += _summary_rows(est, beta, dname)
+
+        ax = axes[0, col]
+        styled_boxplot(ax, est, true_beta=beta, show_legend=(col == 0))
+        lo, hi, frac = _robust_ylim(list(est.values()))
+        ax.set_ylim(lo, hi)
+        kt = _kurt_Zeps(DISTS[dname])
+        kt_s = r"\infty" if not np.isfinite(kt) else f"{kt:.0f}"
+        ax.set_title(f"{E4_TITLES[dname]}\n"
+                     f"$\\mathrm{{kurt}}(Z\\varepsilon)$ = ${kt_s}$"
+                     f"  ({100*frac:.1f}% clipped)", fontsize=10)
+        ax.tick_params(axis="x", labelrotation=20, labelsize=8)
+        if col:
+            ax.set_ylabel("")
+
+        axq = axes[1, col]
+        for ename, arr in est.items():
+            q = np.quantile(np.abs(arr - beta), 1.0 - deltas)
+            axq.plot(x, q, color=ESTIMATOR_COLORS[ename], linewidth=1.8, label=ename)
+            for d, v in zip(deltas, q):
+                qtab.append({"dist": dname, "estimator": ename,
+                             "delta": d, "quantile_abs_err": v})
+        axq.set_yscale("log")
+        axq.set_xlabel(r"$\ln(1/\delta)$")
+        axq.yaxis.grid(True, color="0.88", linewidth=0.7)
+        axq.set_axisbelow(True)
+        if col == 0:
+            axq.legend(frameon=False, fontsize=9)
+
+    axes[0, 0].set_ylabel(r"Estimate $\hat{\beta}$")
+    axes[1, 0].set_ylabel(r"$(1-\delta)$-quantile of $|\hat{\beta}-\beta|$")
+    _note(fig, f"Note. {reps} replications; n = {n}, $\\mu_{{ZX}}$ = {BASE['mu_ZX']:g}, "
+               f"$\\rho$ = {BASE['rho']:g}, $\\delta$ = {DELTA:g}. The first three families have "
+               r"every moment finite (finite normal mixtures are sub-Gaussian); only $t(2.01)$ "
+               r"violates (A3) beyond the variance. Row (b) on a log scale; a sub-Gaussian "
+               r"estimator grows like $\sqrt{\ln(1/\delta)}$.")
+    fig.subplots_adjust(left=0.055, right=0.985, top=0.90, bottom=0.14,
+                        wspace=0.28, hspace=0.46)
+    _save(fig, "e4_moment_existence.png")
+
+    df = pd.DataFrame(rows)
+    df.to_csv(GRAPHS_DIR / "e4_moments_summary.csv", index=False)
+    pd.DataFrame(qtab).to_csv(GRAPHS_DIR / "e4_moments_quantiles.csv", index=False)
+    print(df.to_string(index=False, float_format=lambda v: f"{v:.4f}"))
+    print(f"[E4] runtime {time.perf_counter()-t0:.1f}s")
 
 
 # ----------------------------------------------------------------------------
@@ -365,13 +491,13 @@ def _rejection_rates(n, dgp, dist, beta0_grid, n_reps, seed, n_jobs, delta=DELTA
 def exp_i1_size(reps: int, n_jobs: int, seed: int = 404) -> None:
     """I1: empirical size at beta0 = beta across tails and sample sizes."""
     ns = [500, 2000, 8000]
-    dists = ["Gaussian", "t(2.1)", "Pareto(2.5)"]
+    dists = ["Gaussian", "t(2.1)", "Pareto(2.5)", "Mix(0.1,3)"]
     beta = np.array([BASE["beta"]])
     rows = []
     tau_rows: list[dict] = []
 
     t0 = time.perf_counter()
-    fig, axes = plt.subplots(1, len(dists), figsize=(13.5, 4.2), sharey=True)
+    fig, axes = plt.subplots(1, len(dists), figsize=(17.0, 4.2), sharey=True)
     for ax, dname in zip(axes, dists):
         rates = {name: [] for name in TEST_COLORS}
         for n in ns:
@@ -408,7 +534,7 @@ def exp_i1_size(reps: int, n_jobs: int, seed: int = 404) -> None:
     axes[0].legend(frameon=False, fontsize=9)
     _note(fig, f"Note. {reps} replications per point; nominal level $\\delta$ = {DELTA:g} (dotted). "
                f"MoM-AR sizes are bounds (Thm thm:mom_ar_size guarantees size $\\leq\\delta$, not $=\\delta$).")
-    fig.subplots_adjust(left=0.06, right=0.99, top=0.92, bottom=0.2, wspace=0.1)
+    fig.subplots_adjust(left=0.05, right=0.99, top=0.92, bottom=0.2, wspace=0.1)
     _save(fig, "i1_size.png")
     pd.DataFrame(rows).to_csv(GRAPHS_DIR / "i1_size.csv", index=False)
     tau_tab = pd.DataFrame(tau_rows)
@@ -1097,7 +1223,7 @@ def verify(n_jobs: int) -> None:
 # CLI
 # ----------------------------------------------------------------------------
 
-ALL_EXPERIMENTS = ["e1e2", "e2b", "e3", "i1", "i2", "i3", "i4", "i5", "ps"]
+ALL_EXPERIMENTS = ["e1e2", "e2b", "e3", "e4", "i1", "i2", "i3", "i4", "i5", "ps"]
 
 
 def main() -> None:
@@ -1126,6 +1252,8 @@ def main() -> None:
         exp_e2b_tails(counts["tail"], args.n_jobs)
     if "e3" in todo:
         exp_e3_strength(counts["box"], args.n_jobs)
+    if "e4" in todo:
+        exp_e4_moments(counts["moments"], args.n_jobs)
     if "i1" in todo:
         exp_i1_size(counts["size"], args.n_jobs)
     if "i2" in todo:

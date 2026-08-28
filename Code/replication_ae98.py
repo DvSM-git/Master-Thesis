@@ -372,11 +372,14 @@ def write_tex(rep: dict, results: dict, delta: float) -> None:
         r"Outcome & \multicolumn{2}{c}{MoM-AR (feasible)} & SN-AR & AR (standard) \\",
         r"\midrule",
     ]
+    # Confidence-set precision scaled to each outcome: four decimals on a
+    # dollar figure in the thousands is unreadable and overflows the page.
+    cs_dp = {"workedm": 3, "weeksm": 2, "hoursm": 2, "incomem": 0, "lfaminc": 3}
     for key, label in OUTCOMES.items():
         t = results[key]["inference"]["tests"]
         lines.append(
-            f"{label} & \\multicolumn{{2}}{{c}}{{{_fmt_cs_tex(t['MoM-AR (feasible)']['cs'])}}} & "
-            f"{_fmt_cs_tex(t['SN-AR']['cs'])} & {_fmt_cs_tex(t['AR (standard)']['cs'])} \\\\"
+            f"{label} & \\multicolumn{{2}}{{c}}{{{_fmt_cs_tex(t['MoM-AR (feasible)']['cs'], cs_dp[key])}}} & "
+            f"{_fmt_cs_tex(t['SN-AR']['cs'], cs_dp[key])} & {_fmt_cs_tex(t['AR (standard)']['cs'], cs_dp[key])} \\\\"
         )
     lines += [r"\bottomrule", r"\end{tabular}", r"\end{table}", ""]
     TEX_PATH.write_text("\n".join(lines), encoding="utf-8")
