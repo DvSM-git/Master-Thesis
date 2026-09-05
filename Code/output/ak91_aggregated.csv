@@ -1,0 +1,2 @@
+B,R,beta_mor_hat,beta_mor_sd,beta_mor_min,beta_mor_max,beta_rom_hat,beta_rom_sd,beta_rom_min,beta_rom_max,mom_cs,mom_ncomp,mom_excl0,mom_exclOLS,mom_unbounded,mom_length,mom_pct_excl0,sn_cs,sn_ncomp,sn_excl0,sn_exclOLS,sn_unbounded,sn_length,sn_pct_excl0
+1000,1,0.09917414688324136,,0.09917414688324136,0.09917414688324136,0.10125261551731118,,0.10125261551731118,0.10125261551731118,"[-0.1031, 0.3245]",1,False,False,False,0.42751840547066533,0.0,"[0.0413, 0.1829]",1,True,False,False,0.14165824098664045,100.0

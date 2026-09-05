@@ -171,3 +171,43 @@ Panel~(b) asks what this costs a conclusion rather than an estimate. It reports 
 \end{figure}
 
 Figure~\ref{fig:ps_partition_spotlight} shows the same phenomenon from the position of a researcher holding one data set. Each panel fixes a single sample and redraws the partition 2,000 times, so all of the spread displayed is due to the seed alone, with the partition-free Mean IV estimate marked for reference. Under a strong instrument the two block estimators concentrate near it, with Ratio-of-Medians already visibly the wider of the two. At $\gamma = 1000$ Ratio-of-Medians ranges over roughly $[-5, 10]$ on a single dataset, while Median-of-Ratios remains a narrow spike, displaced from $\beta$ but stable.
+
+
+\subsubsection{Aggregated Estimation}
+\label{sss:agg_est}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{images/graphs/ab_strength.png}
+  \caption{Aggregated Median-of-Ratios and Ratio-of-Medians estimators against instrument strength $\gamma$, by aggregation depth $B$: (a) the $(1-\delta)$-quantile of $|\widetilde{\beta}_B - \beta|$, (b) the dispersion of $\widetilde{\beta}_B$ across seeds on a fixed data set}
+  \label{fig:ab_strength}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{images/graphs/ab_dists.png}
+  \caption{The same two quantities against aggregation depth $B$ under five error families, at the canonical strong-instrument design}
+  \label{fig:ab_dists}
+\end{figure}
+
+\todo[inline]{Expand: the seed dispersion of panel~(b) falls by a factor $8.1$--$8.7$ from $B = 1$ to $B = 101$ at every $\gamma$ and under every error family, against the $\sqrt{101} = 10.05$ a mean would give; the gap is the efficiency factor $\sqrt{\pi/2}$ of the median. Accuracy never pays for it: the deviation quantile of panel~(a) falls monotonically in $B$, by $1.2$--$1.9$ times for Median-of-Ratios and $2.2$--$7.3$ times for Ratio-of-Medians, and the failure rate at the single-partition tolerance drops from $\delta$ to $0.014$ or below, so the factor $2$ in $\delta$ of Theorem~\ref{thm:aggregation} is an artefact of the Markov step and not a cost. The gain is largest exactly where the strength conditions fail --- Ratio-of-Medians at $\gamma = 1000$ goes from a seed SD of $284$, a median block denominator near zero, to $0.08$ --- and both panels have essentially saturated by $B = 25$. The error family barely matters in Figure~\ref{fig:ab_dists}, the aggregation acting on the partition rather than on the tails, and the ranking of the two estimators is the one of Section~\ref{sss:e2} unchanged.}
+
+
+\subsubsection{Aggregated Inference}
+\label{sss:agg}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.8\textwidth]{images/graphs/ag_size.png}
+  \caption{Empirical size of the aggregated MoM-AR test at $\beta_0 = \beta$ against instrument strength $\gamma$, by aggregation depth $B$}
+  \label{fig:ag_size}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{images/graphs/ag_power.png}
+  \caption{Power curves of the aggregated MoM-AR test at three instrument strength levels, by aggregation depth $B$}
+  \label{fig:ag_power}
+\end{figure}
+
+\todo[inline]{Expand: size is identically $0$ at every $\gamma$ and $B$, so Figure~\ref{fig:ag_size} may be better as one sentence; power gains up to $0.15$ on the shoulders, saturating by $B = 25$.}

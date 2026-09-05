@@ -344,6 +344,88 @@ def cs_contains(intervals: list[tuple[float, float]], x: float, tol: float = 1e-
     return any(lo - tol <= x <= hi + tol for lo, hi in intervals)
 
 
+def aggregate_cs(cs_list: list[list[tuple[float, float]]]) -> list[tuple[float, float]]:
+    """
+    Aggregated confidence set of cor:agg_cs: the beta0 covered by at least half
+    of the B per-permutation confidence sets.
+
+    The aggregated test of eq:agg_test rejects when strictly MORE than half of
+    the replicates reject, so beta0 survives when at least B/2 of them fail to
+    reject, i.e. when it lies in at least B/2 of the sets `cs_list`.
+
+    Each input set is a finite union of closed intervals, so the coverage count
+    is piecewise constant with breakpoints only at their endpoints, and the
+    result is exact rather than a grid approximation. The count is a sum of
+    indicators of closed sets, hence upper semi-continuous, so {count >= B/2}
+    is itself closed: every piece of the answer begins and ends at one of those
+    endpoints (or at an infinity), which is what the reconstruction below uses.
+
+    The intervals within one set are disjoint after merging, so a point lies in
+    at most one of them and the coverage count is simply the number of
+    intervals containing it. Stacking every interval of every set into two
+    arrays turns each count into one vectorised comparison, which is what makes
+    the B = 1000 of the case studies tractable.
+
+    Parameters
+    ----------
+    cs_list : the B confidence sets, each as returned by mom_ar_cs_exact,
+              sn_ar_cs or standard_ar_cs (an empty list is the empty set)
+
+    Returns
+    -------
+    list of closed intervals, merged and in increasing order
+    """
+    B = len(cs_list)
+    if B == 0:
+        raise ValueError("aggregate_cs needs at least one confidence set")
+    need = B / 2.0
+    tol = 1e-9                                   # as in cs_contains
+
+    flat = [iv for cs in cs_list for iv in _merge_intervals(sorted(cs))]
+    if not flat:
+        return []
+    los = np.array([lo for lo, _ in flat])
+    his = np.array([hi for _, hi in flat])
+
+    finite = np.concatenate([los[np.isfinite(los)], his[np.isfinite(his)]])
+    edges = np.unique(finite)
+
+    # Regions in increasing order as (probe point, lower end, upper end): the
+    # open stretch below the first edge, then each edge as a singleton and the
+    # open stretch that follows it.
+    if edges.size == 0:
+        regions = [(0.0, -INF, INF)]             # every set is empty or all of R
+    else:
+        span = max(float(edges[-1] - edges[0]), 1.0)
+        regions = [(float(edges[0]) - span, -INF, float(edges[0]))]
+        for i, e in enumerate(edges):
+            e = float(e)
+            regions.append((e, e, e))
+            nxt = float(edges[i + 1]) if i + 1 < edges.size else INF
+            probe = 0.5 * (e + nxt) if np.isfinite(nxt) else e + span
+            regions.append((probe, e, nxt))
+
+    probes = np.array([r[0] for r in regions])
+    counts = np.empty(probes.size, dtype=np.int64)
+    step = max(1, int(4e6 // los.size))          # cap the boolean block at ~4M
+    for s in range(0, probes.size, step):
+        x = probes[s:s + step, None]
+        counts[s:s + step] = ((los[None, :] - tol <= x)
+                              & (x <= his[None, :] + tol)).sum(axis=1)
+
+    out: list[tuple[float, float]] = []
+    run: tuple[float, float] | None = None
+    for (_, lo, hi), c in zip(regions, counts):
+        if c >= need:
+            run = (lo, hi) if run is None else (run[0], hi)
+        elif run is not None:
+            out.append(run)
+            run = None
+    if run is not None:
+        out.append(run)
+    return _merge_intervals(out)
+
+
 def cs_summary(intervals: list[tuple[float, float]]) -> dict:
     """Length / component summaries of a confidence set."""
     n_comp = len(intervals)

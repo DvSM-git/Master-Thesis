@@ -24,6 +24,9 @@ Outputs:
         (b) scaled KDEs of the lower/upper (outer) confidence set endpoints.
     Paper/iteration4/ak91_sensitivity.tex
         estimator dispersion + rejection/split frequency table.
+    Paper/iteration4/ak91_aggregated.tex
+        the aggregated estimators and aggregated confidence sets that answer
+        that sensitivity (def:randomised, cor:agg_cs), by aggregation depth B.
     Code/output/ak91_sensitivity_seeds.csv
         one row per permutation (all raw numbers, for reuse).
 
@@ -46,13 +49,23 @@ from joblib import Parallel, delayed
 from scipy.stats import gaussian_kde
 
 import inference as inf
-from replication_ak91 import DATA_PATH, load_data, table3_panel_b, to_iv_frame
+from replication_ak91 import (
+    DATA_PATH,
+    _fmt_cs,
+    _fmt_cs_tex,
+    _tex_num,
+    load_data,
+    table3_panel_b,
+    to_iv_frame,
+)
 from simulation import iv_estimate_catoni, iv_estimate_mr, iv_estimate_rm
 from simulation_study import ESTIMATOR_COLORS, GRAPHS_DIR  # noqa: F401 (rcParams side effect)
 
 ROOT = Path(__file__).resolve().parents[1]
 CSV_PATH = Path(__file__).resolve().parent / "output" / "ak91_sensitivity_seeds.csv"
 TEX_PATH = ROOT / "Paper" / "iteration4" / "ak91_sensitivity.tex"
+AGG_TEX_PATH = ROOT / "Paper" / "iteration4" / "ak91_aggregated.tex"
+AGG_CSV_PATH = Path(__file__).resolve().parent / "output" / "ak91_aggregated.csv"
 FIG_PATH = GRAPHS_DIR / "ak91_seed_sensitivity.png"
 
 TEST_COLORS = {"MoM-AR (feasible)": "#4C72B0", "SN-AR": "#55A868"}
@@ -109,7 +122,89 @@ def one_partition(
         )
         out[f"{name}_rej0"] = bool(rej[0])
         out[f"{name}_rejOLS"] = bool(rej[1])
+        # The whole set, not only its outer endpoints: cor:agg_cs needs every
+        # component of every permutation's set to take the majority vote.
+        out[f"{name}_cs"] = cs
     return out
+
+
+# ----------------------------------------------------------------------------
+# Aggregation over partitions (def:randomised, thm:aggregation, cor:agg_cs)
+# ----------------------------------------------------------------------------
+
+AGG_ESTS = [("beta_mor", "Median-of-Ratios"), ("beta_rom", "Ratio-of-Medians")]
+AGG_TESTS = [("mom", "MoM-AR (feasible)"), ("sn", "SN-AR")]
+
+
+def aggregate_over_depths(rows: list[dict], ols_beta: float,
+                          depths: list[int] | None = None) -> pd.DataFrame:
+    """
+    Aggregated estimators and aggregated confidence sets built from the
+    permutations already drawn by one_partition.
+
+    By default the single depth B = len(rows) is used, so every permutation
+    drawn enters one aggregate: that is the estimate and the set the case
+    studies report. Passing `depths` cuts the permutations into R = len(rows)
+    // B disjoint groups instead, each an independent aggregate on the same
+    data, which is how the residual seed dependence at a shallower depth can be
+    measured (the empirical counterpart of panel (b) of
+    Figure~fig:ab_strength). Remark~rem:agg_not_sampling forbids reading that
+    spread as uncertainty about beta.
+
+    Point estimates aggregate by the median of def:randomised. Confidence sets
+    aggregate by cor:agg_cs: beta0 survives when it lies in at least half of
+    the group's per-permutation sets. Both the Wald estimator and the standard
+    AR test are partition-free, so aggregation leaves them unchanged.
+
+    Returns one row per depth, carrying the first group's aggregate and, when
+    more than one group is available, the dispersion across groups.
+    """
+    if depths is None:
+        depths = [len(rows)]
+    out = []
+    for B in depths:
+        R = len(rows) // B
+        if R == 0:
+            print(f"  skipping B = {B}: fewer than B permutations drawn")
+            continue
+        groups = [rows[g * B:(g + 1) * B] for g in range(R)]
+        rec: dict = {"B": B, "R": R}
+        for key, _ in AGG_ESTS:
+            vals = np.array([np.median([r[key] for r in grp]) for grp in groups])
+            rec[f"{key}_hat"] = float(vals[0])
+            rec[f"{key}_sd"] = float(vals.std(ddof=1)) if R > 1 else np.nan
+            rec[f"{key}_min"] = float(vals.min())
+            rec[f"{key}_max"] = float(vals.max())
+        for key, _ in AGG_TESTS:
+            css = [inf.aggregate_cs([r[f"{key}_cs"] for r in grp]) for grp in groups]
+            rec[f"{key}_cs"] = css[0]
+            rec[f"{key}_ncomp"] = len(css[0])
+            rec[f"{key}_excl0"] = not inf.cs_contains(css[0], 0.0)
+            rec[f"{key}_exclOLS"] = not inf.cs_contains(css[0], ols_beta)
+            rec[f"{key}_unbounded"] = bool(css[0]) and (
+                np.isinf(css[0][0][0]) or np.isinf(css[0][-1][1]))
+            rec[f"{key}_length"] = (
+                np.inf if rec[f"{key}_unbounded"]
+                else float(sum(hi - lo for lo, hi in css[0])))
+            rec[f"{key}_pct_excl0"] = 100.0 * float(
+                np.mean([not inf.cs_contains(cs, 0.0) for cs in css]))
+        out.append(rec)
+    return pd.DataFrame(out)
+
+
+def print_aggregated(agg: pd.DataFrame, wald: float, dp: int = 4) -> None:
+    """Console view of aggregate_over_depths."""
+    print(f"\nAggregated over partitions (Wald reference = {wald:.{dp}f}):")
+    for _, r in agg.iterrows():
+        extra = "" if int(r["R"]) == 1 else f", {int(r['R'])} independent groups"
+        print(f"  B = {int(r['B']):>4}{extra}")
+        for key, label in AGG_ESTS:
+            sd = (f"  (SD across groups {r[f'{key}_sd']:.{dp}f})"
+                  if np.isfinite(r[f"{key}_sd"]) else "")
+            print(f"    {label:<18} {r[f'{key}_hat']:.{dp}f}{sd}")
+        for key, label in AGG_TESTS:
+            print(f"    {label:<18} {_fmt_cs(r[f'{key}_cs'])}"
+                  f"  [{'excludes' if r[f'{key}_excl0'] else 'contains'} 0]")
 
 
 # ----------------------------------------------------------------------------
@@ -281,6 +376,56 @@ def write_tex(est_tab: pd.DataFrame, freq_tab: pd.DataFrame, B: int, wald: float
     print(f"wrote {TEX_PATH}")
 
 
+def write_agg_tex(agg: pd.DataFrame, B_total: int, wald: float,
+                  ar_cs: list[tuple[float, float]], k_mor: int, k_rom: int) -> None:
+    """
+    The AK91 aggregated table, laid out as Table~tab:ak91_robust so the two can
+    be read side by side: that one is a single partition, this one is the
+    aggregate over all B of them.
+    """
+    r = agg.iloc[-1]
+    lines = [
+        "% Auto-generated by Code/replication_ak91_sensitivity.py -- do not edit by hand.",
+        "",
+        r"\begin{table}[htbp]",
+        r"\centering",
+        r"\caption{Aggregated estimates and the aggregated 95\% confidence set "
+        r"on the AK91 extract, over all $B = " + _tex_num(B_total) +
+        r"$ random partitions of Table~\ref{tab:ak91_sensitivity} "
+        r"(Definition~\ref{def:randomised} and Corollary~\ref{cor:agg_cs}, "
+        r"$\delta = 0.05$; " f"$k = {k_mor}$ for MoR and the tests, $k = {k_rom}$ "
+        r"for RoM). Table~\ref{tab:ak91_robust} is the same quantities on a "
+        r"single partition. The Wald estimator and the standard AR test do not "
+        r"depend on the partition and are shown for reference; by "
+        r"Corollary~\ref{cor:agg_cs} the aggregated set is guaranteed at "
+        r"$2\delta$, not $\delta$.}",
+        r"\label{tab:ak91_aggregated}",
+        r"\begin{tabular}{lc}",
+        r"\toprule",
+        r"Aggregated estimator & $\widetilde{\beta}_B$ \\",
+        r"\midrule",
+    ]
+    for key, label in AGG_ESTS:
+        lines.append(f"{label} & {r[f'{key}_hat']:.4f} \\\\")
+    lines += [
+        f"Wald / Mean IV (partition-free) & {wald:.4f} \\\\",
+        r"\midrule",
+        r"Aggregated test & 95\% confidence set \\",
+        r"\midrule",
+    ]
+    for key, label in AGG_TESTS:
+        lines.append(f"{label} & {_fmt_cs_tex(r[f'{key}_cs'])} \\\\")
+    lines += [
+        f"AR (standard, partition-free) & {_fmt_cs_tex(ar_cs)} \\\\",
+        r"\bottomrule",
+        r"\end{tabular}",
+        r"\end{table}",
+        "",
+    ]
+    AGG_TEX_PATH.write_text("\n".join(lines), encoding="utf-8")
+    print(f"wrote {AGG_TEX_PATH}")
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[1])
     p.add_argument("--reps", type=int, default=1000)
@@ -319,7 +464,10 @@ def main() -> None:
     print(f"{args.reps} partitions in {time.time() - t0:.1f}s")
 
     CSV_PATH.parent.mkdir(exist_ok=True)
-    res.to_csv(CSV_PATH, index=False)
+    # The raw confidence sets are kept in memory for the aggregation below;
+    # the per-seed CSV keeps the scalar columns it has always had.
+    res.drop(columns=[c for c in res.columns if c.endswith("_cs")]).to_csv(
+        CSV_PATH, index=False)
     print(f"wrote {CSV_PATH}")
 
     est_tab, freq_tab = summarise(res, rep["wald"], rep["ols"], ar_ref)
@@ -333,6 +481,16 @@ def main() -> None:
 
     make_figure(res, rep["wald"], rep["ols"])
     write_tex(est_tab, freq_tab, args.reps, rep["wald"])
+
+    agg = aggregate_over_depths(rows, rep["ols"])
+    print_aggregated(agg, rep["wald"])
+    agg_out = agg.copy()
+    for key, _ in AGG_TESTS:
+        agg_out[f"{key}_cs"] = agg_out[f"{key}_cs"].map(_fmt_cs)
+    agg_out.to_csv(AGG_CSV_PATH, index=False)
+    print(f"wrote {AGG_CSV_PATH}")
+    write_agg_tex(agg, args.reps, rep["wald"], ar_cs, k,
+                  int(np.ceil(8 * np.log(2 / args.delta))))
 
 
 if __name__ == "__main__":

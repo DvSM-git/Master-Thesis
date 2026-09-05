@@ -362,3 +362,86 @@ The critical value $c_{k,\delta}$ is the $(1-\delta)$ quantile of $R_k$; since $
 \end{proof}
 
 \begin{remark}[An exactly distribution-free variant] \label{rem:sn_sign} If $Z\varepsilon$ is symmetric about $0$ under $H_0$, the signs of the block means are independent fair coin flips, so $N_+(\beta_0)=\#\{j: \bar{W}_j(\beta_0)>0\}\sim\mathrm{Binomial}(k,\tfrac12)$ exactly, free of both $\sigma_{Z\varepsilon}$ and the tail shape. Rejecting when $N_+(\beta_0)$ is far from $k/2$ gives a finite-sample-exact, distribution-free test, at the cost of the symmetry assumption and of lower power, since it uses only the signs of the block means. \end{remark}
+
+\subsection{Aggregated Inference}
+
+The tests of Section~\ref{s:inference} partition the sample exactly as the estimators do, and the transfer argument of Proposition~\ref{prop:transfer} applies to them unchanged. For any fixed permutation $p$ the reordered sample $S^{(p)}$ has the same distribution as $S$, so the test of Algorithm~\ref{alg:mom_ar} computed on $S^{(p)}$ has size at most $\delta$ by Theorem~\ref{thm:mom_ar_size}. What does not transfer is the verdict. Section~\ref{sss:ps} shows that, once the instrument weakens, whether the null is rejected can depend on the seed on a majority of datasets. We remove the dependence on the seed by taking a majority vote over permutations.
+
+
+\begin{definition}[Randomised and aggregated tests]
+\label{def:randomised_test}
+    Fix a null value $\beta_0$. For a permutation $p$, write $\widetilde{W}^{(p)}(\beta_0)$ for the statistic~\eqref{eq:Wtilde} computed on $S^{(p)}$ and $\varphi^{(p)}(\beta_0) = \mathbf{1}\{\abs{\widetilde{W}^{(p)}(\beta_0)} > \tau_n(\delta)\}$ for the decision of Algorithm~\ref{alg:mom_ar} on $S^{(p)}$, with $1$ standing for rejection. With $\pi_1,\dots,\pi_B$ as in Definition~\ref{def:randomised}, the randomised test is $\varphi^{(\pi_1)}(\beta_0)$ and the aggregated test rejects when more than half of the replicates do,
+    \begin{equation}
+    \label{eq:agg_test}
+        \widetilde{\varphi}_B(\beta_0)
+        = \mathbf{1}\Bigl\{\sum\nolimits_{b=1}^{B} \varphi^{(\pi_b)}(\beta_0) > B/2\Bigr\}.
+    \end{equation}
+    Write $V(S,\beta_0) = \frac{1}{n!}\sum_{p}\varphi^{(p)}(\beta_0)$ for the fraction of all permutations that reject, and $\widetilde{\varphi}_\infty(\beta_0) = \mathbf{1}\{V(S,\beta_0) > 1/2\}$ for the idealised test that consults every permutation.
+\end{definition}
+
+\begin{theorem}[Size of the aggregated test]
+\label{thm:agg_size}
+    Assume \ref{ass:exog}--\ref{ass:moments}, with $k = \lceil 8\ln(1/\delta)\rceil$ and $\tau_n(\delta)$ as in~\eqref{eq:tau}. Then under $H_0\colon\beta=\beta_0$, for every $B \geq 1$ and every $\gamma \in (0,1/2)$,
+    \begin{equation}
+    \label{eq:agg_size}
+        \Prob_{H_0}\!\left[\widetilde{\varphi}_\infty(\beta_0) = 1\right] \leq 2\delta,
+        \qquad
+        \Prob_{H_0}\!\left[\widetilde{\varphi}_B(\beta_0) = 1\right] \leq \frac{\delta}{\gamma} + e^{-2B(1/2-\gamma)^2}.
+    \end{equation}
+\end{theorem}
+
+
+\begin{proof}
+    The argument is that of Theorem~\ref{thm:aggregation} with rejection in place of failure.
+ 
+    \medskip\noindent\textbf{Step 1 (The rejecting fraction is small on average).} Fix a permutation $p$. Under $H_0$ the reordered sample $S^{(p)}$ has the same distribution as $S$, so Theorem~\ref{thm:mom_ar_size} applied to it gives $\Prob_{H_0}[\varphi^{(p)}(\beta_0) = 1] \leq \delta$. Taking expectations over $S$ in the definition of $V$ and exchanging the finite sum with the expectation, $\E_S[V(S,\beta_0)] = \frac{1}{n!}\sum_p \Prob_{H_0}[\varphi^{(p)}(\beta_0) = 1] \leq \delta$, and Markov's inequality gives $\Prob_S[V(S,\beta_0) \geq \gamma] \leq \delta/\gamma$ for every $\gamma \in (0,1)$.
+ 
+    \medskip\noindent\textbf{Step 2 (All permutations).} The idealised test rejects exactly when $V(S,\beta_0) > 1/2$, so $\Prob_{H_0}[\widetilde{\varphi}_\infty(\beta_0) = 1] \leq \Prob_S[V(S,\beta_0) \geq 1/2] \leq 2\delta$ by Step~1 at $\gamma = 1/2$.
+ 
+    \medskip\noindent\textbf{Step 3 (Finitely many permutations).} Fix the sample $S$ and set $\zeta_b = \varphi^{(\pi_b)}(\beta_0)$. As each $\pi_b$ is uniform and independent of $S$, the probability that replicate $b$ rejects is exactly $V(S,\beta_0)$, so $\zeta_1,\dots,\zeta_B$ are i.i.d.\ Bernoulli with mean $V(S,\beta_0)$. Whenever $V(S,\beta_0) \leq \gamma$, the aggregated test can reject only if $\sum_b \zeta_b$ exceeds its mean by at least $B(1/2-\gamma)$, so Hoeffding's inequality gives
+    \[
+        \Prob_{H_0}\!\left[\widetilde{\varphi}_B(\beta_0) = 1 \;\middle|\; S\right]
+        \leq \Prob\!\left[\sum\nolimits_{b} \zeta_b \geq B/2 \;\middle|\; S\right]
+        \leq e^{-2B(1/2-\gamma)^2}.
+    \]
+    Averaging over $S$ gives the second bound. The display applies to every sample with $V(S,\beta_0) \leq \gamma$, and the remaining samples occur with probability at most $\delta/\gamma$ by Step~1.
+\end{proof}
+
+
+For odd $B$ the majority vote coincides with comparing a single aggregated statistic to the unchanged threshold.
+
+\begin{proposition}[Median-statistic form]
+\label{prop:agg_median_form}
+    For odd $B$,
+    \[
+        \widetilde{\varphi}_B(\beta_0) = 1
+        \iff
+        \med\bigl(\abs{\widetilde{W}^{(\pi_1)}(\beta_0)},\dots,\abs{\widetilde{W}^{(\pi_B)}(\beta_0)}\bigr) > \tau_n(\delta).
+    \]
+\end{proposition}
+ 
+\begin{proof}
+    For odd $B$ the median of $B$ numbers is their $\tfrac{B+1}{2}$th smallest. It exceeds the rejection threshold $\tau_n(\delta)$ exactly when fewer than $\tfrac{B+1}{2}$ of the numbers are at most $\tau_n(\delta)$. That is, when at least $\tfrac{B+1}{2} > B/2$ of them exceed $\tau_n(\delta)$. Since $\abs{\widetilde{W}^{(\pi_b)}(\beta_0)} > \tau_n(\delta)$ is precisely the rejection $\varphi^{(\pi_b)}(\beta_0) = 1$, this is the event $\sum_b \varphi^{(\pi_b)}(\beta_0) > B/2$.
+\end{proof}
+
+
+Inverting the aggregated test produces a confidence set, and the geometry of the geometry of Section~\ref{sec:geometry} survives the aggregation.
+
+\begin{corollary}[Aggregated confidence set]
+\label{cor:agg_cs}
+    Let $CS^{(b)}_{1-\delta}$ denote the confidence set~\eqref{eq:cs} computed on $S^{(\pi_b)}$ and define
+    \[
+        \widetilde{CS}_B
+        := \bigl\{\beta_0 \in \R : \widetilde{\varphi}_B(\beta_0) = 0\bigr\}
+        = \Bigl\{\beta_0 \in \R : \beta_0 \in CS^{(b)}_{1-\delta} \text{ for at least half of } b = 1,\dots,B\Bigr\}.
+    \]
+    Then, for every $\gamma \in (0,1/2)$,
+    \begin{equation}
+    \label{eq:agg_coverage}
+        \Prob_\beta\bigl[\beta \in \widetilde{CS}_B\bigr]
+        \geq 1 - \frac{\delta}{\gamma} - e^{-2B(1/2-\gamma)^2},
+    \end{equation}
+    and $\widetilde{CS}_B$ is a finite union of at most $kB+1$ closed intervals, whose endpoints lie among the at most $2kB$ candidate points obtained by applying Corollary~\ref{cor:endpoints} to each of the $B$ reordered samples.
+\end{corollary}
+
+\todo[inline]{write proof}

@@ -23,6 +23,12 @@ Each experiment maps to specific theoretical results in Paper/iteration4:
        -> Prop prop:mono_det, prop:mono_cheby
   I5   R_k critical value table for the appendix (sec:artable)
        -> Prop prop:sn_pivotal
+  AG   Size and power of the aggregated MoM-AR test across instrument
+       strength and aggregation depth B
+       -> Def def:randomised_test, Thm thm:agg_size, Prop prop:agg_median_form
+  AB   Aggregated point estimator across instrument strength and error
+       distribution, by aggregation depth B
+       -> Def def:randomised, Prop prop:conditional, Thm thm:aggregation
 
 Usage:
     python experiments.py --pilot            # reduced replication counts
@@ -33,6 +39,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import textwrap
 import time
 import zlib
 from pathlib import Path
@@ -124,9 +131,11 @@ TEST_STYLES = {
 def rep_counts(full: bool) -> dict[str, int]:
     if full:
         return dict(box=10_000, tail=50_000, size=10_000, power=5_000, cs=5_000, mono=2_000,
-                    ps_D=100, ps_B=200, ps_Bspot=2_000, moments=50_000)
+                    ps_D=100, ps_B=200, ps_Bspot=2_000, moments=50_000, ag_D=2_000,
+                    ab_D=2_000)
     return dict(box=1_000, tail=5_000, size=1_000, power=500, cs=500, mono=300,
-                ps_D=20, ps_B=40, ps_Bspot=400, moments=5_000)
+                ps_D=20, ps_B=40, ps_Bspot=400, moments=5_000, ag_D=100,
+                ab_D=100)
 
 
 def _note(fig, text: str) -> None:
@@ -1116,6 +1125,505 @@ def exp_ps_partition(reps_D: int, B: int, n_jobs: int, seed: int = 808,
 
 
 # ----------------------------------------------------------------------------
+# AG: aggregated MoM-AR test (def:randomised_test, thm:agg_size)
+# ----------------------------------------------------------------------------
+
+# Same strength axis as the partition-randomness study, so the two figures are
+# read on one scale: gamma = sigma2_ZX/mu_ZX^2 from 2.5 (strong) to 1000.
+AG_MUS = PS_MUS
+# Aggregation depths. All odd, so the majority vote of eq:agg_test coincides
+# with the median-statistic form of prop:agg_median_form. B = 1 is the
+# single-partition randomised test, i.e. the no-aggregation baseline.
+AG_BS = [1, 5, 25, 101]
+# Strength levels drawn in the power figure: strong, the transition where
+# sss:ps finds the verdict seed-dependent, and weak.
+AG_POWER_MUS = [1.0, 0.2, 0.1]
+AG_B_COLORS = {1: "#8C8C8C", 5: "#9ECAE1", 25: "#4292C6", 101: "#08519C"}
+AG_B_STYLES = {1: (0, (4, 3)), 5: "-", 25: "-", 101: "-"}
+AG_TESTS = ["MoM-AR (oracle)", "MoM-AR (feasible)"]
+
+
+def _ag_dataset(seed, n, mu, delta, grid, B_max):
+    """
+    One dataset of the aggregated design: draw the sample once, then B_max
+    independent random partitions. Each partition contributes |W_tilde| over
+    the whole beta0 grid and its own feasible threshold; the oracle threshold
+    is partition-free.
+
+    Returns (|W_tilde| as (B_max, len(grid)), feasible taus (B_max,), oracle tau).
+    """
+    rng = np.random.default_rng(seed)
+    dgp = dict(BASE, mu_ZX=mu)
+    df = generate_data(n=n, eps_Y_dist=("t", 2.1), rng=rng, **dgp)
+    Y, X, Z = (df[c].to_numpy() for c in ("Y", "X", "Z"))
+    k = inf.k_blocks(delta)
+
+    W = np.empty((B_max, grid.size))
+    tau_feas = np.empty(B_max)
+    for b in range(B_max):
+        perm = rng.permutation(n)
+        Yp, Xp, Zp = Y[perm], X[perm], Z[perm]
+        a, bb, _ = inf.block_means(Yp, Xp, Zp, k, shuffle=False)
+        W[b] = np.abs(inf.mom_ar_statistic(a, bb, grid))
+        tau_feas[b] = inf.tau_n(
+            inf.robust_sigma_Ze(Yp, Xp, Zp, delta, shuffle=False), n, delta)
+    return W, tau_feas, inf.tau_n(np.sqrt(dgp["sigma2_Ze"]), n, delta)
+
+
+def _ag_reject(W, tau_feas, tau_orac):
+    """
+    Aggregated verdicts at every depth in AG_BS from one dataset's partitions.
+
+    eq:agg_test rejects when strictly more than half of the replicates do. The
+    first B of the B_max partitions are themselves i.i.d. uniform, so a single
+    pass serves every B. Returns {test: {B: bool array over the grid}}.
+    """
+    rej = {
+        "MoM-AR (oracle)": W > tau_orac,
+        "MoM-AR (feasible)": W > tau_feas[:, None],
+    }
+    return {t: {B: r[:B].mean(axis=0) > 0.5 for B in AG_BS} for t, r in rej.items()}
+
+
+def exp_ag_aggregated(reps_D: int, n_jobs: int, seed: int = 1010) -> None:
+    """
+    AG: size and power of the aggregated MoM-AR test (def:randomised_test).
+
+    Follows on from exp_ps_partition. sss:ps shows the reject/don't-reject
+    verdict depending on the seed on a majority of datasets once the instrument
+    weakens; the aggregated test removes that dependence by majority vote over
+    B partitions. Both figures sweep the same strength axis, with t(2.1) errors
+    and n = 2000 as in exp_ps_partition, and one line per aggregation depth.
+
+    Size is read at beta0 = beta off the same beta0 grid as the power curves,
+    so one pass over the partitions serves both. The reference lines mark delta
+    and the 2*delta ceiling of thm:agg_size, which is the level the aggregated
+    test is guaranteed against -- not delta.
+    """
+    n = 2000
+    beta = BASE["beta"]
+    B_max = max(AG_BS)
+    # W_tilde moves with beta0 at a rate set by the block means of Z*X, which
+    # scale with mu_ZX, so a grid fixed in absolute terms saturates only under a
+    # strong instrument. Widening it as 1/mu_ZX puts each strength level on its
+    # own scale and lets the weak-instrument curves reach their plateau.
+    n_grid = 31
+    i0 = n_grid // 2            # symmetric odd grid: the midpoint is beta exactly
+
+    t0 = time.perf_counter()
+    size = {t: {B: [] for B in AG_BS} for t in AG_TESTS}
+    power: dict = {}
+    grids: dict = {}
+    rows, prows = [], []
+    for mu in AG_MUS:
+        grid = beta + np.linspace(-0.6 / mu, 0.6 / mu, n_grid)
+        grids[mu] = grid
+        seeds = np.random.SeedSequence(seed + int(1e4 * mu)).spawn(reps_D)
+        res = Parallel(n_jobs=n_jobs)(
+            delayed(_ag_dataset)(s, n, mu, DELTA, grid, B_max) for s in seeds
+        )
+        agg = [_ag_reject(*r) for r in res]
+        gamma = BASE["sigma2_ZX"] / mu ** 2
+        for t in AG_TESTS:
+            for B in AG_BS:
+                rate = np.mean([a[t][B] for a in agg], axis=0)   # over datasets
+                power[(t, mu, B)] = rate
+                size[t][B].append(float(rate[i0]))
+                rows.append({"mu": mu, "gamma": gamma, "test": t, "B": B,
+                             "size": float(rate[i0])})
+                for b0, v in zip(grid, rate):
+                    prows.append({"mu": mu, "gamma": gamma, "test": t, "B": B,
+                                  "beta0_minus_beta": b0 - beta,
+                                  "rejection_rate": float(v)})
+        feas = size["MoM-AR (feasible)"]
+        print(f"  mu={mu:g}: gamma={gamma:.1f}, size(feasible) "
+              f"B=1 {feas[1][-1]:.4f} -> B={B_max} {feas[B_max][-1]:.4f}")
+
+    tab = pd.DataFrame(rows)
+    tab.to_csv(GRAPHS_DIR / "ag_size.csv", index=False)
+    pd.DataFrame(prows).to_csv(GRAPHS_DIR / "ag_power.csv", index=False)
+    print(tab.pivot_table(index=["test", "gamma"], columns="B", values="size")
+          .to_string(float_format=lambda v: f"{v:.4f}"))
+
+    # --- size figure ---
+    gammas = [BASE["sigma2_ZX"] / mu ** 2 for mu in AG_MUS]
+    fig, axes = plt.subplots(1, len(AG_TESTS), figsize=(11.0, 4.6), sharey=True)
+    for ax, t in zip(axes, AG_TESTS):
+        for B in AG_BS:
+            ax.plot(gammas, size[t][B], marker="o", markersize=4.5, linewidth=1.8,
+                    linestyle=AG_B_STYLES[B], color=AG_B_COLORS[B],
+                    label=f"B = {B}" + (" (single partition)" if B == 1 else ""))
+        ax.axhline(DELTA, color="0.4", linestyle=":", linewidth=1.2)
+        ax.axhline(2 * DELTA, color="0.4", linestyle="-.", linewidth=1.2)
+        ax.set_xscale("log")
+        ax.set_xlabel(r"$\gamma = \sigma^2_{ZX}/\mu_{ZX}^2$ (log scale)")
+        ax.set_title(t, fontsize=12)
+        ax.yaxis.grid(True, color="0.88", linewidth=0.7)
+        ax.set_axisbelow(True)
+    axes[0].set_ylabel(r"Rejection rate at $\beta_0 = \beta$")
+    axes[0].legend(frameon=False, fontsize=9, loc="upper left")
+    for lvl, lab in ((DELTA, r"$\delta$"), (2 * DELTA, r"$2\delta$")):
+        axes[-1].annotate(lab, xy=(gammas[-1], lvl), fontsize=9, color="0.35",
+                          ha="right", va="bottom")
+    _note(fig, f"Note. D = {reps_D} datasets per point; n = {n}, t(2.1) errors, "
+               f"$\\delta$ = {DELTA:g}, k = {inf.k_blocks(DELTA)}. Dotted line $\\delta$, "
+               f"dash-dotted line 2$\\delta$: the aggregated test is guaranteed against "
+               f"2$\\delta$, not $\\delta$. B = 1 is the single-partition randomised test.")
+    fig.subplots_adjust(left=0.08, right=0.99, top=0.92, bottom=0.2, wspace=0.08)
+    _save(fig, "ag_size.png")
+
+    # --- power figure ---
+    fig, axes = plt.subplots(len(AG_TESTS), len(AG_POWER_MUS),
+                             figsize=(13.5, 7.6), sharey=True)
+    for i, t in enumerate(AG_TESTS):
+        for j, mu in enumerate(AG_POWER_MUS):
+            ax = axes[i, j]
+            for B in AG_BS:
+                ax.plot(grids[mu] - beta, power[(t, mu, B)], linewidth=1.8,
+                        linestyle=AG_B_STYLES[B], color=AG_B_COLORS[B],
+                        label=f"B = {B}" + (" (single partition)" if B == 1 else ""))
+            ax.axhline(DELTA, color="0.4", linestyle=":", linewidth=1.2)
+            ax.yaxis.grid(True, color="0.88", linewidth=0.7)
+            ax.set_axisbelow(True)
+            if i == 0:
+                ax.set_title(rf"$\gamma$ = {BASE['sigma2_ZX'] / mu ** 2:.3g}"
+                             rf"  ($\mu_{{ZX}}$ = {mu:g})", fontsize=11)
+            if i == len(AG_TESTS) - 1:
+                ax.set_xlabel(r"$\beta_0 - \beta$")
+            if j == 0:
+                ax.set_ylabel(f"{t}\nRejection frequency", fontsize=10)
+    axes[0, 0].legend(frameon=False, fontsize=8, loc="upper center")
+    _note(fig, f"Note. D = {reps_D} datasets per curve; n = {n}, t(2.1) errors, "
+               f"$\\delta$ = {DELTA:g} (dotted). B = 1 is the single-partition "
+               f"randomised test; larger B votes over more partitions.")
+    fig.subplots_adjust(left=0.09, right=0.99, top=0.93, bottom=0.12,
+                        wspace=0.08, hspace=0.12)
+    _save(fig, "ag_power.png")
+    print(f"[AG] runtime {time.perf_counter()-t0:.1f}s")
+
+
+# ----------------------------------------------------------------------------
+# AB: aggregated point estimator (def:randomised, thm:aggregation)
+# ----------------------------------------------------------------------------
+
+# Same strength axis and the same aggregation ladder as the aggregated test, so
+# the estimator and the test figures of sss:agg are read on one scale.
+AB_MUS = PS_MUS
+AB_BS = AG_BS
+AB_B_COLORS, AB_B_STYLES = AG_B_COLORS, AG_B_STYLES
+AB_ESTS = ["Median-of-Ratios", "Ratio-of-Medians"]
+# Permutations drawn per dataset. A multiple of max(AB_BS), so that at every
+# depth the P draws split into R = P // B DISJOINT groups of size B. Each group
+# is then an independent aggregate on the same data, and their spread is the
+# seed dispersion of rem:agg_not_sampling: computational randomness, not
+# uncertainty about beta.
+AB_P = 5 * max(AB_BS)
+# Distribution panel: the E1/E2 families at the canonical (strong) DGP.
+AB_DISTS = ["Gaussian", "t(3)", "t(2.1)", "Pareto(2.5)", "Mix(0.1,3)"]
+# The strength sweep has to fix one family; t(2.1) keeps it on the DGP of
+# sss:ps and sss:agg, where the seed dependence being aggregated away was
+# measured in the first place.
+AB_STRENGTH_DIST = "t(2.1)"
+
+
+def _ab_dataset(seed, n, mu, dist, delta, P):
+    """
+    One dataset of the aggregated-estimator design: draw the sample once, then
+    P independent random permutations of its rows. Each permutation contributes
+    one Median-of-Ratios and one Ratio-of-Medians estimate, both cut from the
+    SAME reordering, so the two differ only through their block count k (the
+    convention of the empirical replications).
+
+    The block means are formed inline rather than through iv_estimate_mr /
+    iv_estimate_rm: those rebuild a DataFrame and revalidate delta on every
+    call, which dominates the runtime at P = AB_P permutations per dataset.
+    verify() checks that the two agree exactly.
+
+    Returns (MoR draws (P,), RoM draws (P,), partition-free Mean IV).
+    """
+    rng = np.random.default_rng(seed)
+    df = generate_data(n=n, eps_Y_dist=dist, rng=rng, **dict(BASE, mu_ZX=mu))
+    Z = df["Z"].to_numpy()
+    ZY, ZX = Z * df["Y"].to_numpy(), Z * df["X"].to_numpy()
+
+    k_mor = inf.k_blocks(delta)                        # ceil(8 ln(1/delta))
+    k_rom = int(np.ceil(8 * np.log(2 / delta)))        # ceil(8 ln(2/delta))
+    m_mor, m_rom = n // k_mor, n // k_rom
+
+    mor, rom = np.empty(P), np.empty(P)
+    for p in range(P):
+        perm = rng.permutation(n)
+        y, x = ZY[perm], ZX[perm]
+        by = y[: k_mor * m_mor].reshape(k_mor, m_mor).mean(axis=1)
+        bx = x[: k_mor * m_mor].reshape(k_mor, m_mor).mean(axis=1)
+        mor[p] = np.median(by / bx)
+        by = y[: k_rom * m_rom].reshape(k_rom, m_rom).mean(axis=1)
+        bx = x[: k_rom * m_rom].reshape(k_rom, m_rom).mean(axis=1)
+        rom[p] = np.median(by) / np.median(bx)
+    return mor, rom, float(ZY.mean() / ZX.mean())
+
+
+def _ab_aggregate(v: np.ndarray, B: int) -> np.ndarray:
+    """
+    Aggregated estimates at depth B from the P single-partition draws.
+
+    def:randomised takes the median over B independent permutations. Given the
+    data the P draws are i.i.d., so cutting them into R = P // B disjoint
+    groups yields R independent aggregates per dataset (leftover draws are
+    dropped). Input (D, P), output (D, R); B = 1 returns the draws unchanged,
+    the no-aggregation baseline.
+    """
+    D, P = v.shape
+    R = P // B
+    return np.median(v[:, : R * B].reshape(D, R, B), axis=2)
+
+
+def _ab_metrics(v: np.ndarray, beta: float, delta: float) -> dict[int, dict]:
+    """
+    Per-depth summary of one (configuration, estimator) cell from its (D, P)
+    draws.
+
+    q_dev   empirical (1-delta)-quantile of |beta_tilde_B - beta|, pooled over
+            datasets and permutation groups. This is the deviation t of
+            thm:rom / thm:mor, and thm:aggregation bounds exactly this joint
+            probability over the sample and the seeds together.
+    sd_part root of the mean over datasets of the within-dataset variance of
+            the aggregates: what survives of the seed dependence at depth B.
+    share   partition variance as a fraction of the total, the decomposition
+            exp_ps_partition uses, so the two sections report one quantity.
+    fail_t1 fraction of aggregates further from beta than the SINGLE-partition
+            deviation q_dev(B=1). thm:aggregation bounds it by
+            delta/lambda + exp(-2B(1/2-lambda)^2); the empirical counterpart
+            says how loose that is.
+    """
+    agg = {B: _ab_aggregate(v, B) for B in AB_BS}
+    t1 = float(np.quantile(np.abs(agg[1] - beta), 1.0 - delta))
+    out = {}
+    for B, a in agg.items():
+        err = a - beta
+        v_part = float(np.mean(a.var(axis=1, ddof=1))) if a.shape[1] > 1 else 0.0
+        v_samp = float(a.mean(axis=1).var(ddof=1))
+        out[B] = {
+            "R": a.shape[1],
+            "q_dev": float(np.quantile(np.abs(err), 1.0 - delta)),
+            "mad_err": float(np.median(np.abs(err))),
+            "median_bias": float(np.median(err)),
+            "sd_part": float(np.sqrt(v_part)),
+            "sd_samp": float(np.sqrt(v_samp)),
+            "share": v_part / (v_part + v_samp) if (v_part + v_samp) > 0 else np.nan,
+            "fail_t1": float(np.mean(np.abs(err) > t1)),
+        }
+    return out
+
+
+def _ab_run(reps_D, n, mu, dist, n_jobs, seed):
+    """D datasets at one (mu, distribution) cell; returns the (D, P) draws."""
+    seeds = np.random.SeedSequence(seed).spawn(reps_D)
+    res = Parallel(n_jobs=n_jobs)(
+        delayed(_ab_dataset)(s, n, mu, DISTS[dist], DELTA, AB_P) for s in seeds
+    )
+    mor, rom, iv = (np.asarray(c) for c in zip(*res))
+    return {"Median-of-Ratios": mor, "Ratio-of-Medians": rom}, iv
+
+
+def _ab_note(fig, text: str, width: int) -> None:
+    """_note for a note too long for one line; `width` is in characters."""
+    _note(fig, "\n".join(textwrap.wrap(text, width)))
+
+
+def _ab_bs_axis(ax) -> None:
+    """Shared x-axis for the depth panels: log scale, ticks at the depths run."""
+    ax.set_xscale("log")
+    ax.set_xticks(AB_BS)
+    ax.set_xticklabels([str(B) for B in AB_BS])
+    ax.minorticks_off()
+
+
+def exp_ab_aggregated(reps_D: int, n_jobs: int, seed: int = 1212) -> None:
+    """
+    AB: the aggregated point estimator of def:randomised, across instrument
+    strength and across error distributions.
+
+    Companion to exp_ag_aggregated, which does the same for the test. Both
+    sweep gamma = sigma2_ZX/mu_ZX^2 on one axis and share the aggregation
+    ladder B, and both ask two questions of every cell: what the aggregation
+    costs in accuracy (the (1-delta)-deviation quantile, the t of thm:rom and
+    thm:mor) and what it buys in stability (the dispersion of the estimate
+    across seeds on one fixed dataset, the object measured in sss:ps).
+
+    Figure ab_strength.png sweeps gamma at t(2.1) errors; the shading marks
+    where eq:mor_strength and eq:rom_strength stop holding at this n. Figure
+    ab_dists.png fixes the canonical strong DGP and sweeps the error family.
+    The partition-free Mean IV is the reference in both.
+
+    The raw (D, P) draws are not written to output/raw: at the full counts they
+    are some 200 MB of incompressible floats, and the driver is reproducible
+    from its fixed seed.
+    """
+    n = 2000
+    beta = BASE["beta"]
+    k_mor, k_rom = inf.k_blocks(DELTA), int(np.ceil(8 * np.log(2 / DELTA)))
+    m_mor, m_rom = n // k_mor, n // k_rom
+    # Largest gamma at which each estimator's finite-sample strength condition
+    # still holds at this n: eq:mor_strength is m >= 32 gamma, eq:rom_strength
+    # is m > 4 gamma.
+    gamma_max = {"Median-of-Ratios": m_mor / 32.0, "Ratio-of-Medians": m_rom / 4.0}
+
+    t0 = time.perf_counter()
+    rows = []
+    bmax = max(AB_BS)
+
+    # --- (1) instrument strength sweep -------------------------------------
+    strength: dict = {}
+    iv_strength: dict = {}
+    for mu in AB_MUS:
+        gamma = BASE["sigma2_ZX"] / mu ** 2
+        draws, iv = _ab_run(reps_D, n, mu, AB_STRENGTH_DIST, n_jobs,
+                            seed + int(1e4 * mu))
+        iv_strength[mu] = float(np.quantile(np.abs(iv - beta), 1.0 - DELTA))
+        for est, v in draws.items():
+            met = _ab_metrics(v, beta, DELTA)
+            strength[(est, mu)] = met
+            for B, r in met.items():
+                rows.append(dict(figure="strength", dist=AB_STRENGTH_DIST, mu=mu,
+                                 gamma=gamma, estimator=est, B=B, **r))
+        mo = strength[("Median-of-Ratios", mu)]
+        print(f"  mu={mu:g}: gamma={gamma:7.1f}  MoR q_dev "
+              f"B=1 {mo[1]['q_dev']:.4f} -> B={bmax} {mo[bmax]['q_dev']:.4f}"
+              f"   seed SD {mo[1]['sd_part']:.4f} -> {mo[bmax]['sd_part']:.4f}")
+
+    # --- (2) error-distribution panel at the canonical DGP ------------------
+    dists: dict = {}
+    iv_dists: dict = {}
+    for dname in AB_DISTS:
+        draws, iv = _ab_run(reps_D, n, BASE["mu_ZX"], dname, n_jobs,
+                            seed + _stable_hash(dname) % 1000)
+        iv_dists[dname] = float(np.quantile(np.abs(iv - beta), 1.0 - DELTA))
+        for est, v in draws.items():
+            met = _ab_metrics(v, beta, DELTA)
+            dists[(est, dname)] = met
+            for B, r in met.items():
+                rows.append(dict(figure="dists", dist=dname, mu=BASE["mu_ZX"],
+                                 gamma=BASE["sigma2_ZX"] / BASE["mu_ZX"] ** 2,
+                                 estimator=est, B=B, **r))
+        mo = dists[("Median-of-Ratios", dname)]
+        print(f"  {dname:<12}: MoR q_dev B=1 {mo[1]['q_dev']:.4f} -> "
+              f"B={bmax} {mo[bmax]['q_dev']:.4f}   seed SD "
+              f"{mo[1]['sd_part']:.4f} -> {mo[bmax]['sd_part']:.4f}")
+
+    tab = pd.DataFrame(rows)
+    tab.to_csv(GRAPHS_DIR / "ab_aggregated.csv", index=False)
+    for metric in ("q_dev", "sd_part", "fail_t1"):
+        print(f"\n--- {metric} ---")
+        print(tab[tab.figure == "strength"]
+              .pivot_table(index=["estimator", "gamma"], columns="B", values=metric)
+              .to_string(float_format=lambda v: f"{v:.4f}"))
+        print(tab[tab.figure == "dists"]
+              .pivot_table(index=["estimator", "dist"], columns="B", values=metric)
+              .to_string(float_format=lambda v: f"{v:.4f}"))
+
+    # --- figure 1: instrument strength -------------------------------------
+    gammas = [BASE["sigma2_ZX"] / mu ** 2 for mu in AB_MUS]
+    fig, axes = plt.subplots(2, len(AB_ESTS), figsize=(11.0, 7.4), sharex=True)
+    for col, est in enumerate(AB_ESTS):
+        for row, metric in enumerate(("q_dev", "sd_part")):
+            ax = axes[row, col]
+            # Right of this rule the estimator's strength condition fails.
+            ax.axvspan(gamma_max[est], gammas[-1] * 1.6, color="0.94", zorder=0)
+            ax.axvline(gamma_max[est], color="0.55", linestyle=(0, (5, 4)),
+                       linewidth=1.1, zorder=1)
+            for B in AB_BS:
+                ax.plot(gammas, [strength[(est, mu)][B][metric] for mu in AB_MUS],
+                        marker="o", markersize=4.0, linewidth=1.8,
+                        linestyle=AB_B_STYLES[B], color=AB_B_COLORS[B], zorder=3,
+                        label=f"B = {B}" + (" (single partition)" if B == 1 else ""))
+            if metric == "q_dev":
+                ax.plot(gammas, [iv_strength[mu] for mu in AB_MUS], linewidth=1.4,
+                        linestyle=(0, (1, 2)), color="0.35", zorder=3,
+                        label="Mean IV (partition-free)")
+            ax.set_xscale("log")
+            ax.set_yscale("log")
+            ax.set_xlim(gammas[0] / 1.4, gammas[-1] * 1.6)
+            ax.yaxis.grid(True, color="0.88", linewidth=0.7)
+            ax.set_axisbelow(True)
+            if row == 0:
+                cond = (r"$m \geq 32\gamma$" if est == "Median-of-Ratios"
+                        else r"$m > 4\gamma$")
+                ax.set_title(f"{est}\n" + cond +
+                             rf" holds for $\gamma \leq$ {gamma_max[est]:.3g}"
+                             r" (unshaded)", fontsize=11)
+            else:
+                ax.set_xlabel(r"$\gamma = \sigma^2_{ZX}/\mu_{ZX}^2$ (log scale)")
+    axes[0, 0].set_ylabel(r"(a) $(1-\delta)$-quantile of $|\tilde\beta_B-\beta|$")
+    axes[1, 0].set_ylabel(r"(b) SD across seeds, one dataset")
+    axes[0, 0].legend(frameon=False, fontsize=8.5, loc="upper left")
+    _ab_note(fig, f"Note. D = {reps_D} datasets $\\times$ P = {AB_P} permutations per "
+                  f"point; n = {n}, t(2.1) errors, $\\delta$ = {DELTA:g}, k = {k_mor} "
+                  f"(MoR) and {k_rom} (RoM). Panel (a) pools datasets and seeds, the "
+                  f"joint probability the aggregation theorem bounds; panel (b) is the "
+                  f"within-dataset dispersion of $\\tilde\\beta_B$ across independent "
+                  f"groups of B permutations, what is left of the seed dependence. "
+                  f"Shaded: the estimator's finite-sample strength condition fails. "
+                  f"Both axes log.",
+             width=145)
+    fig.subplots_adjust(left=0.095, right=0.99, top=0.90, bottom=0.175,
+                        wspace=0.14, hspace=0.10)
+    _save(fig, "ab_strength.png")
+
+    # --- figure 2: error distributions at the canonical DGP -----------------
+    # sharey per row: every panel is the same DGP under a different error
+    # family, so one scale per row is what makes the families comparable.
+    fig, axes = plt.subplots(2, len(AB_DISTS), figsize=(15.5, 6.8), sharex=True,
+                             sharey="row")
+    for col, dname in enumerate(AB_DISTS):
+        for row, metric in enumerate(("q_dev", "sd_part")):
+            ax = axes[row, col]
+            for est in AB_ESTS:
+                ax.plot(AB_BS, [dists[(est, dname)][B][metric] for B in AB_BS],
+                        marker="o", markersize=4.5, linewidth=1.8,
+                        color=ESTIMATOR_COLORS[est], label=est)
+            if metric == "q_dev":
+                ax.axhline(iv_dists[dname], color="0.35", linestyle=(0, (1, 2)),
+                           linewidth=1.4, label="Mean IV (partition-free)")
+            else:
+                # 1/sqrt(B) guide anchored at the single-partition dispersion:
+                # the slope a mean of B i.i.d. draws would follow exactly, and
+                # a median of B up to the efficiency factor of the median.
+                ref = dists[(AB_ESTS[0], dname)][1]["sd_part"]
+                ax.plot(AB_BS, [ref / np.sqrt(B) for B in AB_BS], color="0.55",
+                        linestyle=(0, (5, 4)), linewidth=1.2,
+                        label=r"$1/\sqrt{B}$ reference")
+            _ab_bs_axis(ax)
+            # Row (a) spans less than one decade at this strength, so a linear
+            # scale reads better; row (b) spans two, and log-log is where the
+            # 1/sqrt(B) reference is a straight line.
+            if row == 1:
+                ax.set_yscale("log")
+            ax.yaxis.grid(True, color="0.88", linewidth=0.7)
+            ax.set_axisbelow(True)
+            if row == 0:
+                ax.set_title(f"$\\varepsilon_Y \\sim$ {dname}", fontsize=11)
+            else:
+                ax.set_xlabel("aggregation depth $B$")
+    axes[0, 0].set_ylabel(r"(a) $(1-\delta)$-quantile of $|\tilde\beta_B-\beta|$",
+                          fontsize=11)
+    axes[1, 0].set_ylabel(r"(b) SD across seeds, one dataset", fontsize=11)
+    axes[0, 0].legend(frameon=False, fontsize=8.5, loc="lower left")
+    axes[1, 0].legend(frameon=False, fontsize=8.5, loc="upper right")
+    _ab_note(fig, f"Note. D = {reps_D} datasets $\\times$ P = {AB_P} permutations per "
+                  f"point; n = {n}, $\\mu_{{ZX}}$ = {BASE['mu_ZX']:g} ($\\gamma$ = "
+                  f"{BASE['sigma2_ZX'] / BASE['mu_ZX'] ** 2:g}, every strength condition "
+                  f"holds), $\\rho$ = {BASE['rho']:g}, $\\delta$ = {DELTA:g}. B = 1 is the "
+                  f"single randomised partition, and the $1/\\sqrt{{B}}$ guide is anchored "
+                  f"at it. Scales are shared within a row; row (b) is log-log.",
+             width=195)
+    fig.subplots_adjust(left=0.07, right=0.99, top=0.92, bottom=0.175,
+                        wspace=0.22, hspace=0.10)
+    _save(fig, "ab_dists.png")
+    print(f"[AB] runtime {time.perf_counter()-t0:.1f}s")
+
+
+# ----------------------------------------------------------------------------
 # I5: R_k critical value table (appendix sec:artable)
 # ----------------------------------------------------------------------------
 
@@ -1216,6 +1724,51 @@ def verify(n_jobs: int) -> None:
             near = any(np.isfinite(e) and abs(x - e) < 1e-3 for iv in cs for e in iv)
             assert near, f"standard AR CS/test disagreement at beta0={x}"
     print("Standard AR CS check: OK")
+    # 6. _ab_dataset's inline block estimators == iv_estimate_mr / _rm.
+    mor, rom, iv = _ab_dataset(np.random.SeedSequence(7), 2000, BASE["mu_ZX"],
+                               ("t", 2.1), DELTA, 3)
+    # Re-draw the same dataset and permutations to compare like with like.
+    r2 = np.random.default_rng(np.random.SeedSequence(7))
+    d2 = generate_data(n=2000, eps_Y_dist=("t", 2.1), rng=r2, **BASE)
+    for p_i in range(3):
+        dp = d2.iloc[r2.permutation(len(d2))].reset_index(drop=True)
+        assert np.isclose(iv_estimate_mr(dp, delta=DELTA, shuffle=False)["beta_hat"],
+                          mor[p_i], rtol=0, atol=1e-12), (p_i, mor[p_i])
+        assert np.isclose(iv_estimate_rm(dp, delta=DELTA, shuffle=False)["beta_hat"],
+                          rom[p_i], rtol=0, atol=1e-12), (p_i, rom[p_i])
+    assert np.isclose(iv_estimate(d2)["beta_hat"], iv)
+    # Disjoint-group aggregation: at B = 1 the draws are returned unchanged,
+    # and at B = P the single aggregate is the median of every draw.
+    v = rng.standard_normal((4, 10))
+    assert np.array_equal(_ab_aggregate(v, 1), v)
+    assert np.allclose(_ab_aggregate(v, 10)[:, 0], np.median(v, axis=1))
+    print("AB aggregated-estimator check: OK (3 permutations)")
+
+    # 7. Aggregated CS (cor:agg_cs) against a dense grid, on random unions of
+    #    closed intervals including unbounded ones.
+    for _ in range(200):
+        B = int(rng.integers(1, 8))
+        cs_list = []
+        for _ in range(B):
+            n_iv = int(rng.integers(0, 4))
+            pts = np.sort(rng.uniform(-5, 5, 2 * n_iv))
+            cs = inf._merge_intervals([(pts[2 * i], pts[2 * i + 1]) for i in range(n_iv)])
+            if n_iv and rng.random() < 0.25:
+                cs = [(-np.inf, cs[0][1])] + cs[1:]
+            if n_iv and rng.random() < 0.25:
+                cs = cs[:-1] + [(cs[-1][0], np.inf)]
+            cs_list.append(cs)
+        agg = inf.aggregate_cs(cs_list)
+        grid = np.linspace(-7, 7, 4001)
+        for x in grid:
+            claimed = inf.cs_contains(agg, x)
+            inside = sum(inf.cs_contains(c, x) for c in cs_list) >= B / 2
+            if claimed != inside:
+                near = any(np.isfinite(e) and abs(x - e) < 1e-2
+                           for iv in agg for e in iv)
+                assert near, f"aggregate_cs disagreement at beta0={x}"
+    print("Aggregated CS check: OK (200 instances)")
+
     print("All verification checks passed.")
 
 
@@ -1223,7 +1776,8 @@ def verify(n_jobs: int) -> None:
 # CLI
 # ----------------------------------------------------------------------------
 
-ALL_EXPERIMENTS = ["e1e2", "e2b", "e3", "e4", "i1", "i2", "i3", "i4", "i5", "ps"]
+ALL_EXPERIMENTS = ["e1e2", "e2b", "e3", "e4", "i1", "i2", "i3", "i4", "i5", "ps",
+                   "ag", "ab"]
 
 
 def main() -> None:
@@ -1267,6 +1821,10 @@ def main() -> None:
     if "ps" in todo:
         exp_ps_partition(counts["ps_D"], counts["ps_B"], args.n_jobs,
                          B_spot=counts["ps_Bspot"])
+    if "ag" in todo:
+        exp_ag_aggregated(counts["ag_D"], args.n_jobs)
+    if "ab" in todo:
+        exp_ab_aggregated(counts["ab_D"], args.n_jobs)
     print(f"\nTotal runtime: {time.perf_counter()-t0:.1f}s")
 
 

@@ -97,6 +97,15 @@ The dispersion induced by the partition is of the same order as the sampling unc
   \label{fig:ak91_sensitivity}
 \end{figure}
 
+\subsubsection{Aggregated estimates and confidence sets}
+\label{sss:ak91_aggregated}
+
+Table~\ref{tab:ak91_aggregated} applies the aggregation of Section~\ref{sec:aggregation} to the $B = 1{,}000$ partitions of the previous subsection, reporting the aggregated estimator of Definition~\ref{def:randomised} and the aggregated confidence set of Corollary~\ref{cor:agg_cs}. Every permutation drawn enters the same aggregate, so the table has no seed left to report, and it is directly comparable with Table~\ref{tab:ak91_robust}, which is the same quantities on one partition.
+
+\todo[inline]{Expand: Aggregation buys back most of what Section~\ref{sss:ak91_sensitivity} showed the seed was costing. The Median-of-Ratios estimate moves from $0.0584$ on the documented partition, one draw from a range of $[0.028, 0.150]$, to $0.0992$, within $0.003$ of the partition-free Wald value $0.1020$; Ratio-of-Medians lands at $0.1013$. The self-normalised set is the sharper illustration: on one partition it was a union of three intervals, and whether it excluded zero was a function of the seed in $8.4\%$ of draws. Aggregated it is the single interval $[0.0413, 0.1829]$, it excludes zero, and there is no seed left to vary. Nothing is paid in width for that: the aggregated sets have essentially the median length of the per-partition sets, $0.142$ against a median of $0.15$ for the self-normalised test and $0.428$ against $0.43$ for MoM-AR. What aggregation does not repair is the conservativeness of $\tau_n(\delta)$, so the feasible MoM-AR set still contains both zero and the Wald estimate, exactly as in Table~\ref{tab:ak91_robust}. Note also that the aggregated set is guaranteed at $2\delta$ rather than $\delta$, so a like-for-like comparison would run the underlying test at $\delta/2$ (Remark~\ref{rem:agg_price}).}
+
+\input{iteration4/ak91_aggregated}
+
 \subsection{The Causal Effect of Family Size on Parental Labour Supply}
 \label{ss:ae98}
 
@@ -142,3 +151,12 @@ The contrast with Section~\ref{sss:ak91_sensitivity} is not one of magnitude, si
   \caption{Partition sensitivity for Labour income, \citet{angrist1998children} 1980 all-women sample, $B = 1{,}000$ random partitions. Panels as in Figure~\ref{fig:ak91_sensitivity}.}
   \label{fig:ae98_sensitivity_incomem}
 \end{figure}
+
+\subsubsection{Aggregated estimates and confidence sets}
+\label{sss:ae98_aggregated}
+
+Table~\ref{tab:ae98_aggregated} applies the same aggregation to the $B = 1{,}000$ partitions, for each of the five outcomes, against the single-partition Table~\ref{tab:ae98_robust}.
+
+\todo[inline]{Expand: Here every aggregate lands on the partition-free Wald value: over the five outcomes the largest gap is $0.4\%$, Weeks worked at $-6.3872$ against $-6.3596$. That settles the reading offered for Table~\ref{tab:ae98_robust}, where on one partition Median-of-Ratios sat $21\%$ below the Wald estimate for Labour income and Ratio-of-Medians $31\%$ above it, and Ratio-of-Medians even reversed sign for ln(Family income) at $+0.0481$. Aggregated, those become $-2192.4$ and $-2171.4$ against $-2188.3$, and $-0.0248$ against $-0.0262$: the gaps were the draw of the partition, not the estimator, and aggregation removes them. The verdicts do not move, the self-normalised set excluding zero for the four labour-supply outcomes and containing it for ln(Family income), which is what Section~\ref{sss:ae98_sensitivity} anticipated in finding every partition already unanimous; what is new is that the reported numbers no longer depend on a seed. As in Section~\ref{sss:ak91_aggregated} the aggregated sets have close to the median per-partition length for every outcome and every test, and the feasible MoM-AR set still contains zero throughout.}
+
+\input{iteration4/ae98_aggregated}
